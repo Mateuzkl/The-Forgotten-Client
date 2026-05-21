@@ -27,6 +27,9 @@
 #include "elfbot_compat.h"
 
 #include <curl/curl.h>
+#include <cstdarg>
+#include <cstdio>
+#include <ctime>
 
 #define SDL_REPEAT 2
 
@@ -71,6 +74,38 @@ bool g_show = true;
 bool g_minimized = false;
 bool g_running = true;
 bool g_inited = false;
+
+static void startupDebugLog(const char* format, ...)
+{
+	const std::string path = (!g_basePath.empty() ? g_basePath + "tfc_startup_debug.log" : std::string("tfc_startup_debug.log"));
+	FILE* file = NULL;
+	#if defined(_WIN32)
+	if(fopen_s(&file, path.c_str(), "a") != 0)
+		file = NULL;
+	#else
+	file = std::fopen(path.c_str(), "a");
+	#endif
+	if(!file)
+		return;
+
+	char timeBuffer[64];
+	time_t now = time(NULL);
+	struct tm tmNow;
+	#if defined(_WIN32)
+	localtime_s(&tmNow, &now);
+	#else
+	tmNow = *localtime(&now);
+	#endif
+	std::strftime(timeBuffer, sizeof(timeBuffer), "%Y-%m-%d %H:%M:%S", &tmNow);
+	std::fprintf(file, "[%s] ", timeBuffer);
+
+	va_list args;
+	va_start(args, format);
+	std::vfprintf(file, format, args);
+	va_end(args);
+	std::fprintf(file, "\n");
+	std::fclose(file);
+}
 
 void SDL_initFramerate(FPSmanager * manager)
 {
@@ -245,25 +280,33 @@ extern "C"
 #endif
 int main(int argc, char* argv[])
 {
+	startupDebugLog("main: start argc=%d", argc);
 	SDL_initFramerate(&g_fpsmanager);
+	startupDebugLog("main: framerate initialized");
 	ElfbotCompat::init();
+	startupDebugLog("main: ElfbotCompat::init returned active=%u", SDL_static_cast(Uint32, ElfbotCompat::isActive()));
 	ElfbotCompat::registerTibiaWindowClass();
+	startupDebugLog("main: ElfbotCompat::registerTibiaWindowClass done");
 
 	if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER) < 0)
 	{
 		SDL_snprintf(g_buffer, sizeof(g_buffer), "Couldn't initialize SDL: %s", SDL_GetError());
+		startupDebugLog("main: SDL_Init failed: %s", SDL_GetError());
 		UTIL_MessageBox(true, g_buffer);//FIME: Should we call this here if video initializing failed? From what I seen in source it's platform specific.
 		return -1;
 	}
+	startupDebugLog("main: SDL_Init ok");
 
 	CURLcode cresult = curl_global_init(CURL_GLOBAL_DEFAULT);
 	if(cresult != CURLE_OK)
 	{
 		SDL_snprintf(g_buffer, sizeof(g_buffer), "Couldn't initialize CURL");
+		startupDebugLog("main: curl_global_init failed code=%d", SDL_static_cast(Sint32, cresult));
 		UTIL_MessageBox(true, g_buffer);
 		SDL_Quit();
 		return -1;
 	}
+	startupDebugLog("main: curl_global_init ok");
 
 	char* basePath = SDL_GetBasePath();
 	if(basePath)
@@ -273,6 +316,7 @@ int main(int argc, char* argv[])
 	}
 	else//Unsupported try local path
 		g_basePath = std::string("", 0);
+	startupDebugLog("main: basePath='%s'", g_basePath.c_str());
 
 	char* prefPath = SDL_GetPrefPath(NULL, CONFIG_CATALOG);
 	if(prefPath)
@@ -282,31 +326,58 @@ int main(int argc, char* argv[])
 	}
 	else//Unsupported try local path
 		g_prefPath = std::string("", 0);
+	startupDebugLog("main: prefPath='%s'", g_prefPath.c_str());
 
 	// Store automap next to the exe for easy distribution
 	g_mapPath = g_basePath + std::string(AUTOMAP_CATALOG) + PATH_PLATFORM_SLASH;
 
 	initCursors();
+	startupDebugLog("main: cursors initialized");
 	if(!checkPicFile())
+	{
+		startupDebugLog("main: checkPicFile failed picPath='%s'", g_picPath.c_str());
 		return -1;
+	}
+	startupDebugLog("main: checkPicFile ok picPath='%s'", g_picPath.c_str());
 
 	if(SDL_AddTimer(5000, SDL_UpdateThink, NULL) == SDL_static_cast(SDL_TimerID, 0))
 	{
 		SDL_snprintf(g_buffer, sizeof(g_buffer), "Couldn't initialize SDL Timer: %s", SDL_GetError());
+		startupDebugLog("main: SDL_AddTimer failed: %s", SDL_GetError());
 		UTIL_MessageBox(false, g_buffer);
 		return -1;
 	}
+	startupDebugLog("main: SDL_AddTimer ok");
 
 	UTIL_initSubsystem();
+	startupDebugLog("main: UTIL_initSubsystem ok");
 	g_engine.run();
+	startupDebugLog("main: g_engine.run returned");
 	g_engine.parseCommands(argc, argv);
+	startupDebugLog("main: parseCommands ok");
 	SDL_setKeyRepeat(200, 50);
+	startupDebugLog("main: entering main loop");
 
 	SDL_Event event;
+	bool engineInitAttemptLogged = false;
+	bool engineInitFalseLogged = false;
 	while(g_running)
 	{
+		if(!g_inited && !engineInitAttemptLogged)
+		{
+			startupDebugLog("main: calling g_engine.init");
+			engineInitAttemptLogged = true;
+		}
 		if(g_engine.init())
+		{
 			g_inited = true;
+			startupDebugLog("main: g_engine.init ok");
+		}
+		else if(!g_inited && !engineInitFalseLogged)
+		{
+			startupDebugLog("main: g_engine.init returned false");
+			engineInitFalseLogged = true;
+		}
 
 		while(g_inited)
 		{

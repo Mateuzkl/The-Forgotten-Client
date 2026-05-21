@@ -327,11 +327,7 @@ void ProtocolLogin11::initializeConnection()
 
 	SDL_snprintf(g_buffer, sizeof(g_buffer), "%slogin.dat", g_prefPath.c_str());
 	auto json = std::make_unique<JSON_VALUE>(jsonObject);
-	#if CLIENT_OVVERIDE_VERSION == 0
 	m_requestId = g_http.addRequest(g_engine.getClientHost(), g_buffer, JSON_VALUE::encode(json.get()), &handleRequest, 0);
-	#else
-	m_requestId = g_http.addRequest(CLIENT_OVVERIDE_LOGIN_HOST, g_buffer, JSON_VALUE::encode(json.get()), &handleRequest, 0);
-	#endif
 }
 
 void ProtocolLogin11::closeConnection()

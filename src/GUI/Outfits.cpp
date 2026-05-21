@@ -454,8 +454,11 @@ void UTIL_createOutfitWindow(Uint16 lookType, Uint8 lookHead, Uint8 lookBody, Ui
 	if(pWindow)
 		g_engine.removeWindow(pWindow);
 
+	const bool mountsEnabled = g_game.hasGameFeature(GAME_FEATURE_MOUNTS);
 	std::vector<OutfitDetail> windowOutfits = outfits;
-	std::vector<MountDetail> windowMounts = mounts;
+	std::vector<MountDetail> windowMounts = (mountsEnabled ? mounts : std::vector<MountDetail>());
+	if(!mountsEnabled)
+		lookMount = 0;
 
 	if(lookType == 0)
 	{
@@ -525,7 +528,8 @@ void UTIL_createOutfitWindow(Uint16 lookType, Uint8 lookHead, Uint8 lookBody, Ui
 	std::unique_ptr<GUI_Window> newWindow = std::make_unique<GUI_Window>(iRect(0, 0, OUTFITS_WIDTH, OUTFITS_HEIGHT), OUTFITS_TITLE, GUI_WINDOW_OUTFITS);
 
 	addWindowChild<GUI_Outfit_View>(*newWindow, iRect(OUTFITS_OUTFIT_VIEW_X, OUTFITS_OUTFIT_VIEW_Y, OUTFITS_OUTFIT_VIEW_W, OUTFITS_OUTFIT_VIEW_H), OUTFITS_OUTFIT_VIEW_EVENTID, GUI_Outfit_View::PreviewMode_Outfit);
-	addWindowChild<GUI_Outfit_View>(*newWindow, iRect(OUTFITS_MOUNT_VIEW_X, OUTFITS_MOUNT_VIEW_Y, OUTFITS_MOUNT_VIEW_W, OUTFITS_MOUNT_VIEW_H), OUTFITS_MOUNT_VIEW_EVENTID, GUI_Outfit_View::PreviewMode_Mount);
+	if(mountsEnabled)
+		addWindowChild<GUI_Outfit_View>(*newWindow, iRect(OUTFITS_MOUNT_VIEW_X, OUTFITS_MOUNT_VIEW_Y, OUTFITS_MOUNT_VIEW_W, OUTFITS_MOUNT_VIEW_H), OUTFITS_MOUNT_VIEW_EVENTID, GUI_Outfit_View::PreviewMode_Mount);
 
 	GUI_Outfit_Colors* newColors = addWindowChild<GUI_Outfit_Colors>(*newWindow, iRect(OUTFITS_OUTFIT_COLORS_X, OUTFITS_OUTFIT_COLORS_Y, OUTFITS_OUTFIT_COLORS_W, OUTFITS_OUTFIT_COLORS_H));
 	newColors->startEvents();
@@ -538,13 +542,16 @@ void UTIL_createOutfitWindow(Uint16 lookType, Uint8 lookHead, Uint8 lookBody, Ui
 	newIcon->setButtonEventCallback(&outfits_Events, OUTFITS_ICON_NEXT_OUTFIT_EVENTID);
 	newIcon->startEvents();
 
-	newIcon = addWindowChild<GUI_Icon>(*newWindow, iRect(OUTFITS_ICON_PREV_MOUNT_X, OUTFITS_ICON_PREV_MOUNT_Y, OUTFITS_ICON_PREV_MOUNT_W, OUTFITS_ICON_PREV_MOUNT_H), GUI_UI_IMAGE, GUI_UI_ICON_ARROW_LEFT_UP_X, GUI_UI_ICON_ARROW_LEFT_UP_Y, GUI_UI_ICON_ARROW_LEFT_DOWN_X, GUI_UI_ICON_ARROW_LEFT_DOWN_Y);
-	newIcon->setButtonEventCallback(&outfits_Events, OUTFITS_ICON_PREV_MOUNT_EVENTID);
-	newIcon->startEvents();
+	if(mountsEnabled)
+	{
+		newIcon = addWindowChild<GUI_Icon>(*newWindow, iRect(OUTFITS_ICON_PREV_MOUNT_X, OUTFITS_ICON_PREV_MOUNT_Y, OUTFITS_ICON_PREV_MOUNT_W, OUTFITS_ICON_PREV_MOUNT_H), GUI_UI_IMAGE, GUI_UI_ICON_ARROW_LEFT_UP_X, GUI_UI_ICON_ARROW_LEFT_UP_Y, GUI_UI_ICON_ARROW_LEFT_DOWN_X, GUI_UI_ICON_ARROW_LEFT_DOWN_Y);
+		newIcon->setButtonEventCallback(&outfits_Events, OUTFITS_ICON_PREV_MOUNT_EVENTID);
+		newIcon->startEvents();
 
-	newIcon = addWindowChild<GUI_Icon>(*newWindow, iRect(OUTFITS_ICON_NEXT_MOUNT_X, OUTFITS_ICON_NEXT_MOUNT_Y, OUTFITS_ICON_NEXT_MOUNT_W, OUTFITS_ICON_NEXT_MOUNT_H), GUI_UI_IMAGE, GUI_UI_ICON_ARROW_RIGHT_UP_X, GUI_UI_ICON_ARROW_RIGHT_UP_Y, GUI_UI_ICON_ARROW_RIGHT_DOWN_X, GUI_UI_ICON_ARROW_RIGHT_DOWN_Y);
-	newIcon->setButtonEventCallback(&outfits_Events, OUTFITS_ICON_NEXT_MOUNT_EVENTID);
-	newIcon->startEvents();
+		newIcon = addWindowChild<GUI_Icon>(*newWindow, iRect(OUTFITS_ICON_NEXT_MOUNT_X, OUTFITS_ICON_NEXT_MOUNT_Y, OUTFITS_ICON_NEXT_MOUNT_W, OUTFITS_ICON_NEXT_MOUNT_H), GUI_UI_IMAGE, GUI_UI_ICON_ARROW_RIGHT_UP_X, GUI_UI_ICON_ARROW_RIGHT_UP_Y, GUI_UI_ICON_ARROW_RIGHT_DOWN_X, GUI_UI_ICON_ARROW_RIGHT_DOWN_Y);
+		newIcon->setButtonEventCallback(&outfits_Events, OUTFITS_ICON_NEXT_MOUNT_EVENTID);
+		newIcon->startEvents();
+	}
 
 	newIcon = addWindowChild<GUI_Icon>(*newWindow, iRect(OUTFITS_ICON_PREV_OUTFIT_DIRECTION_X, OUTFITS_ICON_PREV_OUTFIT_DIRECTION_Y, OUTFITS_ICON_PREV_OUTFIT_DIRECTION_W, OUTFITS_ICON_PREV_OUTFIT_DIRECTION_H), GUI_UI_IMAGE, GUI_UI_ICON_ROTATE_LEFT_UP_X, GUI_UI_ICON_ROTATE_LEFT_UP_Y, GUI_UI_ICON_ROTATE_LEFT_DOWN_X, GUI_UI_ICON_ROTATE_LEFT_DOWN_Y);
 	newIcon->setButtonEventCallback(&outfits_Events, OUTFITS_ICON_PREV_OUTFIT_DIRECTION_EVENTID);
@@ -554,16 +561,20 @@ void UTIL_createOutfitWindow(Uint16 lookType, Uint8 lookHead, Uint8 lookBody, Ui
 	newIcon->setButtonEventCallback(&outfits_Events, OUTFITS_ICON_NEXT_OUTFIT_DIRECTION_EVENTID);
 	newIcon->startEvents();
 
-	newIcon = addWindowChild<GUI_Icon>(*newWindow, iRect(OUTFITS_ICON_PREV_MOUNT_DIRECTION_X, OUTFITS_ICON_PREV_MOUNT_DIRECTION_Y, OUTFITS_ICON_PREV_MOUNT_DIRECTION_W, OUTFITS_ICON_PREV_MOUNT_DIRECTION_H), GUI_UI_IMAGE, GUI_UI_ICON_ROTATE_LEFT_UP_X, GUI_UI_ICON_ROTATE_LEFT_UP_Y, GUI_UI_ICON_ROTATE_LEFT_DOWN_X, GUI_UI_ICON_ROTATE_LEFT_DOWN_Y);
-	newIcon->setButtonEventCallback(&outfits_Events, OUTFITS_ICON_PREV_MOUNT_DIRECTION_EVENTID);
-	newIcon->startEvents();
+	if(mountsEnabled)
+	{
+		newIcon = addWindowChild<GUI_Icon>(*newWindow, iRect(OUTFITS_ICON_PREV_MOUNT_DIRECTION_X, OUTFITS_ICON_PREV_MOUNT_DIRECTION_Y, OUTFITS_ICON_PREV_MOUNT_DIRECTION_W, OUTFITS_ICON_PREV_MOUNT_DIRECTION_H), GUI_UI_IMAGE, GUI_UI_ICON_ROTATE_LEFT_UP_X, GUI_UI_ICON_ROTATE_LEFT_UP_Y, GUI_UI_ICON_ROTATE_LEFT_DOWN_X, GUI_UI_ICON_ROTATE_LEFT_DOWN_Y);
+		newIcon->setButtonEventCallback(&outfits_Events, OUTFITS_ICON_PREV_MOUNT_DIRECTION_EVENTID);
+		newIcon->startEvents();
 
-	newIcon = addWindowChild<GUI_Icon>(*newWindow, iRect(OUTFITS_ICON_NEXT_MOUNT_DIRECTION_X, OUTFITS_ICON_NEXT_MOUNT_DIRECTION_Y, OUTFITS_ICON_NEXT_MOUNT_DIRECTION_W, OUTFITS_ICON_NEXT_MOUNT_DIRECTION_H), GUI_UI_IMAGE, GUI_UI_ICON_ROTATE_RIGHT_UP_X, GUI_UI_ICON_ROTATE_RIGHT_UP_Y, GUI_UI_ICON_ROTATE_RIGHT_DOWN_X, GUI_UI_ICON_ROTATE_RIGHT_DOWN_Y);
-	newIcon->setButtonEventCallback(&outfits_Events, OUTFITS_ICON_NEXT_MOUNT_DIRECTION_EVENTID);
-	newIcon->startEvents();
+		newIcon = addWindowChild<GUI_Icon>(*newWindow, iRect(OUTFITS_ICON_NEXT_MOUNT_DIRECTION_X, OUTFITS_ICON_NEXT_MOUNT_DIRECTION_Y, OUTFITS_ICON_NEXT_MOUNT_DIRECTION_W, OUTFITS_ICON_NEXT_MOUNT_DIRECTION_H), GUI_UI_IMAGE, GUI_UI_ICON_ROTATE_RIGHT_UP_X, GUI_UI_ICON_ROTATE_RIGHT_UP_Y, GUI_UI_ICON_ROTATE_RIGHT_DOWN_X, GUI_UI_ICON_ROTATE_RIGHT_DOWN_Y);
+		newIcon->setButtonEventCallback(&outfits_Events, OUTFITS_ICON_NEXT_MOUNT_DIRECTION_EVENTID);
+		newIcon->startEvents();
+	}
 
 	addWindowChild<GUI_Grouper>(*newWindow, iRect(OUTFITS_GROUPER_OUTFIT_NAME_X, OUTFITS_GROUPER_OUTFIT_NAME_Y, OUTFITS_GROUPER_OUTFIT_NAME_W, OUTFITS_GROUPER_OUTFIT_NAME_H));
-	addWindowChild<GUI_Grouper>(*newWindow, iRect(OUTFITS_GROUPER_MOUNT_NAME_X, OUTFITS_GROUPER_MOUNT_NAME_Y, OUTFITS_GROUPER_MOUNT_NAME_W, OUTFITS_GROUPER_MOUNT_NAME_H));
+	if(mountsEnabled)
+		addWindowChild<GUI_Grouper>(*newWindow, iRect(OUTFITS_GROUPER_MOUNT_NAME_X, OUTFITS_GROUPER_MOUNT_NAME_Y, OUTFITS_GROUPER_MOUNT_NAME_W, OUTFITS_GROUPER_MOUNT_NAME_H));
 
 	GUI_CheckBox* newCheckBox = addWindowChild<GUI_CheckBox>(*newWindow, iRect(OUTFITS_CHECKBOX_ADDON1_X, OUTFITS_CHECKBOX_ADDON1_Y, OUTFITS_CHECKBOX_ADDON1_W, OUTFITS_CHECKBOX_ADDON1_H), OUTFITS_CHECKBOX_ADDON1_TEXT, ((g_outfitAddons & 1) != 0), OUTFITS_CHECKBOX_ADDON1_EVENTID);
 	newCheckBox->setBoxEventCallback(&outfits_Events, OUTFITS_CHECKBOX_ADDON1_EVENTID);
@@ -576,8 +587,11 @@ void UTIL_createOutfitWindow(Uint16 lookType, Uint8 lookHead, Uint8 lookBody, Ui
 
 	GUI_Label* newLabel = addWindowChild<GUI_Label>(*newWindow, iRect(OUTFITS_LABEL_OUTFIT_X, OUTFITS_LABEL_OUTFIT_Y, 0, 0), outfitName, OUTFITS_LABEL_OUTFIT_EVENTID);
 	newLabel->setAlign(CLIENT_FONT_ALIGN_CENTER);
-	newLabel = addWindowChild<GUI_Label>(*newWindow, iRect(OUTFITS_LABEL_MOUNT_X, OUTFITS_LABEL_MOUNT_Y, 0, 0), mountName, OUTFITS_LABEL_MOUNT_EVENTID);
-	newLabel->setAlign(CLIENT_FONT_ALIGN_CENTER);
+	if(mountsEnabled)
+	{
+		newLabel = addWindowChild<GUI_Label>(*newWindow, iRect(OUTFITS_LABEL_MOUNT_X, OUTFITS_LABEL_MOUNT_Y, 0, 0), mountName, OUTFITS_LABEL_MOUNT_EVENTID);
+		newLabel->setAlign(CLIENT_FONT_ALIGN_CENTER);
+	}
 
 	GUI_Button* newButton = addWindowChild<GUI_Button>(*newWindow, iRect(OUTFITS_RANDOMIZE_X, OUTFITS_RANDOMIZE_Y, OUTFITS_RANDOMIZE_W, OUTFITS_RANDOMIZE_H), "Randomize Colors");
 	newButton->setButtonEventCallback(&outfits_Events, OUTFITS_RANDOMIZE_EVENTID);

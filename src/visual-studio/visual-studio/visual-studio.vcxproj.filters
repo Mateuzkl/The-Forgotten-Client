@@ -78,6 +78,9 @@
     <ClCompile Include="..\..\protocol.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\protocolfeatures.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\protocollogin.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -423,6 +426,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\protocol.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\protocolfeatures.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\protocollogin.h">

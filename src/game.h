@@ -74,9 +74,17 @@ class Game
 		void reset();
 
 		void clientChangeVersion(Uint32 clientVersion, Uint32 fileVersion);
-		bool hasGameFeature(GameFeatures feature) {return m_gameFeatures[feature];}
-		void enableGameFeature(GameFeatures feature) {m_gameFeatures.set(feature, true);}
-		void disableGameFeature(GameFeatures feature) {m_gameFeatures.set(feature, false);}
+		void applyDefaultFeaturesForVersion(Uint32 clientVersion, Uint32 fileVersion);
+		void resetGameFeatures() {m_gameFeatures.reset();}
+		bool hasGameFeature(GameFeatures feature) const {return (feature >= GAME_FEATURE_FIRST && feature < GAME_FEATURE_LAST ? m_gameFeatures[feature] : false);}
+		void setGameFeature(GameFeatures feature, bool enabled);
+		void forceGameFeature(GameFeatures feature, bool enabled);
+		void enableGameFeature(GameFeatures feature) {setGameFeature(feature, true);}
+		void disableGameFeature(GameFeatures feature) {setGameFeature(feature, false);}
+		bool enableGameFeatureByName(const std::string& featureName);
+		bool disableGameFeatureByName(const std::string& featureName);
+		bool hasGameFeatureByName(const std::string& featureName) const;
+		bool loadFeatureProfile(const std::string& profileName);
 
 		void processGMActions(std::vector<Uint8> privileges);
 		void processLoginWait(const std::string& message, Uint8 time);

@@ -111,6 +111,7 @@
     <ClCompile Include="..\..\map.cpp" />
     <ClCompile Include="..\..\outputMessage.cpp" />
     <ClCompile Include="..\..\protocol.cpp" />
+    <ClCompile Include="..\..\protocolfeatures.cpp" />
     <ClCompile Include="..\..\protocolgame.cpp" />
     <ClCompile Include="..\..\protocollogin.cpp" />
     <ClCompile Include="..\..\protocolloginHttp.cpp" />
@@ -216,6 +217,7 @@
     <ClInclude Include="..\..\outputMessage.h" />
     <ClInclude Include="..\..\position.h" />
     <ClInclude Include="..\..\protocol.h" />
+    <ClInclude Include="..\..\protocolfeatures.h" />
     <ClInclude Include="..\..\protocolgame.h" />
     <ClInclude Include="..\..\protocollogin.h" />
     <ClInclude Include="..\..\protocolloginHttp.h" />
@@ -346,10 +348,11 @@
       <BaseAddress>0x00140000</BaseAddress>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <FixedBaseAddress>true</FixedBaseAddress>
-      <AdditionalOptions>/SECTION:.text,ERW %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PostBuildEvent>
-      <Command>copy /Y "$(ProjectDir)..\lib32\zlib1.dll" "$(OutDir)zlib1.dll"</Command>
+      <Command>copy /Y "$(ProjectDir)..\lib32\zlib1.dll" "$(OutDir)zlib1.dll"
+if not exist "$(OutDir)data" mkdir "$(OutDir)data"
+copy /Y "$(ProjectDir)..\..\..\data\features.lua" "$(OutDir)data\features.lua"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -401,10 +404,11 @@
       <BaseAddress>0x00140000</BaseAddress>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <FixedBaseAddress>true</FixedBaseAddress>
-      <AdditionalOptions>/SECTION:.text,ERW %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PostBuildEvent>
-      <Command>copy /Y "$(ProjectDir)..\lib32\zlib1.dll" "$(OutDir)zlib1.dll"</Command>
+      <Command>copy /Y "$(ProjectDir)..\lib32\zlib1.dll" "$(OutDir)zlib1.dll"
+if not exist "$(OutDir)data" mkdir "$(OutDir)data"
+copy /Y "$(ProjectDir)..\..\..\data\features.lua" "$(OutDir)data\features.lua"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

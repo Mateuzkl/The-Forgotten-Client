@@ -25,6 +25,7 @@
 #include "tile.h"
 #include "creature.h"
 #include "protocolgame.h"
+#include "protocolfeatures.h"
 #include "automap.h"
 #include "container.h"
 #include "elfbot_compat.h"
@@ -92,6 +93,11 @@ void Game::reset()
 }
 
 void Game::clientChangeVersion(Uint32 clientVersion, Uint32 fileVersion)
+{
+	getProtocolFeatureManager().applyForServer(clientVersion, fileVersion, g_engine.getClientHost(), g_engine.getClientPort());
+}
+
+void Game::applyDefaultFeaturesForVersion(Uint32 clientVersion, Uint32 fileVersion)
 {
 	m_gameFeatures.reset();
 	enableGameFeature(GAME_FEATURE_UPDATE_TILE);
@@ -311,6 +317,51 @@ void Game::clientChangeVersion(Uint32 clientVersion, Uint32 fileVersion)
 		enableGameFeature(GAME_FEATURE_TOURNAMENTS);
 	if(clientVersion >= 1220)
 		enableGameFeature(GAME_FEATURE_ACCOUNT_EMAIL);
+}
+
+void Game::setGameFeature(GameFeatures feature, bool enabled)
+{
+	if(feature < GAME_FEATURE_FIRST || feature >= GAME_FEATURE_LAST)
+		return;
+
+	if(getProtocolFeatureManager().isFeatureLocked(feature))
+	{
+		UTIL_protocolDebugLog("features", "[Features] Runtime change ignored for locked feature id=%u", SDL_static_cast(Uint32, feature));
+		return;
+	}
+
+	m_gameFeatures.set(feature, enabled);
+}
+
+void Game::forceGameFeature(GameFeatures feature, bool enabled)
+{
+	if(feature >= GAME_FEATURE_FIRST && feature < GAME_FEATURE_LAST)
+		m_gameFeatures.set(feature, enabled);
+}
+
+bool Game::enableGameFeatureByName(const std::string& featureName)
+{
+	return getProtocolFeatureManager().enableFeatureByName(featureName);
+}
+
+bool Game::disableGameFeatureByName(const std::string& featureName)
+{
+	return getProtocolFeatureManager().disableFeatureByName(featureName);
+}
+
+bool Game::hasGameFeatureByName(const std::string& featureName) const
+{
+	return getProtocolFeatureManager().hasFeatureByName(featureName);
+}
+
+bool Game::loadFeatureProfile(const std::string& profileName)
+{
+	if(g_engine.isIngame())
+	{
+		UTIL_protocolDebugLog("features", "%s", "[Features] Cannot change profile while connected. Disconnect first.");
+		return false;
+	}
+	return getProtocolFeatureManager().applyProfile(profileName, g_clientVersion, g_clientVersion);
 }
 
 void Game::processGMActions(std::vector<Uint8> privileges)
@@ -1123,6 +1174,12 @@ void Game::sendSetOutfit(Uint16 lookType, Uint8 lookHead, Uint8 lookBody, Uint8 
 
 void Game::sendMount(bool active)
 {
+	if(!hasGameFeature(GAME_FEATURE_MOUNTS))
+	{
+		UTIL_protocolDebugLog("game", "send mount ignored because GamePlayerMounts is disabled");
+		return;
+	}
+
 	if(g_engine.isIngame())
 	{
 		ProtocolGame* game = GET_SAFE_PROTOCOLGAME;

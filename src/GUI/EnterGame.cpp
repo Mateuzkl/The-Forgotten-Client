@@ -28,6 +28,7 @@
 #include "../GUI_Elements/GUI_Label.h"
 #include "../protocolloginHttp.h"
 #include "../game.h"
+#include "../protocolfeatures.h"
 #include "../thingManager.h"
 #include "../spriteManager.h"
 
@@ -89,6 +90,8 @@ void enterGame_Events(Uint32 event, Sint32)
 			if(pWindow && pWindow->getInternalID() == GUI_WINDOW_ENTERGAME)
 			{
 				g_engine.removeWindow(pWindow);
+				const Uint32 currentFileVersion = getProtocolFeatureManager().getCurrentFileVersion();
+				getProtocolFeatureManager().applyForServer(g_clientVersion, (currentFileVersion != 0 ? currentFileVersion : g_clientVersion), g_engine.getClientHost(), g_engine.getClientPort());
 				if(!g_spriteManager.isSprLoaded())
 				{
 					if(g_game.hasGameFeature(GAME_FEATURE_NEWFILES_STRUCTURE))
@@ -127,7 +130,7 @@ void enterGame_Events(Uint32 event, Sint32)
 				{
 					#if CLIENT_OVVERIDE_VERSION > 0
 					Uint32 oldClient = g_clientVersion;
-					g_clientVersion = CLIENT_OVERRIDE_FILE_VERSION;
+					g_clientVersion = getProtocolFeatureManager().getCurrentFileVersion();
 					#endif
 					if(g_game.hasGameFeature(GAME_FEATURE_NEWFILES_STRUCTURE))
 					{
@@ -173,11 +176,7 @@ void enterGame_Events(Uint32 event, Sint32)
 					g_engine.setAccountPassword(pTextBox->getActualText());
 
 				UTIL_messageBox("Connecting", "Your character list is being loaded. Please wait.");
-				#if CLIENT_OVVERIDE_VERSION == 0
 				if(g_engine.getClientHost().find("http") != std::string::npos)
-				#else
-				if(std::string(CLIENT_OVERRIDE_LOGIN_HOST).find("http") != std::string::npos)
-				#endif
 					g_protocolLoginHttp.initializeConnection();
 				else
 					g_engine.issueNewConnection(false);
