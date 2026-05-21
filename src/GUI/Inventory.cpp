@@ -127,13 +127,13 @@ void UTIL_createInventoryPanel(bool minimized)
 		pPanel->clearChilds();
 		if(minimized)
 		{
-			iRect rect = pPanel->getRect(); rect.y2 = 48;
+			iRect rect = pPanel->getRect(); rect.y2 = 64;
 			pPanel->setRect(rect, true);
 			pPanel->setInternalID(GUI_PANEL_WINDOW_INVENTORY_MINIMIZED);
 		}
 		else
 		{
-			iRect rect = pPanel->getRect(); rect.y2 = 151;
+			iRect rect = pPanel->getRect(); rect.y2 = 170;
 			pPanel->setRect(rect, true);
 			pPanel->setInternalID(GUI_PANEL_WINDOW_INVENTORY);
 		}
@@ -142,9 +142,9 @@ void UTIL_createInventoryPanel(bool minimized)
 	{
 		newWindow = true;
 		if(minimized)
-			pPanel = new GUI_PanelWindow(iRect(0, 0, GAME_PANEL_FIXED_WIDTH - 4, 48), false, GUI_PANEL_WINDOW_INVENTORY_MINIMIZED);
+			pPanel = new GUI_PanelWindow(iRect(0, 0, GAME_PANEL_FIXED_WIDTH - 4, 64), false, GUI_PANEL_WINDOW_INVENTORY_MINIMIZED);
 		else
-			pPanel = new GUI_PanelWindow(iRect(0, 0, GAME_PANEL_FIXED_WIDTH - 4, 151), false, GUI_PANEL_WINDOW_INVENTORY);
+			pPanel = new GUI_PanelWindow(iRect(0, 0, GAME_PANEL_FIXED_WIDTH - 4, 170), false, GUI_PANEL_WINDOW_INVENTORY);
 	}
 
 	if(minimized)
@@ -239,19 +239,26 @@ void UTIL_createInventoryPanel(bool minimized)
 		newIcon->setButtonEventCallback(&inventory_Events, INVENTORY_MAXIMIZE_EVENTID);
 		newIcon->startEvents();
 		pPanel->addChild(newIcon);
-		// Soul background stays (now shows status icons)
 		GUI_StaticImage* newImage = new GUI_StaticImage(iRect(22, 4, GUI_UI_STATUS_BACKGROUND_BIG_W, GUI_UI_STATUS_BACKGROUND_H), GUI_UI_IMAGE, GUI_UI_STATUS_BACKGROUND_BIG_X, GUI_UI_STATUS_BACKGROUND_BIG_Y, 0, INVENTORY_SOUL_DESCRIPTION);
 		pPanel->addChild(newImage);
-		// Cap background stays
 		newImage = new GUI_StaticImage(iRect(22, 25, GUI_UI_STATUS_BACKGROUND_BIG_W, GUI_UI_STATUS_BACKGROUND_H), GUI_UI_IMAGE, GUI_UI_STATUS_BACKGROUND_BIG_X, GUI_UI_STATUS_BACKGROUND_BIG_Y + GUI_UI_STATUS_BACKGROUND_H, 0, INVENTORY_CAP_DESCRIPTION);
 		pPanel->addChild(newImage);
-		GUI_Icons* newIcons = new GUI_Icons(iRect(22, 4, GUI_UI_STATUS_BACKGROUND_BIG_W, GUI_UI_STATUS_BACKGROUND_H));
+		GUI_Icons* newIcons = new GUI_Icons(iRect(15, 48, GUI_UI_ICON_STATUS_BAR_W, GUI_UI_ICON_STATUS_BAR_H));
 		pPanel->addChild(newIcons);
-		GUI_Label* newLabel = new GUI_Label(iRect(38, 27, 0, 0), "Cap:", 0, 255, 255, 255);
+		GUI_Label* newLabel = new GUI_Label(iRect(38, 6, 0, 0), "Soul:", 0, 255, 255, 255);
 		newLabel->setAlign(CLIENT_FONT_ALIGN_CENTER);
 		newLabel->setFont(CLIENT_FONT_SMALL);
 		pPanel->addChild(newLabel);
-		Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%u", SDL_static_cast(Uint32, g_game.getPlayerCapacity()));
+		Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%u", SDL_static_cast(Uint32, g_game.getPlayerSoul()));
+		newLabel = new GUI_Label(iRect(38, 15, 0, 0), UTIL_formatStringCommas(std::string(g_buffer, SDL_static_cast(size_t, len))), INVENTORY_SOUL_EVENTID, 255, 255, 255);
+		newLabel->setAlign(CLIENT_FONT_ALIGN_CENTER);
+		newLabel->setFont(CLIENT_FONT_SMALL);
+		pPanel->addChild(newLabel);
+		newLabel = new GUI_Label(iRect(38, 27, 0, 0), "Cap:", 0, 255, 255, 255);
+		newLabel->setAlign(CLIENT_FONT_ALIGN_CENTER);
+		newLabel->setFont(CLIENT_FONT_SMALL);
+		pPanel->addChild(newLabel);
+		len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%u", SDL_static_cast(Uint32, g_game.getPlayerCapacity()));
 		newLabel = new GUI_Label(iRect(38, 36, 0, 0), UTIL_formatStringCommas(std::string(g_buffer, SDL_static_cast(size_t, len))), INVENTORY_CAP_EVENTID, 255, 255, 255);
 		newLabel->setAlign(CLIENT_FONT_ALIGN_CENTER);
 		newLabel->setFont(CLIENT_FONT_SMALL);
@@ -372,10 +379,8 @@ void UTIL_createInventoryPanel(bool minimized)
 		newIcon->setButtonEventCallback(&inventory_Events, INVENTORY_MINIMIZE_EVENTID);
 		newIcon->startEvents();
 		pPanel->addChild(newIcon);
-		// Soul background stays (now shows status icons instead of Soul text)
 		GUI_StaticImage* newImage = new GUI_StaticImage(iRect(8, 128, GUI_UI_STATUS_BACKGROUND_W, GUI_UI_STATUS_BACKGROUND_H), GUI_UI_IMAGE, GUI_UI_STATUS_BACKGROUND_X, GUI_UI_STATUS_BACKGROUND_Y, 0, INVENTORY_SOUL_DESCRIPTION);
 		pPanel->addChild(newImage);
-		// Cap background stays
 		newImage = new GUI_StaticImage(iRect(82, 128, GUI_UI_STATUS_BACKGROUND_W, GUI_UI_STATUS_BACKGROUND_H), GUI_UI_IMAGE, GUI_UI_STATUS_BACKGROUND_X, GUI_UI_STATUS_BACKGROUND_Y, 0, INVENTORY_CAP_DESCRIPTION);
 		pPanel->addChild(newImage);
 		GUI_InventoryItem* newInventoryItem = new GUI_InventoryItem(iRect(46, 5, 32, 32), GUI_UI_INVENTORY_HEAD_X, GUI_UI_INVENTORY_HEAD_Y, SLOT_HEAD);
@@ -408,15 +413,22 @@ void UTIL_createInventoryPanel(bool minimized)
 		newInventoryItem = new GUI_InventoryItem(iRect(83, 93, 32, 32), GUI_UI_INVENTORY_AMMO_X, GUI_UI_INVENTORY_AMMO_Y, SLOT_AMMO);
 		newInventoryItem->startEvents();
 		pPanel->addChild(newInventoryItem);
-		// Status icons in Soul area (replaces Soul label+value)
-		GUI_Icons* newIcons = new GUI_Icons(iRect(8, 128, GUI_UI_STATUS_BACKGROUND_W, GUI_UI_STATUS_BACKGROUND_H));
+		GUI_Icons* newIcons = new GUI_Icons(iRect(8, 151, GUI_UI_ICON_STATUS_BAR_W, GUI_UI_ICON_STATUS_BAR_H));
 		pPanel->addChild(newIcons);
-		// Cap label and value
-		GUI_Label* newLabel = new GUI_Label(iRect(99, 130, 0, 0), "Cap:", 0, 255, 255, 255);
+		GUI_Label* newLabel = new GUI_Label(iRect(25, 130, 0, 0), "Soul:", 0, 255, 255, 255);
 		newLabel->setAlign(CLIENT_FONT_ALIGN_CENTER);
 		newLabel->setFont(CLIENT_FONT_SMALL);
 		pPanel->addChild(newLabel);
-		Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%u", SDL_static_cast(Uint32, g_game.getPlayerCapacity()));
+		Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%u", SDL_static_cast(Uint32, g_game.getPlayerSoul()));
+		newLabel = new GUI_Label(iRect(25, 140, 0, 0), UTIL_formatStringCommas(std::string(g_buffer, SDL_static_cast(size_t, len))), INVENTORY_SOUL_EVENTID, 255, 255, 255);
+		newLabel->setAlign(CLIENT_FONT_ALIGN_CENTER);
+		newLabel->setFont(CLIENT_FONT_SMALL);
+		pPanel->addChild(newLabel);
+		newLabel = new GUI_Label(iRect(99, 130, 0, 0), "Cap:", 0, 255, 255, 255);
+		newLabel->setAlign(CLIENT_FONT_ALIGN_CENTER);
+		newLabel->setFont(CLIENT_FONT_SMALL);
+		pPanel->addChild(newLabel);
+		len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%u", SDL_static_cast(Uint32, g_game.getPlayerCapacity()));
 		newLabel = new GUI_Label(iRect(99, 140, 0, 0), UTIL_formatStringCommas(std::string(g_buffer, SDL_static_cast(size_t, len))), INVENTORY_CAP_EVENTID, 255, 255, 255);
 		newLabel->setAlign(CLIENT_FONT_ALIGN_CENTER);
 		newLabel->setFont(CLIENT_FONT_SMALL);
@@ -438,6 +450,16 @@ void UTIL_updateInventoryPanel()
 	if(pPanel)
 	{
 		GUI_Label* pLabel;
+		if(g_game.hasCachedStat(CACHED_STAT_SOUL))
+		{
+			pLabel = SDL_static_cast(GUI_Label*, pPanel->getChild(INVENTORY_SOUL_EVENTID));
+			if(pLabel)
+			{
+				Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%u", SDL_static_cast(Uint32, g_game.getPlayerSoul()));
+				pLabel->setName(UTIL_formatStringCommas(std::string(g_buffer, SDL_static_cast(size_t, len))));
+			}
+		}
+		
 		if(g_game.hasCachedStat(CACHED_STAT_CAPACITY))
 		{
 			pLabel = SDL_static_cast(GUI_Label*, pPanel->getChild(INVENTORY_CAP_EVENTID));
@@ -522,48 +544,22 @@ void GUI_Icons::onMouseMove(Sint32 x, Sint32 y, bool isInsideParent)
 	if(icons.empty())
 		return;
 
-	// Cap at 6 - same as render()
-	if(icons.size() > 6)
-		icons.resize(6);
-
-	Sint32 count = SDL_static_cast(Sint32, icons.size());
-
-	static const Sint32 ICON_CELL = 10;
-	Sint32 topCols, botCols, rows;
-	if(count <= 2)      { topCols = count; botCols = 0; rows = 1; }
-	else if(count == 3) { topCols = 2;     botCols = 1; rows = 2; }
-	else if(count == 4) { topCols = 2;     botCols = 2; rows = 2; }
-	else if(count == 5) { topCols = 3;     botCols = 2; rows = 2; }
-	else                { topCols = 3;     botCols = 3; rows = 2; }
-
-	Sint32 maxCols = UTIL_max<Sint32>(topCols, botCols);
-	Sint32 gridW = maxCols * ICON_CELL;
-	Sint32 gridH = rows * ICON_CELL;
-	Sint32 startX = m_tRect.x1 + (m_tRect.x2 - gridW) / 2;
-	Sint32 startY = m_tRect.y1 + (m_tRect.y2 - gridH) / 2;
-
-	for(Sint32 i = 0; i < count; ++i)
+	iRect rect = iRect(m_tRect.x1 + 2, m_tRect.y1 + 2, 9, 9);
+	for(size_t i = 0, end = icons.size(); i < end; ++i)
 	{
-		Sint32 row, col, colsInRow;
-		if(i < topCols) { row = 0; col = i;           colsInRow = topCols; }
-		else            { row = 1; col = i - topCols;  colsInRow = botCols; }
-
-		Sint32 rowOffsetX = (maxCols - colsInRow) * ICON_CELL / 2;
-		Sint32 px = startX + col * ICON_CELL + rowOffsetX;
-		Sint32 py = startY + row * ICON_CELL;
-
-		iRect iconRect = iRect(px, py, 9, 9);
-		if(iconRect.isPointInside(x, y))
+		if(rect.isPointInside(x, y))
 		{
-			g_engine.showDescription(x, y, icons[SDL_static_cast(size_t, i)].desc);
+			g_engine.showDescription(x, y, icons[i].desc);
 			return;
 		}
+		rect.x1 += 10;
 	}
 }
 
 void GUI_Icons::render()
 {
 	auto& renderer = g_engine.getRender();
+	renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_STATUS_BAR_X, GUI_UI_ICON_STATUS_BAR_Y, m_tRect.x1, m_tRect.y1, m_tRect.x2, m_tRect.y2);
 
 	// Collect all active icons into a list
 	struct IconEntry { Sint32 sx, sy, sw, sh; };
@@ -616,44 +612,12 @@ void GUI_Icons::render()
 	if(icons.empty())
 		return;
 
-	// Cap at 6 icons max
-	if(icons.size() > 6)
-		icons.resize(6);
-
-	Sint32 count = SDL_static_cast(Sint32, icons.size());
-
-	// Layout rules (icon cell = 10px: 9px icon + 1px gap):
-	// 1 → 1 col, 1 row   2 → 2 col, 1 row
-	// 3 → 2 top, 1 bot   4 → 2 col, 2 row (square)
-	// 5 → 3 top, 2 bot   6 → 3 col, 2 row
-	static const Sint32 ICON_CELL = 10;
-
-	Sint32 topCols, botCols, rows;
-	if(count <= 2)      { topCols = count; botCols = 0; rows = 1; }
-	else if(count == 3) { topCols = 2;     botCols = 1; rows = 2; }
-	else if(count == 4) { topCols = 2;     botCols = 2; rows = 2; }
-	else if(count == 5) { topCols = 3;     botCols = 2; rows = 2; }
-	else                { topCols = 3;     botCols = 3; rows = 2; }
-
-	Sint32 maxCols = UTIL_max<Sint32>(topCols, botCols);
-	Sint32 gridW = maxCols * ICON_CELL;
-	Sint32 gridH = rows * ICON_CELL;
-
-	Sint32 startX = m_tRect.x1 + (m_tRect.x2 - gridW) / 2;
-	Sint32 startY = m_tRect.y1 + (m_tRect.y2 - gridH) / 2;
-
-	for(Sint32 i = 0; i < count; ++i)
+	Sint32 posX = m_tRect.x1 + 2;
+	Sint32 posY = m_tRect.y1 + 2;
+	for(const IconEntry& icon : icons)
 	{
-		Sint32 row, col, colsInRow;
-		if(i < topCols) { row = 0; col = i;           colsInRow = topCols; }
-		else            { row = 1; col = i - topCols;  colsInRow = botCols; }
-
-		Sint32 rowOffsetX = (maxCols - colsInRow) * ICON_CELL / 2;
-		Sint32 px = startX + col * ICON_CELL + rowOffsetX;
-		Sint32 py = startY + row * ICON_CELL;
-
-		const IconEntry& ic = icons[SDL_static_cast(size_t, i)];
-		renderer->drawPicture(GUI_UI_IMAGE, ic.sx, ic.sy, px, py, ic.sw, ic.sh);
+		renderer->drawPicture(GUI_UI_IMAGE, icon.sx, icon.sy, posX, posY, icon.sw, icon.sh);
+		posX += 10;
 	}
 }
 
