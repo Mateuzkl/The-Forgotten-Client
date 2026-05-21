@@ -136,6 +136,9 @@ class Map
 		void removeCreatureById(Uint32 creatureId);
 		Creature* getCreatureById(Uint32 creatureId);
 
+		// ElfBot 8.60 compat layer iterates this to populate BattleList.
+		knownCreatures& getKnownCreatures() {return m_knownCreatures;}
+
 		void setCentralPosition(Position pos);
 		SDL_INLINE Position& getCentralPosition() {return m_centerPosition;}
 

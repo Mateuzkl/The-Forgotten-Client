@@ -44,7 +44,7 @@ extern Uint32 g_frameTime;
 Uint32 g_reloginTimer = 0;
 bool g_reloginAvailable = false;
 
-void characterlist_Events(Uint32 event, Sint32)
+void characterlist_Events(Uint32 event, Sint32 status)
 {
 	switch(event)
 	{

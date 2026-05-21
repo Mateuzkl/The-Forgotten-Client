@@ -184,7 +184,7 @@ void GUI_Button::render()
 
 	auto& renderer = g_engine.getRender();
 	renderer->drawPicture(GUI_UI_IMAGE, m_sx[(pressed ? 1 : 0)], m_sy[(pressed ? 1 : 0)], m_tRect.x1, m_tRect.y1, m_tRect.x2, m_tRect.y2);
-	g_engine.drawFont(CLIENT_FONT_SMALL, m_tRect.x1 + (m_tRect.x2 / 2) + (pressed ? 1 : 0) - m_startX, m_tRect.y1 + (pressed ? 7 : 6), m_label, 255, 255, 255, CLIENT_FONT_ALIGN_LEFT);
+	g_engine.drawFont(CLIENT_FONT_SMALL, m_tRect.x1 + (m_tRect.x2 / 2) + (pressed ? 1 : 0) - m_startX, m_tRect.y1 + (pressed ? 7 : 6), m_label, m_red, m_green, m_blue, CLIENT_FONT_ALIGN_LEFT);
 }
 
 void GUI_RadioButton::setRadioEventCallback(bool (*eventRadioChecked)(void), const std::string description)
@@ -220,5 +220,5 @@ void GUI_RadioButton::render()
 	
 	auto& renderer = g_engine.getRender();
 	renderer->drawPicture(GUI_UI_IMAGE, m_sx[(pressed ? 1 : 0)], m_sy[(pressed ? 1 : 0)], m_tRect.x1, m_tRect.y1, m_tRect.x2, m_tRect.y2);
-	g_engine.drawFont(CLIENT_FONT_SMALL, m_tRect.x1 + (m_tRect.x2 / 2) + (pressed ? 1 : 0) - m_startX, m_tRect.y1 + (pressed ? 7 : 6), m_label, 255, 255, 255, CLIENT_FONT_ALIGN_LEFT);
+	g_engine.drawFont(CLIENT_FONT_SMALL, m_tRect.x1 + (m_tRect.x2 / 2) + (pressed ? 1 : 0) - m_startX, m_tRect.y1 + (pressed ? 7 : 6), m_label, m_red, m_green, m_blue, CLIENT_FONT_ALIGN_LEFT);
 }

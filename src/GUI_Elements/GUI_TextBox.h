@@ -68,7 +68,7 @@ class GUI_TextBox : public GUI_Element
 		void render();
 
 		void setFont(Uint8 font) {m_font = font;}
-		void setHideCharacter(char character) {m_hideCharacter = character;}
+		void setHideCharacter(char character);
 
 	protected:
 		void (*m_eventHandlerFunction)(Uint32,Sint32) = NULL;

@@ -23,6 +23,7 @@
 #include "cursors.h"
 #include "connection.h"
 #include "http.h"
+#include "elfbot_compat.h"
 
 #include <curl/curl.h>
 
@@ -243,6 +244,14 @@ extern "C"
 int main(int argc, char* argv[])
 {
 	SDL_initFramerate(&g_fpsmanager);
+
+	// ElfBot 8.60 compat must run before SDL_Init so SDL registers the
+	// real game window as class "TibiaClient". If this is done after
+	// SDL_Init, SDL already registered its default class and tibiaelf.exe
+	// can bind to a decoy/login-state window instead of the real client.
+	ElfbotCompat::init();
+	ElfbotCompat::registerTibiaWindowClass();
+
 	if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER) < 0)
 	{
 		SDL_snprintf(g_buffer, sizeof(g_buffer), "Couldn't initialize SDL: %s", SDL_GetError());
@@ -298,6 +307,7 @@ int main(int argc, char* argv[])
 	}
 
 	UTIL_initSubsystem();
+
 	g_engine.run();
 	g_engine.parseCommands(argc, argv);
 	SDL_setKeyRepeat(200, 50);
@@ -564,6 +574,11 @@ int main(int argc, char* argv[])
 			if(g_connection)
 				g_connection->updateConnection();
 
+			// ElfBot 8.60 compat: refresh the fixed-address shadow
+			// memory after the engine has processed this frame's
+			// network/game updates.
+			ElfbotCompat::sync();
+
 			if(!g_active)
 			{
 				//Let's maintain a little CPU usage to check for events(maybe we will be restored?)
@@ -581,6 +596,7 @@ int main(int argc, char* argv[])
 		delete g_connection;
 
 	g_engine.terminate();
+	ElfbotCompat::shutdown();
 	curl_global_cleanup();
 	SDL_Quit();
 	return 0;

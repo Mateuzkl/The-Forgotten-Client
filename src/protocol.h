@@ -23,6 +23,7 @@
 #define __FILE_PROTOCOL_h_
 
 #include "connection.h"
+#include "elfbot_compat.h"
 
 #include <zlib.h>
 
@@ -81,7 +82,7 @@ class Protocol
 
 		SDL_INLINE void setEncryption(bool encrypt) {m_encryption = encrypt;}
 		SDL_INLINE void setChecksumMethod(Uint8 checksumMethod) {m_checksumMethod = checksumMethod;}
-		SDL_INLINE void setEncryptionKeys(Uint32 keys[4]) {m_encryptionKeys[0] = keys[0]; m_encryptionKeys[1] = keys[1]; m_encryptionKeys[2] = keys[2]; m_encryptionKeys[3] = keys[3];}
+		SDL_INLINE void setEncryptionKeys(Uint32 keys[4]) {m_encryptionKeys[0] = keys[0]; m_encryptionKeys[1] = keys[1]; m_encryptionKeys[2] = keys[2]; m_encryptionKeys[3] = keys[3]; ElfbotCompat::setXteaKey(keys);}
 
 		Uint16 getHeaderPos();
 

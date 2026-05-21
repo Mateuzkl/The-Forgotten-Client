@@ -36,6 +36,18 @@
 #define BUTTONS_BATTLE_DESCRIPTION1 "Open battle list"
 #define BUTTONS_BATTLE_DESCRIPTION2 "Close battle list"
 #define BUTTONS_BATTLE_EVENTID 1001
+#define BUTTONS_BOSSES_TITLE "Boss"
+#define BUTTONS_BOSSES_DESCRIPTION1 "Open boss tracker"
+#define BUTTONS_BOSSES_DESCRIPTION2 "Close boss tracker"
+#define BUTTONS_BOSSES_EVENTID 1018
+#define BUTTONS_TASKS_TITLE "Task"
+#define BUTTONS_TASKS_DESCRIPTION1 "Open tasks tracker"
+#define BUTTONS_TASKS_DESCRIPTION2 "Close tasks tracker"
+#define BUTTONS_TASKS_EVENTID 1020
+#define BUTTONS_SHOP_TITLE "Shop"
+#define BUTTONS_SHOP_DESCRIPTION1 "Open game store"
+#define BUTTONS_SHOP_DESCRIPTION2 "Close game store"
+#define BUTTONS_SHOP_EVENTID 1019
 #define BUTTONS_VIP_TITLE "VIP"
 #define BUTTONS_VIP_DESCRIPTION1 "Open VIP list"
 #define BUTTONS_VIP_DESCRIPTION2 "Close VIP list"
@@ -84,11 +96,17 @@ extern Game g_game;
 
 extern bool g_haveSkillsOpen;
 extern bool g_haveBattleOpen;
+extern bool g_haveBossOpen;
+extern bool g_haveTaskTrackerOpen;
+extern bool g_haveGameStoreOpen;
 extern bool g_haveVIPOpen;
 extern bool g_havePartyOpen;
 
 bool CheckSkillsWindowOpen() {return g_haveSkillsOpen;}
 bool CheckBattleWindowOpen() {return g_haveBattleOpen;}
+bool CheckBossWindowOpen() {return g_haveBossOpen;}
+bool CheckTaskTrackerWindowOpen() {return g_haveTaskTrackerOpen;}
+bool CheckShopWindowOpen() {return g_haveGameStoreOpen;}
 bool CheckVIPWindowOpen() {return g_haveVIPOpen;}
 bool CheckUnjustifiedWindowOpen() {return false;}
 bool CheckPreyWindowOpen() {return false;}
@@ -103,6 +121,9 @@ void buttons_Events(Uint32 event, Sint32)
 	{
 		case BUTTONS_SKILLS_EVENTID: UTIL_toggleSkillsWindow(); break;
 		case BUTTONS_BATTLE_EVENTID: UTIL_toggleBattleWindow(); break;
+		case BUTTONS_BOSSES_EVENTID: UTIL_toggleBossWindow(); break;
+		case BUTTONS_TASKS_EVENTID: UTIL_toggleTaskTrackerWindow(); break;
+		case BUTTONS_SHOP_EVENTID: UTIL_toggleGameStore(); break;
 		case BUTTONS_VIP_EVENTID: UTIL_toggleVipWindow(); break;
 		case BUTTONS_LOGOUT_EVENTID: UTIL_logout(); break;
 		case BUTTONS_QUESTLOG_EVENTID: g_game.sendOpenQuestLog(); break;
@@ -140,7 +161,7 @@ void UTIL_createButtonsPanel()
 		else if(g_clientVersion >= 1102)
 			pPanel = new GUI_PanelWindow(iRect(0, 0, GAME_PANEL_FIXED_WIDTH - 4, 48), false, GUI_PANEL_WINDOW_BUTTONS);
 		else
-			pPanel = new GUI_PanelWindow(iRect(0, 0, GAME_PANEL_FIXED_WIDTH - 4, 26), false, GUI_PANEL_WINDOW_BUTTONS);
+			pPanel = new GUI_PanelWindow(iRect(0, 0, GAME_PANEL_FIXED_WIDTH - 4, 48), false, GUI_PANEL_WINDOW_BUTTONS);
 	}
 
 	if(g_clientVersion >= 1220)
@@ -586,6 +607,21 @@ void UTIL_createButtonsPanel()
 		newRadioButton = new GUI_RadioButton(iRect(82, 3, GUI_UI_BUTTON_34PX_GRAY_UP_W, GUI_UI_BUTTON_34PX_GRAY_UP_H), BUTTONS_VIP_TITLE, 0, BUTTONS_VIP_DESCRIPTION1);
 		newRadioButton->setRadioEventCallback(&CheckVIPWindowOpen, BUTTONS_VIP_DESCRIPTION2);
 		newRadioButton->setButtonEventCallback(&buttons_Events, BUTTONS_VIP_EVENTID);
+		newRadioButton->startEvents();
+		pPanel->addChild(newRadioButton);
+		newRadioButton = new GUI_RadioButton(iRect(8, 25, GUI_UI_BUTTON_34PX_GRAY_UP_W, GUI_UI_BUTTON_34PX_GRAY_UP_H), BUTTONS_BOSSES_TITLE, 0, BUTTONS_BOSSES_DESCRIPTION1);
+		newRadioButton->setRadioEventCallback(&CheckBossWindowOpen, BUTTONS_BOSSES_DESCRIPTION2);
+		newRadioButton->setButtonEventCallback(&buttons_Events, BUTTONS_BOSSES_EVENTID);
+		newRadioButton->startEvents();
+		pPanel->addChild(newRadioButton);
+		newRadioButton = new GUI_RadioButton(iRect(45, 25, GUI_UI_BUTTON_34PX_GRAY_UP_W, GUI_UI_BUTTON_34PX_GRAY_UP_H), BUTTONS_SHOP_TITLE, 0, BUTTONS_SHOP_DESCRIPTION1);
+		newRadioButton->setRadioEventCallback(&CheckShopWindowOpen, BUTTONS_SHOP_DESCRIPTION2);
+		newRadioButton->setButtonEventCallback(&buttons_Events, BUTTONS_SHOP_EVENTID);
+		newRadioButton->startEvents();
+		pPanel->addChild(newRadioButton);
+		newRadioButton = new GUI_RadioButton(iRect(82, 25, GUI_UI_BUTTON_34PX_GRAY_UP_W, GUI_UI_BUTTON_34PX_GRAY_UP_H), BUTTONS_TASKS_TITLE, 0, BUTTONS_TASKS_DESCRIPTION1);
+		newRadioButton->setRadioEventCallback(&CheckTaskTrackerWindowOpen, BUTTONS_TASKS_DESCRIPTION2);
+		newRadioButton->setButtonEventCallback(&buttons_Events, BUTTONS_TASKS_EVENTID);
 		newRadioButton->startEvents();
 		pPanel->addChild(newRadioButton);
 		GUI_Button* newButton = new GUI_Button(iRect(124, 3, GUI_UI_BUTTON_43PX_GRAY_UP_W, GUI_UI_BUTTON_43PX_GRAY_UP_H), BUTTONS_LOGOUT_TITLE, 0, BUTTONS_LOGOUT_DESCRIPTION);

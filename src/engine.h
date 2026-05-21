@@ -146,6 +146,9 @@ class Engine
 
 		HotkeyUsage* getHotkey(SDL_Keycode key, Uint16 mods);
 		void bindHotkey(ClientHotkeyKeys hotKey, SDL_Keycode key, Uint16 mods, ClientHotkeys hotkeyType);
+		void bindHotkeyAction(SDL_Keycode key, Uint16 mods, const std::string& text, bool sendAutomatically);
+		void bindHotkeyItem(SDL_Keycode key, Uint16 mods, Uint16 itemId, Uint8 itemSubtype, Uint8 usageType);
+		void beginHotkeyItemSelection(SDL_Keycode key, Uint16 mods);
 		void resetToDefaultHotkeys(bool wasd);
 
 		Sint32 calculateMainHeight();
@@ -269,6 +272,7 @@ class Engine
 		SDL_INLINE void setAccountPremDays(Uint32 accountPremDays) {m_accountPremDays = accountPremDays;}
 		SDL_INLINE void setAccountNewCharList(bool newCharacterList) {m_newCharacterList = newCharacterList;}
 		SDL_INLINE void setCharacterSelectId(Sint32 selectId) {m_characterSelectId = selectId;}
+		SDL_INLINE void setRememberAccountCredentials(bool rememberCredentials) {m_rememberAccountCredentials = rememberCredentials;}
 		SDL_INLINE std::string& getAccountSessionKey() {return m_accountSessionKey;}
 		SDL_INLINE std::string& getAccountName() {return m_accountName;}
 		SDL_INLINE std::string& getAccountPassword() {return m_accountPassword;}
@@ -281,6 +285,7 @@ class Engine
 		SDL_INLINE Uint32 getAccountPremDays() {return m_accountPremDays;}
 		SDL_INLINE bool getAccountNewCharList() {return m_newCharacterList;}
 		SDL_INLINE Sint32 getCharacterSelectId() {return m_characterSelectId;}
+		SDL_INLINE bool getRememberAccountCredentials() {return m_rememberAccountCredentials;}
 
 		SDL_INLINE iRect& getGameWindowRect() {return m_gameWindowRect;}
 		SDL_INLINE float getGameWindowScale() {return m_scale;}
@@ -402,6 +407,11 @@ class Engine
 		std::unordered_map<std::string, bool> m_whiteList;
 		std::map<Uint16, std::map<SDL_Keycode, size_t>> m_hotkeyFastAccess;
 		std::vector<HotkeyUsage> m_hotkeys;
+		// While the "Select Object" button in the Hotkey Options dialog is
+		// active, these remember which F-key the user wanted to bind.
+		// Cleared once the user clicks an item (or cancels). 0 = none.
+		SDL_Keycode m_pendingHotkeyItemKey = 0;
+		Uint16 m_pendingHotkeyItemModifiers = 0;
 
 		iRect m_gameBackgroundRect;
 		iRect m_gameWindowRect;
@@ -513,6 +523,7 @@ class Engine
 		bool m_showActionBar1 = true;
 		bool m_showActionBar2 = false;
 		bool m_askBeforeBuying = true;
+		bool m_rememberAccountCredentials = false;
 
 		bool m_newCharacterList = false;
 		bool m_ingame = false;

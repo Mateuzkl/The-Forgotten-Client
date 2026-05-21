@@ -101,7 +101,7 @@ class Game
 		void processOutfits(Uint16 lookType, Uint8 lookHead, Uint8 lookBody, Uint8 lookLegs, Uint8 lookFeet, Uint8 lookAddons, Uint16 lookMount, std::vector<OutfitDetail>& outfits, std::vector<MountDetail>& mounts);
 		void processTutorialHint(Uint8 tutorialId);
 		void processCancelTarget(Uint32 sequence);
-		void processSpellDelay(Uint8 spellId, Uint32 delay);
+		void processSpellDelay(Uint16 spellId, Uint32 delay);
 		void processSpellGroupDelay(Uint8 groupId, Uint32 delay);
 		void processMultiUseDelay(Uint32 delay);
 		void processPlayerModes(Uint8 fightMode, Uint8 chaseMode, Uint8 safeMode, Uint8 pvpMode);
@@ -136,6 +136,7 @@ class Game
 		void sendOpenQuestLine(Uint16 questId);
 		void sendPing();
 		void sendPingBack();
+		void sendExtendedOpcode(Uint8 opcode, const std::string& payload);
 		void sendAttackModes();
 		void sendAttack(Creature* creature);
 		void sendFollow(Creature* creature);

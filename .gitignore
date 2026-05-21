@@ -73,3 +73,8 @@ ipch/
 *.psess
 *.vsp
 *.vspx
+src/visual-studio/.vs/visual-studio/FileContentIndex/b9c01dc9-c314-42d9-8124-b19d16b7e0a2.vsidx
+src/visual-studio/.vs/visual-studio/FileContentIndex/d416d220-2f32-4f54-8d15-4f05430d234e.vsidx
+src/visual-studio/.vs/visual-studio/FileContentIndex/9a0d1dfa-37c4-4da9-a21e-501dc835283f.vsidx
+/src/visual-studio
+src/visual-studio/.vs/visual-studio/FileContentIndex/0545c6ae-2646-46db-bfef-a87e44888166.vsidx

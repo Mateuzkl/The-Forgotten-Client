@@ -33,6 +33,7 @@
 #include "automap.h"
 #include "game.h"
 
+#include "GUI/GUI_UTIL.h"
 #include "GUI_Elements/GUI_Log.h"
 #include "GUI/itemUI.h"
 
@@ -47,6 +48,31 @@ extern GUI_Log g_logger;
 extern Connection* g_connection;
 extern Uint32 g_datRevision;
 extern Uint16 g_ping;
+
+static SDL_INLINE bool shouldSkipLegacyOutfitCosmetics()
+{
+	return false;
+}
+
+static SDL_INLINE void skipLegacyOutfitCosmetics(InputMessage& msg)
+{
+	if(shouldSkipLegacyOutfitCosmetics())
+	{
+		msg.getU16();//lookWings
+		msg.getU16();//lookAura
+		msg.getString();//lookShader
+	}
+}
+
+static SDL_INLINE void skipLegacyOutfitCosmeticList(InputMessage& msg)
+{
+	size_t entries = SDL_static_cast(size_t, msg.getU8());
+	for(size_t i = 0; i < entries; ++i)
+	{
+		msg.getU16();//entry id
+		msg.getString();//entry name
+	}
+}
 
 void ProtocolGame::parseMessage(InputMessage& msg)
 {
@@ -227,6 +253,11 @@ void ProtocolGame::parseMessage(InputMessage& msg)
 		{
 			msg.setReadPos(msg.getMessageSize());//Make sure we don't read anymore
 			Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "Received unsupported packet header: 0x%02X", SDL_static_cast(Uint32, header));
+			if(g_clientVersion <= 860)
+			{
+				g_logger.addLog(LOG_CATEGORY_WARNING, std::string(g_buffer, SDL_static_cast(size_t, len)));
+				break;
+			}
 			UTIL_messageBox("Error", std::string(g_buffer, SDL_static_cast(size_t, len)));
 		}
 		break;
@@ -236,8 +267,13 @@ void ProtocolGame::parseMessage(InputMessage& msg)
 
 void ProtocolGame::parseOtclient(InputMessage& msg)
 {
-	msg.getU8();
-	msg.getRawString();
+	Uint8 opcode = msg.getU8();
+	const std::string payload = msg.getString();
+	if(!UTIL_handleExtendedOpcode(opcode, payload) && !UTIL_handleTaskExtendedOpcode(opcode, payload) && !UTIL_handleGameStoreExtendedOpcode(opcode, payload))
+	{
+		Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "Ignoring unsupported extended opcode: 0x%02X", SDL_static_cast(Uint32, opcode));
+		g_logger.addLog(LOG_CATEGORY_WARNING, std::string(g_buffer, SDL_static_cast(size_t, len)));
+	}
 }
 
 void ProtocolGame::parseCreatureData(InputMessage& msg)
@@ -1586,6 +1622,7 @@ void ProtocolGame::parseCreatureOutfit(InputMessage& msg)
 	Uint16 lookMount = 0;
 	if(g_game.hasGameFeature(GAME_FEATURE_MOUNTS))
 		lookMount = msg.getU16();
+	skipLegacyOutfitCosmetics(msg);
 
 	Creature* creature = g_map.getCreatureById(creatureId);
 	if(creature)
@@ -1968,6 +2005,7 @@ void ProtocolGame::parseChooseOutfit(InputMessage& msg)
 	Uint16 lookMount = 0;
 	if(g_game.hasGameFeature(GAME_FEATURE_MOUNTS))
 		lookMount = msg.getU16();
+	skipLegacyOutfitCosmetics(msg);
 
 	if(g_game.hasGameFeature(GAME_FEATURE_NEWOUTFITS))
 	{
@@ -2042,6 +2080,12 @@ void ProtocolGame::parseChooseOutfit(InputMessage& msg)
 					offerId = msg.getU32();
 			}
 		}
+	}
+	if(shouldSkipLegacyOutfitCosmetics())
+	{
+		skipLegacyOutfitCosmeticList(msg);//wings
+		skipLegacyOutfitCosmeticList(msg);//auras
+		skipLegacyOutfitCosmeticList(msg);//shaders
 	}
 	if(g_clientVersion >= 1185)
 	{
@@ -2131,9 +2175,9 @@ void ProtocolGame::parseModalWindow(InputMessage& msg)
 	}
 
 	std::vector<std::pair<std::string, Uint8>> v_choices;
-	if(g_clientVersion >= 970)
+	if(msg.getUnreadSize() > 2)
 	{
-		//Pre 9.70 clients don't have choices
+		// Custom 8.60 servers may still send the modern modal window layout.
 		Uint8 choices = msg.getU8();
 		for(Uint8 i = 0; i < choices; ++i)
 		{
@@ -2143,11 +2187,16 @@ void ProtocolGame::parseModalWindow(InputMessage& msg)
 		}
 	}
 
-	Uint8 escapeButton = msg.getU8();
-	Uint8 enterButton = msg.getU8();
+	Uint8 escapeButton = 0;
+	Uint8 enterButton = 0;
+	if(msg.getUnreadSize() >= 2)
+	{
+		escapeButton = msg.getU8();
+		enterButton = msg.getU8();
+	}
 
 	bool priority = false;
-	if(g_clientVersion >= 970)
+	if(msg.getUnreadSize() > 0)
 		priority = msg.getBool();
 
 	g_game.processModalWindow(windowId, priority, title, message, enterButton, escapeButton, v_buttons, v_choices);
@@ -2395,7 +2444,7 @@ void ProtocolGame::parsePlayerCancelTarget(InputMessage& msg)
 
 void ProtocolGame::parsePlayerSpellDelay(InputMessage& msg)
 {
-	Uint8 spellId = msg.getU8();
+	Uint16 spellId = SDL_static_cast(Uint16, msg.getU8());
 	Uint32 delay = msg.getU32();
 	g_game.processSpellDelay(spellId, delay);
 }
@@ -6061,8 +6110,12 @@ void ProtocolGame::sendLogin(Uint32 challengeTimestamp, Uint8 challengeRandom)
 
 	OutputMessage msg((checksumFeature ? 6 : 2));
 	msg.addU8(GameLoginOpcode);
+#if CLIENT_OVVERIDE_VERSION > 0
+	msg.addU16(11);//CLIENTOS_OTCLIENT_WINDOWS on the server-side enum, needed for extended opcodes
+#else
 	msg.addU8((g_game.hasGameFeature(GAME_FEATURE_PROTOCOLSEQUENCE) ? QT_CIPBIA_OS : LEGACY_CIPBIA_OS));
 	msg.addU8(Protocol::getOS());
+#endif
 	msg.addU16(Protocol::getProtocolVersion());
 	if(g_game.hasGameFeature(GAME_FEATURE_CLIENT_VERSION))
 		msg.addU32(Protocol::getClientVersion());
@@ -7434,6 +7487,15 @@ void ProtocolGame::sendFeatureEvent(FeatureEventType type, bool active)
 	onSend(msg);
 }
 
+void ProtocolGame::sendExtendedOpcode(Uint8 opcode, const std::string& payload)
+{
+	OutputMessage msg(getHeaderPos());
+	msg.addU8(RecvOtclientOpcode);
+	msg.addU8(opcode);
+	msg.addString(payload);
+	onSend(msg);
+}
+
 void ProtocolGame::sendTeamFinderAssembleTeam()
 {
 	OutputMessage msg(getHeaderPos());
@@ -8595,6 +8657,7 @@ Creature* ProtocolGame::getCreature(InputMessage& msg, Uint16 thingId, const Pos
 	Uint16 lookMount = 0;
 	if(g_game.hasGameFeature(GAME_FEATURE_MOUNTS))
 		lookMount = msg.getU16();
+	skipLegacyOutfitCosmetics(msg);
 
 	Uint16 light[2];
 	light[0] = SDL_static_cast(Uint16, msg.getU8());
@@ -8884,3 +8947,4 @@ void ProtocolGame::updateMinimapTile(const Position& position, Tile* tile)
 		g_automap.setTileDetail(position.x, position.y, position.z, minimapColor, groundSpeed);
 	}
 }
+

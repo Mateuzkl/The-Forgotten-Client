@@ -39,6 +39,7 @@ class GUI_Button : public GUI_Element
 
 		void cacheUI();
 		void setButtonEventCallback(void (*eventHandlerFunction)(Uint32,Sint32), Uint32 mEvent);
+		void setTextColor(Uint8 red, Uint8 green, Uint8 blue) {m_red = red; m_green = green; m_blue = blue;}
 
 		void onMouseMove(Sint32 x, Sint32 y, bool isInsideParent);
 		void onLMouseDown(Sint32 x, Sint32 y);
@@ -54,6 +55,9 @@ class GUI_Button : public GUI_Element
 		Uint32 m_startX;
 		Sint32 m_sx[2] = {};
 		Sint32 m_sy[2] = {};
+		Uint8 m_red = 255;
+		Uint8 m_green = 255;
+		Uint8 m_blue = 255;
 		Uint8 m_pressed = 0;
 };
 
