@@ -165,11 +165,14 @@ void UTIL_createButtonsPanel()
 		newRadioIcon->setButtonEventCallback(&buttons_Events, BUTTONS_UNJUSTIFIED_EVENTID);
 		newRadioIcon->startEvents();
 		pPanel->addChild(newRadioIcon);
-		newRadioIcon = new GUI_RadioIcon(iRect(52, 25, GUI_UI_ICON_PREYWIDGET_UP_W, GUI_UI_ICON_PREYWIDGET_UP_H), GUI_UI_IMAGE, GUI_UI_ICON_PREYWIDGET_UP_X, GUI_UI_ICON_PREYWIDGET_UP_Y, GUI_UI_ICON_PREYWIDGET_DOWN_X, GUI_UI_ICON_PREYWIDGET_DOWN_Y, 0, BUTTONS_PREY_DESCRIPTION1);
-		newRadioIcon->setRadioEventCallback(&CheckPreyWindowOpen, BUTTONS_PREY_DESCRIPTION2);
-		newRadioIcon->setButtonEventCallback(&buttons_Events, BUTTONS_PREY_EVENTID);
-		newRadioIcon->startEvents();
-		pPanel->addChild(newRadioIcon);
+		if(g_game.hasGameFeature(GAME_FEATURE_PREY))
+		{
+			newRadioIcon = new GUI_RadioIcon(iRect(52, 25, GUI_UI_ICON_PREYWIDGET_UP_W, GUI_UI_ICON_PREYWIDGET_UP_H), GUI_UI_IMAGE, GUI_UI_ICON_PREYWIDGET_UP_X, GUI_UI_ICON_PREYWIDGET_UP_Y, GUI_UI_ICON_PREYWIDGET_DOWN_X, GUI_UI_ICON_PREYWIDGET_DOWN_Y, 0, BUTTONS_PREY_DESCRIPTION1);
+			newRadioIcon->setRadioEventCallback(&CheckPreyWindowOpen, BUTTONS_PREY_DESCRIPTION2);
+			newRadioIcon->setButtonEventCallback(&buttons_Events, BUTTONS_PREY_EVENTID);
+			newRadioIcon->startEvents();
+			pPanel->addChild(newRadioIcon);
+		}
 		newRadioIcon = new GUI_RadioIcon(iRect(8, 25, GUI_UI_ICON_SPELLIST_UP_W, GUI_UI_ICON_SPELLIST_UP_H), GUI_UI_IMAGE, GUI_UI_ICON_SPELLIST_UP_X, GUI_UI_ICON_SPELLIST_UP_Y, GUI_UI_ICON_SPELLIST_DOWN_X, GUI_UI_ICON_SPELLIST_DOWN_Y, 0, BUTTONS_SPELLS_DESCRIPTION1);
 		newRadioIcon->setRadioEventCallback(&CheckSpellsWindowOpen, BUTTONS_SPELLS_DESCRIPTION2);
 		newRadioIcon->setButtonEventCallback(&buttons_Events, BUTTONS_SPELLS_EVENTID);
@@ -254,11 +257,14 @@ void UTIL_createButtonsPanel()
 		newRadioIcon->setButtonEventCallback(&buttons_Events, BUTTONS_UNJUSTIFIED_EVENTID);
 		newRadioIcon->startEvents();
 		pPanel->addChild(newRadioIcon);
-		newRadioIcon = new GUI_RadioIcon(iRect(52, 25, GUI_UI_ICON_PREYWIDGET_UP_W, GUI_UI_ICON_PREYWIDGET_UP_H), GUI_UI_IMAGE, GUI_UI_ICON_PREYWIDGET_UP_X, GUI_UI_ICON_PREYWIDGET_UP_Y, GUI_UI_ICON_PREYWIDGET_DOWN_X, GUI_UI_ICON_PREYWIDGET_DOWN_Y, 0, BUTTONS_PREY_DESCRIPTION1);
-		newRadioIcon->setRadioEventCallback(&CheckPreyWindowOpen, BUTTONS_PREY_DESCRIPTION2);
-		newRadioIcon->setButtonEventCallback(&buttons_Events, BUTTONS_PREY_EVENTID);
-		newRadioIcon->startEvents();
-		pPanel->addChild(newRadioIcon);
+		if(g_game.hasGameFeature(GAME_FEATURE_PREY))
+		{
+			newRadioIcon = new GUI_RadioIcon(iRect(52, 25, GUI_UI_ICON_PREYWIDGET_UP_W, GUI_UI_ICON_PREYWIDGET_UP_H), GUI_UI_IMAGE, GUI_UI_ICON_PREYWIDGET_UP_X, GUI_UI_ICON_PREYWIDGET_UP_Y, GUI_UI_ICON_PREYWIDGET_DOWN_X, GUI_UI_ICON_PREYWIDGET_DOWN_Y, 0, BUTTONS_PREY_DESCRIPTION1);
+			newRadioIcon->setRadioEventCallback(&CheckPreyWindowOpen, BUTTONS_PREY_DESCRIPTION2);
+			newRadioIcon->setButtonEventCallback(&buttons_Events, BUTTONS_PREY_EVENTID);
+			newRadioIcon->startEvents();
+			pPanel->addChild(newRadioIcon);
+		}
 		newRadioIcon = new GUI_RadioIcon(iRect(8, 25, GUI_UI_ICON_SPELLIST_UP_W, GUI_UI_ICON_SPELLIST_UP_H), GUI_UI_IMAGE, GUI_UI_ICON_SPELLIST_UP_X, GUI_UI_ICON_SPELLIST_UP_Y, GUI_UI_ICON_SPELLIST_DOWN_X, GUI_UI_ICON_SPELLIST_DOWN_Y, 0, BUTTONS_SPELLS_DESCRIPTION1);
 		newRadioIcon->setRadioEventCallback(&CheckSpellsWindowOpen, BUTTONS_SPELLS_DESCRIPTION2);
 		newRadioIcon->setButtonEventCallback(&buttons_Events, BUTTONS_SPELLS_EVENTID);
@@ -325,11 +331,14 @@ void UTIL_createButtonsPanel()
 		newRadioIcon->setButtonEventCallback(&buttons_Events, BUTTONS_UNJUSTIFIED_EVENTID);
 		newRadioIcon->startEvents();
 		pPanel->addChild(newRadioIcon);
-		newRadioIcon = new GUI_RadioIcon(iRect(52, 25, GUI_UI_ICON_PREYWIDGET_UP_W, GUI_UI_ICON_PREYWIDGET_UP_H), GUI_UI_IMAGE, GUI_UI_ICON_PREYWIDGET_UP_X, GUI_UI_ICON_PREYWIDGET_UP_Y, GUI_UI_ICON_PREYWIDGET_DOWN_X, GUI_UI_ICON_PREYWIDGET_DOWN_Y, 0, BUTTONS_PREY_DESCRIPTION1);
-		newRadioIcon->setRadioEventCallback(&CheckPreyWindowOpen, BUTTONS_PREY_DESCRIPTION2);
-		newRadioIcon->setButtonEventCallback(&buttons_Events, BUTTONS_PREY_EVENTID);
-		newRadioIcon->startEvents();
-		pPanel->addChild(newRadioIcon);
+		if(g_game.hasGameFeature(GAME_FEATURE_PREY))
+		{
+			newRadioIcon = new GUI_RadioIcon(iRect(52, 25, GUI_UI_ICON_PREYWIDGET_UP_W, GUI_UI_ICON_PREYWIDGET_UP_H), GUI_UI_IMAGE, GUI_UI_ICON_PREYWIDGET_UP_X, GUI_UI_ICON_PREYWIDGET_UP_Y, GUI_UI_ICON_PREYWIDGET_DOWN_X, GUI_UI_ICON_PREYWIDGET_DOWN_Y, 0, BUTTONS_PREY_DESCRIPTION1);
+			newRadioIcon->setRadioEventCallback(&CheckPreyWindowOpen, BUTTONS_PREY_DESCRIPTION2);
+			newRadioIcon->setButtonEventCallback(&buttons_Events, BUTTONS_PREY_EVENTID);
+			newRadioIcon->startEvents();
+			pPanel->addChild(newRadioIcon);
+		}
 		newRadioIcon = new GUI_RadioIcon(iRect(8, 25, GUI_UI_ICON_SPELLIST_UP_W, GUI_UI_ICON_SPELLIST_UP_H), GUI_UI_IMAGE, GUI_UI_ICON_SPELLIST_UP_X, GUI_UI_ICON_SPELLIST_UP_Y, GUI_UI_ICON_SPELLIST_DOWN_X, GUI_UI_ICON_SPELLIST_DOWN_Y, 0, BUTTONS_SPELLS_DESCRIPTION1);
 		newRadioIcon->setRadioEventCallback(&CheckSpellsWindowOpen, BUTTONS_SPELLS_DESCRIPTION2);
 		newRadioIcon->setButtonEventCallback(&buttons_Events, BUTTONS_SPELLS_EVENTID);
@@ -387,11 +396,14 @@ void UTIL_createButtonsPanel()
 		newRadioIcon->setButtonEventCallback(&buttons_Events, BUTTONS_UNJUSTIFIED_EVENTID);
 		newRadioIcon->startEvents();
 		pPanel->addChild(newRadioIcon);
-		newRadioIcon = new GUI_RadioIcon(iRect(41, 25, GUI_UI_ICON_PREYWIDGET_UP_W, GUI_UI_ICON_PREYWIDGET_UP_H), GUI_UI_IMAGE, GUI_UI_ICON_PREYWIDGET_UP_X, GUI_UI_ICON_PREYWIDGET_UP_Y, GUI_UI_ICON_PREYWIDGET_DOWN_X, GUI_UI_ICON_PREYWIDGET_DOWN_Y, 0, BUTTONS_PREY_DESCRIPTION1);
-		newRadioIcon->setRadioEventCallback(&CheckPreyWindowOpen, BUTTONS_PREY_DESCRIPTION2);
-		newRadioIcon->setButtonEventCallback(&buttons_Events, BUTTONS_PREY_EVENTID);
-		newRadioIcon->startEvents();
-		pPanel->addChild(newRadioIcon);
+		if(g_game.hasGameFeature(GAME_FEATURE_PREY))
+		{
+			newRadioIcon = new GUI_RadioIcon(iRect(41, 25, GUI_UI_ICON_PREYWIDGET_UP_W, GUI_UI_ICON_PREYWIDGET_UP_H), GUI_UI_IMAGE, GUI_UI_ICON_PREYWIDGET_UP_X, GUI_UI_ICON_PREYWIDGET_UP_Y, GUI_UI_ICON_PREYWIDGET_DOWN_X, GUI_UI_ICON_PREYWIDGET_DOWN_Y, 0, BUTTONS_PREY_DESCRIPTION1);
+			newRadioIcon->setRadioEventCallback(&CheckPreyWindowOpen, BUTTONS_PREY_DESCRIPTION2);
+			newRadioIcon->setButtonEventCallback(&buttons_Events, BUTTONS_PREY_EVENTID);
+			newRadioIcon->startEvents();
+			pPanel->addChild(newRadioIcon);
+		}
 		newRadioIcon = new GUI_RadioIcon(iRect(85, 3, GUI_UI_ICON_SPELLIST_UP_W, GUI_UI_ICON_SPELLIST_UP_H), GUI_UI_IMAGE, GUI_UI_ICON_SPELLIST_UP_X, GUI_UI_ICON_SPELLIST_UP_Y, GUI_UI_ICON_SPELLIST_DOWN_X, GUI_UI_ICON_SPELLIST_DOWN_Y, 0, BUTTONS_SPELLS_DESCRIPTION1);
 		newRadioIcon->setRadioEventCallback(&CheckSpellsWindowOpen, BUTTONS_SPELLS_DESCRIPTION2);
 		newRadioIcon->setButtonEventCallback(&buttons_Events, BUTTONS_SPELLS_EVENTID);
@@ -436,11 +448,14 @@ void UTIL_createButtonsPanel()
 		newRadioIcon->setButtonEventCallback(&buttons_Events, BUTTONS_UNJUSTIFIED_EVENTID);
 		newRadioIcon->startEvents();
 		pPanel->addChild(newRadioIcon);
-		newRadioIcon = new GUI_RadioIcon(iRect(41, 25, GUI_UI_ICON_PREYWIDGET_UP_W, GUI_UI_ICON_PREYWIDGET_UP_H), GUI_UI_IMAGE, GUI_UI_ICON_PREYWIDGET_UP_X, GUI_UI_ICON_PREYWIDGET_UP_Y, GUI_UI_ICON_PREYWIDGET_DOWN_X, GUI_UI_ICON_PREYWIDGET_DOWN_Y, 0, BUTTONS_PREY_DESCRIPTION1);
-		newRadioIcon->setRadioEventCallback(&CheckPreyWindowOpen, BUTTONS_PREY_DESCRIPTION2);
-		newRadioIcon->setButtonEventCallback(&buttons_Events, BUTTONS_PREY_EVENTID);
-		newRadioIcon->startEvents();
-		pPanel->addChild(newRadioIcon);
+		if(g_game.hasGameFeature(GAME_FEATURE_PREY))
+		{
+			newRadioIcon = new GUI_RadioIcon(iRect(41, 25, GUI_UI_ICON_PREYWIDGET_UP_W, GUI_UI_ICON_PREYWIDGET_UP_H), GUI_UI_IMAGE, GUI_UI_ICON_PREYWIDGET_UP_X, GUI_UI_ICON_PREYWIDGET_UP_Y, GUI_UI_ICON_PREYWIDGET_DOWN_X, GUI_UI_ICON_PREYWIDGET_DOWN_Y, 0, BUTTONS_PREY_DESCRIPTION1);
+			newRadioIcon->setRadioEventCallback(&CheckPreyWindowOpen, BUTTONS_PREY_DESCRIPTION2);
+			newRadioIcon->setButtonEventCallback(&buttons_Events, BUTTONS_PREY_EVENTID);
+			newRadioIcon->startEvents();
+			pPanel->addChild(newRadioIcon);
+		}
 		newRadioIcon = new GUI_RadioIcon(iRect(85, 3, GUI_UI_ICON_SPELLIST_UP_W, GUI_UI_ICON_SPELLIST_UP_H), GUI_UI_IMAGE, GUI_UI_ICON_SPELLIST_UP_X, GUI_UI_ICON_SPELLIST_UP_Y, GUI_UI_ICON_SPELLIST_DOWN_X, GUI_UI_ICON_SPELLIST_DOWN_Y, 0, BUTTONS_SPELLS_DESCRIPTION1);
 		newRadioIcon->setRadioEventCallback(&CheckSpellsWindowOpen, BUTTONS_SPELLS_DESCRIPTION2);
 		newRadioIcon->setButtonEventCallback(&buttons_Events, BUTTONS_SPELLS_EVENTID);
@@ -484,11 +499,14 @@ void UTIL_createButtonsPanel()
 		newRadioIcon->setButtonEventCallback(&buttons_Events, BUTTONS_UNJUSTIFIED_EVENTID);
 		newRadioIcon->startEvents();
 		pPanel->addChild(newRadioIcon);
-		newRadioIcon = new GUI_RadioIcon(iRect(74, 25, GUI_UI_ICON_PREYWIDGET_UP_W, GUI_UI_ICON_PREYWIDGET_UP_H), GUI_UI_IMAGE, GUI_UI_ICON_PREYWIDGET_UP_X, GUI_UI_ICON_PREYWIDGET_UP_Y, GUI_UI_ICON_PREYWIDGET_DOWN_X, GUI_UI_ICON_PREYWIDGET_DOWN_Y, 0, BUTTONS_PREY_DESCRIPTION1);
-		newRadioIcon->setRadioEventCallback(&CheckPreyWindowOpen, BUTTONS_PREY_DESCRIPTION2);
-		newRadioIcon->setButtonEventCallback(&buttons_Events, BUTTONS_PREY_EVENTID);
-		newRadioIcon->startEvents();
-		pPanel->addChild(newRadioIcon);
+		if(g_game.hasGameFeature(GAME_FEATURE_PREY))
+		{
+			newRadioIcon = new GUI_RadioIcon(iRect(74, 25, GUI_UI_ICON_PREYWIDGET_UP_W, GUI_UI_ICON_PREYWIDGET_UP_H), GUI_UI_IMAGE, GUI_UI_ICON_PREYWIDGET_UP_X, GUI_UI_ICON_PREYWIDGET_UP_Y, GUI_UI_ICON_PREYWIDGET_DOWN_X, GUI_UI_ICON_PREYWIDGET_DOWN_Y, 0, BUTTONS_PREY_DESCRIPTION1);
+			newRadioIcon->setRadioEventCallback(&CheckPreyWindowOpen, BUTTONS_PREY_DESCRIPTION2);
+			newRadioIcon->setButtonEventCallback(&buttons_Events, BUTTONS_PREY_EVENTID);
+			newRadioIcon->startEvents();
+			pPanel->addChild(newRadioIcon);
+		}
 		GUI_Icon* newIcon = new GUI_Icon(iRect(30, 25, GUI_UI_ICON_QUESTLOG_UP_W, GUI_UI_ICON_QUESTLOG_UP_H), GUI_UI_IMAGE, GUI_UI_ICON_QUESTLOG_UP_X, GUI_UI_ICON_QUESTLOG_UP_Y, GUI_UI_ICON_QUESTLOG_DOWN_X, GUI_UI_ICON_QUESTLOG_DOWN_Y, 0, BUTTONS_QUESTLOG_DESCRIPTION);
 		newIcon->setButtonEventCallback(&buttons_Events, BUTTONS_QUESTLOG_EVENTID);
 		newIcon->startEvents();

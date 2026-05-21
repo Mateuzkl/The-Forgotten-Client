@@ -115,17 +115,6 @@ void protocoloptions_Events(Uint32 event, Sint32)
 			{
 				if(!g_engine.isIngame())
 				{
-					GUI_ListBox* pListBox = SDL_static_cast(GUI_ListBox*, pWindow->getChild(PROTOCOL_CLIENT_LISTBOX_EVENTID));
-					if(pListBox)
-					{
-						std::map<Uint32, Uint32>::iterator it = g_protocols.find(pListBox->getSelect());
-						if(it != g_protocols.end())
-						{
-							g_clientVersion = it->second;
-							g_game.clientChangeVersion(g_clientVersion, g_clientVersion);
-						}
-					}
-
 					GUI_TextBox* pTextBox = SDL_static_cast(GUI_TextBox*, pWindow->getChild(PROTOCOL_FIRST_TEXTBOX_EVENTID));
 					if(pTextBox)
 						g_engine.setClientHost(pTextBox->getActualText());
@@ -141,6 +130,17 @@ void protocoloptions_Events(Uint32 event, Sint32)
 					pTextBox = SDL_static_cast(GUI_TextBox*, pWindow->getChild(PROTOCOL_FOURTH_TEXTBOX_EVENTID));
 					if(pTextBox)
 						g_engine.setClientProxyAuth(pTextBox->getActualText());
+
+					GUI_ListBox* pListBox = SDL_static_cast(GUI_ListBox*, pWindow->getChild(PROTOCOL_CLIENT_LISTBOX_EVENTID));
+					if(pListBox)
+					{
+						std::map<Uint32, Uint32>::iterator it = g_protocols.find(pListBox->getSelect());
+						if(it != g_protocols.end())
+						{
+							g_clientVersion = it->second;
+							g_game.clientChangeVersion(g_clientVersion, g_clientVersion);
+						}
+					}
 
 					if(g_spriteManager.isSprLoaded())
 						g_spriteManager.unloadSprites();

@@ -58,6 +58,10 @@
 #include <share.h>
 #include <climits>
 
+#if defined(_MSC_VER)
+#pragma warning(disable: 4505)
+#endif
+
 extern Game   g_game;
 extern Map    g_map;
 extern Engine g_engine;
@@ -638,130 +642,20 @@ namespace ElfbotCompat
 		return true;
 	}
 
-	static bool findTibiaImagePath(wchar_t* out, DWORD outCount)
+	static bool protectLowTibiaShadow()
 	{
-		if(!out || outCount == 0)
-			return false;
-
-		DWORD n = GetModuleFileNameW(NULL, out, outCount);
-		if(n == 0 || n >= outCount)
-			return false;
-
-		DWORD slash = n;
-		while(slash > 0 && out[slash - 1] != L'\\' && out[slash - 1] != L'/')
-			--slash;
-
-		static const wchar_t localName[] = L"Tibia860.exe";
-		if(slash + (sizeof(localName) / sizeof(localName[0])) < outCount)
+		// The shadow lives in .text$aaa for Tibia 8.60 address layout,
+		// but MSVC/linker may keep .text read/execute. Make just this
+		// backing range writable at runtime so TFC can start safely.
+		const SIZE_T size = 0x006C0000;
+		const volatile void* shadow = static_cast<const volatile void*>(&g_tibia860ImageShadow[0]);
+		void* base = const_cast<void*>(shadow);
+		DWORD oldProtect = 0;
+		if(!VirtualProtect(base, size, PAGE_EXECUTE_READWRITE, &oldProtect))
 		{
-			for(DWORD i = 0; localName[i]; ++i)
-				out[slash + i] = localName[i];
-			out[slash + (sizeof(localName) / sizeof(localName[0])) - 1] = 0;
-			if(GetFileAttributesW(out) != INVALID_FILE_ATTRIBUTES)
-				return true;
-		}
-
-		static const wchar_t fallback[] =
-			L"D:\\Tibia FILES\\Clients\\RL-Tibia Clients\\8.60\\Tibia.exe";
-		if((sizeof(fallback) / sizeof(fallback[0])) <= outCount)
-		{
-			for(DWORD i = 0; fallback[i]; ++i)
-				out[i] = fallback[i];
-			out[(sizeof(fallback) / sizeof(fallback[0])) - 1] = 0;
-			return (GetFileAttributesW(out) != INVALID_FILE_ATTRIBUTES);
-		}
-
-		return false;
-	}
-
-	static bool loadTibiaImageIntoLowMemory()
-	{
-		wchar_t path[MAX_PATH];
-		if(!findTibiaImagePath(path, MAX_PATH))
-		{
-			log("loadTibiaImageIntoLowMemory: Tibia860.exe not found");
+			log("protectLowTibiaShadow: VirtualProtect failed GLE=%lu", GetLastError());
 			return false;
 		}
-
-		HANDLE file = CreateFileW(path, GENERIC_READ, FILE_SHARE_READ, NULL,
-			OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-		if(file == INVALID_HANDLE_VALUE)
-		{
-			log("loadTibiaImageIntoLowMemory: CreateFile failed GLE=%lu", GetLastError());
-			return false;
-		}
-
-		unsigned char headers[0x1000];
-		DWORD read = 0;
-		if(!ReadFile(file, headers, sizeof(headers), &read, NULL) || read < sizeof(IMAGE_DOS_HEADER))
-		{
-			CloseHandle(file);
-			log("loadTibiaImageIntoLowMemory: header read failed");
-			return false;
-		}
-
-		IMAGE_DOS_HEADER* dos = reinterpret_cast<IMAGE_DOS_HEADER*>(headers);
-		if(dos->e_magic != IMAGE_DOS_SIGNATURE ||
-		   dos->e_lfanew <= 0 ||
-		   dos->e_lfanew + static_cast<LONG>(sizeof(IMAGE_NT_HEADERS32)) > static_cast<LONG>(read))
-		{
-			CloseHandle(file);
-			log("loadTibiaImageIntoLowMemory: invalid DOS/NT header");
-			return false;
-		}
-
-		IMAGE_NT_HEADERS32* nt = reinterpret_cast<IMAGE_NT_HEADERS32*>(headers + dos->e_lfanew);
-		if(nt->Signature != IMAGE_NT_SIGNATURE ||
-		   nt->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR32_MAGIC ||
-		   nt->OptionalHeader.ImageBase != 0x00400000)
-		{
-			CloseHandle(file);
-			log("loadTibiaImageIntoLowMemory: not a 32-bit Tibia image at base 0x400000");
-			return false;
-		}
-
-		if(isCommittedRange(0x00400000, read))
-			std::memcpy(reinterpret_cast<void*>(0x00400000), headers, read);
-
-		IMAGE_SECTION_HEADER* sec = IMAGE_FIRST_SECTION(nt);
-		for(unsigned i = 0; i < nt->FileHeader.NumberOfSections; ++i)
-		{
-			if(sec[i].SizeOfRawData == 0)
-				continue;
-
-			uintptr_t dstBase = 0x00400000 + sec[i].VirtualAddress;
-			if(dstBase < 0x00400000 || dstBase + sec[i].SizeOfRawData > 0x00800000)
-				continue;
-
-			Uint8 buffer[4096];
-			for(DWORD pos = 0; pos < sec[i].SizeOfRawData; )
-			{
-				uintptr_t dst = dstBase + pos;
-				DWORD chunk = sizeof(buffer);
-				if(chunk > sec[i].SizeOfRawData - pos)
-					chunk = sec[i].SizeOfRawData - pos;
-
-				if(!isCommittedRange(dst, chunk))
-				{
-					pos += chunk;
-					continue;
-				}
-
-				SetFilePointer(file, sec[i].PointerToRawData + pos, NULL, FILE_BEGIN);
-				DWORD got = 0;
-				if(!ReadFile(file, buffer, chunk, &got, NULL) || got != chunk)
-				{
-					CloseHandle(file);
-					log("loadTibiaImageIntoLowMemory: section read failed");
-					return false;
-				}
-				std::memcpy(reinterpret_cast<void*>(dst), buffer, chunk);
-				pos += chunk;
-			}
-		}
-
-		CloseHandle(file);
-		log("loadTibiaImageIntoLowMemory: copied Tibia860.exe to 0x00400000");
 		return true;
 	}
 
@@ -886,7 +780,7 @@ namespace ElfbotCompat
 			return;
 
 		Uint16 plainLen = readLe16(&plain[0]);
-		if(plainLen == 0 || plainLen + 2 > plain.size())
+		if(plainLen == 0 || static_cast<size_t>(plainLen) + 2u > plain.size())
 			return;
 
 		const unsigned char* payload = &plain[2];
@@ -898,7 +792,7 @@ namespace ElfbotCompat
 			Uint8 count = payload[1];
 			if(count > 127)
 				count = 127;
-			if(count + 2 > plainLen)
+			if(static_cast<Uint16>(count) + 2u > plainLen)
 				count = static_cast<Uint8>(plainLen > 2 ? plainLen - 2 : 0);
 
 			Uint8 outCount = 0;
@@ -1075,7 +969,7 @@ namespace ElfbotCompat
 	{
 		if(!tibiaLoaded)
 		{
-			log("old-tibia hooks skipped: Tibia860.exe image was not loaded");
+			log("old-tibia hooks skipped: external image disabled");
 			return;
 		}
 
@@ -1102,10 +996,7 @@ namespace ElfbotCompat
 
 		if(!tibiaLoaded)
 		{
-			Uint32* low = reinterpret_cast<Uint32*>(0x00400000);
-			for(SIZE_T i = 0; i < 0x00400000 / sizeof(Uint32); ++i)
-				low[i] = selfAddr;
-			log("initTibiaPointerSlots: low memory prefilled with safe pointer");
+			log("initTibiaPointerSlots: low memory bulk prefill skipped");
 		}
 
 		// Original Tibia wrappers call these WS2_32 IAT slots:
@@ -3233,6 +3124,23 @@ namespace ElfbotCompat
 		log("TLS low Tibia range: ok=%u fail=%u firstFail=0x%IX",
 			s_tlsText.ok, s_tlsText.fail, s_tlsText.firstFail);
 
+		// Keep the client boot independent from the old Tibia 8.60 memory
+		// emulation. It can be forced for debugging with an environment
+		// variable, but it must never be required for the TFC executable.
+		if(GetEnvironmentVariableA("TFC_ENABLE_OLD_TIBIA_MEMORY", NULL, 0) == 0)
+		{
+			log("in-process old Tibia memory emulation disabled; TFC startup continues");
+			s_active = false;
+			return false;
+		}
+
+		if(!protectLowTibiaShadow())
+		{
+			log("FATAL: Tibia shadow could not be made writable.");
+			s_active = false;
+			return false;
+		}
+
 		if(!isLowTibiaRangeReady())
 		{
 			log("FATAL: 0x00400000..0x00800000 was not reserved inside Tibia.exe.");
@@ -3240,9 +3148,7 @@ namespace ElfbotCompat
 			return false;
 		}
 
-		bool tibiaLoaded = loadTibiaImageIntoLowMemory();
-		installOldTibiaActionHooks(tibiaLoaded);
-		if(!initTibiaPointerSlots(tibiaLoaded))
+		if(!initTibiaPointerSlots(false))
 		{
 			log("FATAL: Tibia pointer slots could not be initialised.");
 			s_active = false;
@@ -3737,6 +3643,11 @@ static void NTAPI elfbotTlsCallback(PVOID /*hModule*/, DWORD reason, PVOID /*res
 	const SIZE_T GRAN = 0x10000;
 	// MUST match the array declaration in elfbot_shadow.cpp.
 	const SIZE_T size = 0x006C0000;
+
+	const volatile void* shadow = static_cast<const volatile void*>(&g_tibia860ImageShadow[0]);
+	void* shadowBase = const_cast<void*>(shadow);
+	DWORD oldProtect = 0;
+	VirtualProtect(shadowBase, size, PAGE_EXECUTE_READWRITE, &oldProtect);
 
 	g_tibia860ImageShadow[0] = 0;
 	g_tibia860ImageShadow[size - 1] = 0;

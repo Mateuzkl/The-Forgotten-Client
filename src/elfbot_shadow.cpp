@@ -24,7 +24,7 @@
 // records the size in section headers but emits zero raw bytes
 // (it's effectively BSS in .text$aaa), so the file size on disk
 // barely grows.
-#pragma section(".text$aaa", read, write, execute)
+#pragma section(".text$aaa", read, execute)
 __declspec(allocate(".text$aaa")) __declspec(align(4096))
 volatile unsigned char g_tibia860ImageShadow[0x006C0000];
 

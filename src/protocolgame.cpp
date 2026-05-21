@@ -32,6 +32,7 @@
 #include "effect.h"
 #include "automap.h"
 #include "game.h"
+#include "protocolfeatures.h"
 
 #include "GUI_Elements/GUI_Log.h"
 #include "GUI/itemUI.h"
@@ -78,6 +79,25 @@ static bool isOtclientV8LuaServerOpcode(Uint8 opcode)
 	return false;
 }
 
+static bool requireRecvFeature(GameFeatures feature, const char* featureName, Uint8 opcode, InputMessage& msg)
+{
+	if(g_game.hasGameFeature(feature))
+		return true;
+
+	UTIL_protocolDebugLog("game", "ignore recv opcode=0x%02X because %s is disabled by features.lua", SDL_static_cast(Uint32, opcode), featureName);
+	msg.setReadPos(msg.getMessageSize());
+	return false;
+}
+
+static bool requireSendFeature(GameFeatures feature, const char* featureName, const char* action)
+{
+	if(g_game.hasGameFeature(feature))
+		return true;
+
+	UTIL_protocolDebugLog("game", "ignore send %s because %s is disabled by features.lua", action, featureName);
+	return false;
+}
+
 void ProtocolGame::parseMessage(InputMessage& msg)
 {
 	Uint16 opcodePos = msg.getReadPos();
@@ -103,12 +123,12 @@ void ProtocolGame::parseMessage(InputMessage& msg)
 		case RecvLoginWaitOpcode: parseLoginWait(msg); break;
 		case RecvLoginSuccessOpcode: parseLogin(msg); break;
 		case RecvLoginTokenOpcode: parseLoginToken(msg); break;
-		case RecvStoreButtonIndicatorsOpcode: parseStoreButtonIndicators(msg); break;
+		case RecvStoreButtonIndicatorsOpcode: if(requireRecvFeature(GAME_FEATURE_STORE, "GameIngameStore", header, msg)) parseStoreButtonIndicators(msg); break;
 		case RecvPingBackOpcode: parsePingBack(msg); break;
 		case RecvPingOpcode: parsePing(msg); break;
 		case RecvChallengeOpcode: parseChallenge(msg); return;
 		case RecvDeathOpcode: parseDeath(msg); break;
-		case RecvStashOpcode: parseStash(msg); break;
+		case RecvStashOpcode: if(requireRecvFeature(GAME_FEATURE_STASH, "GameStash", header, msg)) parseStash(msg); break;
 		case RecvSpecialContainersAvailableOpcode: parseSpecialContainersAvailable(msg); break;
 		case RecvPartyHuntAnalyserOpcode: parsePartyHuntAnalyser(msg); break;
 		case RecvTeamFinderTeamLeaderOpcode: parseTeamFinderTeamLeader(msg); break;
@@ -133,8 +153,8 @@ void ProtocolGame::parseMessage(InputMessage& msg)
 		case RecvContainerRemoveItemOpcode: parseContainerRemoveItem(msg); break;
 		case RecvFriendSystemDataOpcode: parseFriendSystemData(msg); break;
 		case RecvScreenshotEventOpcode: parseScreenshotEvent(msg); break;
-		case RecvInspectionListOpcode: parseInspectionList(msg); break;
-		case RecvInspectionStateOpcode: parseInspectionState(msg); break;
+		case RecvInspectionListOpcode: if(requireRecvFeature(GAME_FEATURE_INSPECTION, "GameInspection", header, msg)) parseInspectionList(msg); break;
+		case RecvInspectionStateOpcode: if(requireRecvFeature(GAME_FEATURE_INSPECTION, "GameInspection", header, msg)) parseInspectionState(msg); break;
 		case RecvInventoryTransformItemOpcode: parseInventoryTransformItem(msg); break;
 		case RecvInventoryRemoveItemOpcode: parseInventoryRemoveItem(msg); break;
 		case RecvNPCOpenTradeOpcode: parseNpcOpenTrade(msg); break;
@@ -166,7 +186,7 @@ void ProtocolGame::parseMessage(InputMessage& msg)
 		case RecvGameNewsOpcode: parseGameNews(msg); break;
 		case RecvDepotSearchDetailListOpcode: parseDepotSearchDetailList(msg); break;
 		case RecvCloseDepotSearchOpcode: parseCloseDepotSearch(msg); break;
-		case RecvBlessingsDialogOpcode: parseBlessingsDialog(msg); break;
+		case RecvBlessingsDialogOpcode: if(requireRecvFeature(GAME_FEATURE_BLESS_DIALOG, "GameBlessDialog", header, msg)) parseBlessingsDialog(msg); break;
 		case RecvBlessingsOpcode: parseBlessings(msg); break;
 		case RecvPresetOpcode: parsePreset(msg); break;
 		case RecvPremiumTriggerOpcode: parsePremiumTrigger(msg); break;
@@ -194,18 +214,18 @@ void ProtocolGame::parseMessage(InputMessage& msg)
 		case RecvTextMessageOpcode: parseTextMessage(msg); break;
 		case RecvCancelWalkOpcode: parseCancelWalk(msg); break;
 		case RecvWalkWaitOpcode: parseWalkWait(msg); break;
-		case RecvUnjustifiedStatsOpcode: parseUnjustifiedStats(msg); break;
-		case RecvPvpSituationsOpcode: parsePvpSituations(msg); break;
+		case RecvUnjustifiedStatsOpcode: if(requireRecvFeature(GAME_FEATURE_UNJUSTIFIED_POINTS, "GameUnjustifiedPoints", header, msg)) parseUnjustifiedStats(msg); break;
+		case RecvPvpSituationsOpcode: if(requireRecvFeature(GAME_FEATURE_PVP_MODE, "GamePVPMode", header, msg)) parsePvpSituations(msg); break;
 		case RecvBestiaryTrackerOpcode: parseBestiaryTracker(msg); break;
-		case RecvPreyHuntingTaskBaseDataOpcode: parsePreyHuntingTaskBaseData(msg); break;
-		case RecvPreyHuntingTaskDataOpcode: parsePreyHuntingTaskData(msg); break;
+		case RecvPreyHuntingTaskBaseDataOpcode: if(requireRecvFeature(GAME_FEATURE_PREY, "GamePrey", header, msg)) parsePreyHuntingTaskBaseData(msg); break;
+		case RecvPreyHuntingTaskDataOpcode: if(requireRecvFeature(GAME_FEATURE_PREY, "GamePrey", header, msg)) parsePreyHuntingTaskData(msg); break;
 		case RecvFloorChangeUpOpcode: parseFloorChangeUp(msg); break;
 		case RecvFloorChangeDownOpcode: parseFloorChangeDown(msg); break;
 		case RecvUpdateLootContainersOpcode: parseUpdateLootContainers(msg); break;
 		case RecvPlayerDataTournamentOpcode: parsePlayerDataTournament(msg); break;
 		case RecvCyclopediaHouseActionResultOpcode: parseCyclopediaHouseActionResult(msg); break;
-		case RecvTournamentInformationOpcode: parseTournamentInformation(msg); break;
-		case RecvTournamentLeaderboardOpcode: parseTournamentLeaderboard(msg); break;
+		case RecvTournamentInformationOpcode: if(requireRecvFeature(GAME_FEATURE_TOURNAMENTS, "GameTournaments", header, msg)) parseTournamentInformation(msg); break;
+		case RecvTournamentLeaderboardOpcode: if(requireRecvFeature(GAME_FEATURE_TOURNAMENTS, "GameTournaments", header, msg)) parseTournamentLeaderboard(msg); break;
 		case RecvCyclopediaStaticHouseDataOpcode: parseCyclopediaStaticHouseData(msg); break;
 		case RecvCyclopediaCurrentHouseDataOpcode: parseCyclopediaCurrentHouseData(msg); break;
 		case RecvChooseOutfitOpcode: parseChooseOutfit(msg); break;
@@ -217,52 +237,52 @@ void ProtocolGame::parseMessage(InputMessage& msg)
 		case RecvItemLootedOpcode: parseItemLooted(msg); break;
 		case RecvTrackedQuestFlagsOpcode: parseTrackedQuestFlags(msg); break;
 		case RecvKillTrackingOpcode: parseKillTracking(msg); break;
-		case RecvMarketStatisticsOpcode: parseMarketStatistics(msg);
+		case RecvMarketStatisticsOpcode: if(requireRecvFeature(GAME_FEATURE_MARKET, "GamePlayerMarket", header, msg)) parseMarketStatistics(msg); break;
 		case RecvVipAddOpcode: parseVipAdd(msg); break;
 		case RecvVipStatusOpcode: parseVipStatus(msg); break;
 		case RecvVipStatusLogoutOpcode: parseVipStatusLogout(msg); break;
-		case RecvMonsterCyclopediaOpcode: parseMonsterCyclopedia(msg); break;
-		case RecvMonsterCyclopediaMonstersOpcode: parseMonsterCyclopediaMonsters(msg); break;
-		case RecvMonsterCyclopediaRaceOpcode: parseMonsterCyclopediaRace(msg); break;
-		case RecvMonsterCyclopediaBonusEffectsOpcode: parseMonsterCyclopediaBonusEffects(msg); break;
-		case RecvMonsterCyclopediaNewDetailsOpcode: parseMonsterCyclopediaNewDetails(msg); break;
+		case RecvMonsterCyclopediaOpcode: if(requireRecvFeature(GAME_FEATURE_CYCLOPEDIA_MONSTERS, "GameCyclopediaMonsters", header, msg)) parseMonsterCyclopedia(msg); break;
+		case RecvMonsterCyclopediaMonstersOpcode: if(requireRecvFeature(GAME_FEATURE_CYCLOPEDIA_MONSTERS, "GameCyclopediaMonsters", header, msg)) parseMonsterCyclopediaMonsters(msg); break;
+		case RecvMonsterCyclopediaRaceOpcode: if(requireRecvFeature(GAME_FEATURE_CYCLOPEDIA_MONSTERS, "GameCyclopediaMonsters", header, msg)) parseMonsterCyclopediaRace(msg); break;
+		case RecvMonsterCyclopediaBonusEffectsOpcode: if(requireRecvFeature(GAME_FEATURE_CYCLOPEDIA_MONSTERS, "GameCyclopediaMonsters", header, msg)) parseMonsterCyclopediaBonusEffects(msg); break;
+		case RecvMonsterCyclopediaNewDetailsOpcode: if(requireRecvFeature(GAME_FEATURE_CYCLOPEDIA_MONSTERS, "GameCyclopediaMonsters", header, msg)) parseMonsterCyclopediaNewDetails(msg); break;
 		case RecvCyclopediaCharacterInfoOpcode: parseCyclopediaCharacterInfo(msg); break;
 		case RecvHirelingNameChangeOpcode: parseHirelingNameChange(msg); break;
 		case RecvTutorialHintOpcode: parseTutorialHint(msg); break;
 		case RecvAutomapFlagOpcode: (g_clientVersion >= 1180 ? parseCyclopediaMapData(msg) : parseAutomapFlag(msg)); break;
 		case RecvDailyRewardCollectionStateOpcode: parseDailyRewardCollectionState(msg); break;
-		case RecvStoreCoinBalanceOpcode: parseStoreCoinBalance(msg); break;
-		case RecvStoreErrorOpcode: parseStoreError(msg); break;
-		case RecvStoreRequestPurchaseOpcode: parseStoreRequestPurchase(msg); break;
-		case RecvOpenRewardWallOpcode: parseOpenRewardWall(msg); break;
-		case RecvCloseRewardWallOpcode: parseCloseRewardWall(msg); break;
+		case RecvStoreCoinBalanceOpcode: if(requireRecvFeature(GAME_FEATURE_STORE, "GameIngameStore", header, msg)) parseStoreCoinBalance(msg); break;
+		case RecvStoreErrorOpcode: if(requireRecvFeature(GAME_FEATURE_STORE, "GameIngameStore", header, msg)) parseStoreError(msg); break;
+		case RecvStoreRequestPurchaseOpcode: if(requireRecvFeature(GAME_FEATURE_STORE, "GameIngameStore", header, msg)) parseStoreRequestPurchase(msg); break;
+		case RecvOpenRewardWallOpcode: if(requireRecvFeature(GAME_FEATURE_REWARD_WALL, "GameRewardWall", header, msg)) parseOpenRewardWall(msg); break;
+		case RecvCloseRewardWallOpcode: if(requireRecvFeature(GAME_FEATURE_REWARD_WALL, "GameRewardWall", header, msg)) parseCloseRewardWall(msg); break;
 		case RecvDailyRewardBasicOpcode: parseDailyRewardBasic(msg); break;
 		case RecvDailyRewardHistoryOpcode: parseDailyRewardHistory(msg); break;
-		case RecvPreyFreeListRerollAvailabilityOpcode: parsePreyFreeListRerollAvailability(msg); break;
-		case RecvPreyTimeLeftOpcode: parsePreyTimeLeft(msg); break;
-		case RecvPreyDataOpcode: parsePreyData(msg); break;
-		case RecvPreyPricesOpcode: parsePreyPrices(msg); break;
-		case RecvOfferDescriptionOpcode: parseOfferDescription(msg); break;
-		case RecvRefreshImbuingDialogOpcode: parseRefreshImbuingDialog(msg); break;
-		case RecvCloseImbuingDialogOpcode: parseCloseImbuingDialog(msg); break;
+		case RecvPreyFreeListRerollAvailabilityOpcode: if(requireRecvFeature(GAME_FEATURE_PREY, "GamePrey", header, msg)) parsePreyFreeListRerollAvailability(msg); break;
+		case RecvPreyTimeLeftOpcode: if(requireRecvFeature(GAME_FEATURE_PREY, "GamePrey", header, msg)) parsePreyTimeLeft(msg); break;
+		case RecvPreyDataOpcode: if(requireRecvFeature(GAME_FEATURE_PREY, "GamePrey", header, msg)) parsePreyData(msg); break;
+		case RecvPreyPricesOpcode: if(requireRecvFeature(GAME_FEATURE_PREY, "GamePrey", header, msg)) parsePreyPrices(msg); break;
+		case RecvOfferDescriptionOpcode: if(requireRecvFeature(GAME_FEATURE_STORE, "GameIngameStore", header, msg)) parseOfferDescription(msg); break;
+		case RecvRefreshImbuingDialogOpcode: if(requireRecvFeature(GAME_FEATURE_IMBUING, "GameImbuing", header, msg)) parseRefreshImbuingDialog(msg); break;
+		case RecvCloseImbuingDialogOpcode: if(requireRecvFeature(GAME_FEATURE_IMBUING, "GameImbuing", header, msg)) parseCloseImbuingDialog(msg); break;
 		case RecvShowMessageDialogOpcode: parseShowMessageDialog(msg); break;
 		case RecvResourceBalanceOpcode: parseResourceBalance(msg); break;
-		case RecvTimeOpcode: parseTime(msg); break;
+		case RecvTimeOpcode: if(requireRecvFeature(GAME_FEATURE_GAMETIME, "GameTime", header, msg)) parseTime(msg); break;
 		case RecvQuestLogOpcode: parseQuestLog(msg); break;
 		case RecvQuestLineOpcode: parseQuestLine(msg); break;
-		case RecvStoreCoinBalanceUpdatingOpcode: parseStoreCoinBalanceUpdating(msg); break;
+		case RecvStoreCoinBalanceUpdatingOpcode: if(requireRecvFeature(GAME_FEATURE_STORE, "GameIngameStore", header, msg)) parseStoreCoinBalanceUpdating(msg); break;
 		case RecvChannelEventOpcode: parseChannelEvent(msg); break;
 		case RecvItemInfoOpcode: parseItemInfo(msg); break;
 		case RecvPlayerInventoryOpcode: parsePlayerInventory(msg); break;
-		case RecvMarketEnterOpcode: parseMarketEnter(msg); break;
-		case RecvMarketLeaveOpcode: parseMarketLeave(msg); break;
-		case RecvMarketDetailOpcode: parseMarketDetail(msg); break;
-		case RecvMarketBrowseOpcode: parseMarketBrowse(msg); break;
+		case RecvMarketEnterOpcode: if(requireRecvFeature(GAME_FEATURE_MARKET, "GamePlayerMarket", header, msg)) parseMarketEnter(msg); break;
+		case RecvMarketLeaveOpcode: if(requireRecvFeature(GAME_FEATURE_MARKET, "GamePlayerMarket", header, msg)) parseMarketLeave(msg); break;
+		case RecvMarketDetailOpcode: if(requireRecvFeature(GAME_FEATURE_MARKET, "GamePlayerMarket", header, msg)) parseMarketDetail(msg); break;
+		case RecvMarketBrowseOpcode: if(requireRecvFeature(GAME_FEATURE_MARKET, "GamePlayerMarket", header, msg)) parseMarketBrowse(msg); break;
 		case RecvModalWindowOpcode: parseModalWindow(msg); break;
-		case RecvStoreOpenOpcode: parseStoreOpen(msg); break;
-		case RecvStoreOffersOpcode: parseStoreOffers(msg); break;
-		case RecvStoreTransactionHistoryOpcode: parseStoreTransactionHistory(msg); break;
-		case RecvStoreCompletePurchaseOpcode: parseStoreCompletePurchase(msg); break;
+		case RecvStoreOpenOpcode: if(requireRecvFeature(GAME_FEATURE_STORE, "GameIngameStore", header, msg)) parseStoreOpen(msg); break;
+		case RecvStoreOffersOpcode: if(requireRecvFeature(GAME_FEATURE_STORE, "GameIngameStore", header, msg)) parseStoreOffers(msg); break;
+		case RecvStoreTransactionHistoryOpcode: if(requireRecvFeature(GAME_FEATURE_STORE, "GameIngameStore", header, msg)) parseStoreTransactionHistory(msg); break;
+		case RecvStoreCompletePurchaseOpcode: if(requireRecvFeature(GAME_FEATURE_STORE, "GameIngameStore", header, msg)) parseStoreCompletePurchase(msg); break;
 		default:
 		{
 			UTIL_protocolDebugLog("game", "unsupported opcode=0x%02X pos=%u size=%u unread=%u initialized=%u pending=%u", SDL_static_cast(Uint32, header), SDL_static_cast(Uint32, opcodePos), SDL_static_cast(Uint32, msg.getMessageSize()), SDL_static_cast(Uint32, msg.getUnreadSize()), SDL_static_cast(Uint32, m_gameInitialized), SDL_static_cast(Uint32, m_pendingGame));
@@ -331,6 +351,11 @@ void ProtocolGame::parseServerFeatures(InputMessage& msg)
 			case 39: feature = GAME_FEATURE_DOUBLE_SHOPSELLAMOUNT; break;
 			case 40: feature = GAME_FEATURE_CONTAINER_PAGINATION; break;
 			case 41:
+				if(getProtocolFeatureManager().isFeatureLocked(GAME_FEATURE_ITEM_MARK) || getProtocolFeatureManager().isFeatureLocked(GAME_FEATURE_CREATURE_MARK))
+				{
+					UTIL_protocolDebugLog("game", "server feature id=%u ignored because GameThingMarks is locked by features.lua", SDL_static_cast(Uint32, featureId));
+					continue;
+				}
 				if(enabled)
 				{
 					g_game.enableGameFeature(GAME_FEATURE_ITEM_MARK);
@@ -381,7 +406,12 @@ void ProtocolGame::parseServerFeatures(InputMessage& msg)
 
 		if(feature != GAME_FEATURE_LAST)
 		{
-			if(enabled)
+			if(getProtocolFeatureManager().isFeatureLocked(feature))
+			{
+				UTIL_protocolDebugLog("game", "server feature id=%u ignored because feature %u is locked by features.lua", SDL_static_cast(Uint32, featureId), SDL_static_cast(Uint32, feature));
+				continue;
+			}
+			else if(enabled)
 				g_game.enableGameFeature(feature);
 			else
 				g_game.disableGameFeature(feature);
@@ -2289,9 +2319,9 @@ void ProtocolGame::parseModalWindow(InputMessage& msg)
 	}
 
 	std::vector<std::pair<std::string, Uint8>> v_choices;
-	if(g_clientVersion >= 970)
+	const bool hasExtendedModalWindow = (g_clientVersion >= 970 || shouldUseOtclientV8Login());
+	if(hasExtendedModalWindow)
 	{
-		//Pre 9.70 clients don't have choices
 		Uint8 choices = msg.getU8();
 		for(Uint8 i = 0; i < choices; ++i)
 		{
@@ -2305,7 +2335,7 @@ void ProtocolGame::parseModalWindow(InputMessage& msg)
 	Uint8 enterButton = msg.getU8();
 
 	bool priority = false;
-	if(g_clientVersion >= 970)
+	if(hasExtendedModalWindow)
 		priority = msg.getBool();
 
 	g_game.processModalWindow(windowId, priority, title, message, enterButton, escapeButton, v_buttons, v_choices);
@@ -6651,6 +6681,9 @@ void ProtocolGame::sendRequestItemInfo(std::vector<RequestItems>& requestItems)
 
 void ProtocolGame::sendWrapState(const Position& position, Uint16 itemId, Uint8 stackpos)
 {
+	if(!requireSendFeature(GAME_FEATURE_WRAPPABLE, "GameWrappable", "wrap state"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameWrapStateOpcode);
 	msg.addPosition(position);
@@ -6685,6 +6718,9 @@ void ProtocolGame::sendUpdateContainer(Uint8 containerId)
 
 void ProtocolGame::sendSeekInContainer(Uint8 containerId, Uint16 index)
 {
+	if(!requireSendFeature(GAME_FEATURE_CONTAINER_PAGINATION, "GameContainerPagination", "seek in container"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameSeekInContainerOpcode);
 	msg.addU8(containerId);
@@ -6694,6 +6730,9 @@ void ProtocolGame::sendSeekInContainer(Uint8 containerId, Uint16 index)
 
 void ProtocolGame::sendBrowseField(const Position& position)
 {
+	if(!requireSendFeature(GAME_FEATURE_BROWSEFIELD, "GameBrowseField", "browse field"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameBrowseFieldOpcode);
 	msg.addPosition(position);
@@ -7330,6 +7369,9 @@ void ProtocolGame::sendAnswerModalDialog(Uint32 dialogId, Uint8 button, Uint8 ch
 
 void ProtocolGame::sendOpenStore(Uint8 serviceType, const std::string& category)
 {
+	if(!requireSendFeature(GAME_FEATURE_STORE, "GameIngameStore", "open store"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameOpenStoreOpcode);
 	if(g_game.hasGameFeature(GAME_FEATURE_STORE_SERVICETYPE))
@@ -7342,6 +7384,9 @@ void ProtocolGame::sendOpenStore(Uint8 serviceType, const std::string& category)
 
 void ProtocolGame::sendRequestStore(Uint8 serviceType, const std::string& category)
 {
+	if(!requireSendFeature(GAME_FEATURE_STORE, "GameIngameStore", "request store"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameRequestStoreOpcode);
 	if(g_clientVersion >= 1220)//Detect version
@@ -7392,6 +7437,9 @@ void ProtocolGame::sendRequestStore(Uint8 serviceType, const std::string& catego
 
 void ProtocolGame::sendBuyInStore(Uint32 offerId, StoreProductTypes productType, const std::string& name)
 {
+	if(!requireSendFeature(GAME_FEATURE_STORE, "GameIngameStore", "buy in store"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameBuyStoreOpcode);
 	msg.addU32(offerId);
@@ -7422,6 +7470,9 @@ void ProtocolGame::sendBuyInStore(Uint32 offerId, StoreProductTypes productType,
 
 void ProtocolGame::sendOpenTransactionHistory(Uint8 entriesPerPage)
 {
+	if(!requireSendFeature(GAME_FEATURE_STORE, "GameIngameStore", "open transaction history"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameOpenTransactionStoreOpcode);
 	msg.addU8(entriesPerPage);//16
@@ -7430,6 +7481,9 @@ void ProtocolGame::sendOpenTransactionHistory(Uint8 entriesPerPage)
 
 void ProtocolGame::sendRequestTransactionHistory(Uint32 page, Uint8 entriesPerPage)
 {
+	if(!requireSendFeature(GAME_FEATURE_STORE, "GameIngameStore", "request transaction history"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameRequestTransactionStoreOpcode);
 	if(g_clientVersion <= 1096)
@@ -7447,6 +7501,9 @@ void ProtocolGame::sendRequestTransactionHistory(Uint32 page, Uint8 entriesPerPa
 
 void ProtocolGame::sendTransferCoins(const std::string& recipient, Uint32 amount)
 {
+	if(!requireSendFeature(GAME_FEATURE_STORE, "GameIngameStore", "transfer coins"))
+		return;
+
 	if(recipient.empty())
 		return;
 
@@ -7459,6 +7516,9 @@ void ProtocolGame::sendTransferCoins(const std::string& recipient, Uint32 amount
 
 void ProtocolGame::sendGetTransactionDetails(Uint32 unknown)
 {
+	if(!requireSendFeature(GAME_FEATURE_STORE, "GameIngameStore", "get transaction details"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameGetTransactionDetailsOpcode);
 	msg.addU32(unknown);
@@ -7467,6 +7527,9 @@ void ProtocolGame::sendGetTransactionDetails(Uint32 unknown)
 
 void ProtocolGame::sendStoreEvent()
 {
+	if(!requireSendFeature(GAME_FEATURE_STORE, "GameIngameStore", "store event"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameStoreEventOpcode);
 
@@ -7501,6 +7564,9 @@ void ProtocolGame::sendStoreEvent()
 
 void ProtocolGame::sendMarketLeave()
 {
+	if(!requireSendFeature(GAME_FEATURE_MARKET, "GamePlayerMarket", "market leave"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameMarketLeaveOpcode);
 	onSend(msg);
@@ -7508,6 +7574,9 @@ void ProtocolGame::sendMarketLeave()
 
 void ProtocolGame::sendMarketBrowse(Uint16 browseId)
 {
+	if(!requireSendFeature(GAME_FEATURE_MARKET, "GamePlayerMarket", "market browse"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameMarketBrowseOpcode);
 	msg.addU16(browseId);
@@ -7516,6 +7585,9 @@ void ProtocolGame::sendMarketBrowse(Uint16 browseId)
 
 void ProtocolGame::sendMarketCreateOffer(Uint8 type, Uint16 thingId, Uint16 amount, Uint32 price, bool anonymous)
 {
+	if(!requireSendFeature(GAME_FEATURE_MARKET, "GamePlayerMarket", "market create offer"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameMarketCreateOpcode);
 	msg.addU8(type);
@@ -7528,6 +7600,9 @@ void ProtocolGame::sendMarketCreateOffer(Uint8 type, Uint16 thingId, Uint16 amou
 
 void ProtocolGame::sendMarketCancelOffer(Uint32 timestamp, Uint16 counter)
 {
+	if(!requireSendFeature(GAME_FEATURE_MARKET, "GamePlayerMarket", "market cancel offer"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameMarketCancelOpcode);
 	msg.addU32(timestamp);
@@ -7537,6 +7612,9 @@ void ProtocolGame::sendMarketCancelOffer(Uint32 timestamp, Uint16 counter)
 
 void ProtocolGame::sendMarketAcceptOffer(Uint32 timestamp, Uint16 counter, Uint16 amount)
 {
+	if(!requireSendFeature(GAME_FEATURE_MARKET, "GamePlayerMarket", "market accept offer"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameMarketAcceptOpcode);
 	msg.addU32(timestamp);
@@ -7750,6 +7828,9 @@ void ProtocolGame::sendInspectObject(InspectObjectData& inspectData)
 
 void ProtocolGame::sendApplyImbuement(Uint8 slot, Uint32 imbuementId, bool protectiveCharm)
 {
+	if(!requireSendFeature(GAME_FEATURE_IMBUING, "GameImbuing", "apply imbuement"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameApplyImbuementOpcode);
 	msg.addU8(slot);
@@ -7760,6 +7841,9 @@ void ProtocolGame::sendApplyImbuement(Uint8 slot, Uint32 imbuementId, bool prote
 
 void ProtocolGame::sendClearCharm(Uint8 slot)
 {
+	if(!requireSendFeature(GAME_FEATURE_IMBUING, "GameImbuing", "clear charm"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameClearCharmOpcode);
 	msg.addU8(slot);
@@ -7768,6 +7852,9 @@ void ProtocolGame::sendClearCharm(Uint8 slot)
 
 void ProtocolGame::sendImbuementLeave()
 {
+	if(!requireSendFeature(GAME_FEATURE_IMBUING, "GameImbuing", "imbuement leave"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameImbuementLeaveOpcode);
 	onSend(msg);
@@ -7775,6 +7862,9 @@ void ProtocolGame::sendImbuementLeave()
 
 void ProtocolGame::sendPreyAction(Uint8 preyId, PreyAction action, Uint8 listIndex)
 {
+	if(!requireSendFeature(GAME_FEATURE_PREY, "GamePrey", "prey action"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GamePreyActionOpcode);
 	msg.addU8(preyId);
@@ -7790,6 +7880,9 @@ void ProtocolGame::sendPreyAction(Uint8 preyId, PreyAction action, Uint8 listInd
 
 void ProtocolGame::sendMarketStatistics()
 {
+	if(!requireSendFeature(GAME_FEATURE_MARKET, "GamePlayerMarket", "market statistics"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameMarketStatisticsOpcode);
 	onSend(msg);
@@ -7797,6 +7890,9 @@ void ProtocolGame::sendMarketStatistics()
 
 void ProtocolGame::sendOpenMonsterCyclopedia()
 {
+	if(!requireSendFeature(GAME_FEATURE_CYCLOPEDIA_MONSTERS, "GameCyclopediaMonsters", "open monster cyclopedia"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameOpenMonsterCyclopediaOpcode);
 	onSend(msg);
@@ -7804,6 +7900,9 @@ void ProtocolGame::sendOpenMonsterCyclopedia()
 
 void ProtocolGame::sendOpenMonsterCyclopediaMonsters(const std::string& race)
 {
+	if(!requireSendFeature(GAME_FEATURE_CYCLOPEDIA_MONSTERS, "GameCyclopediaMonsters", "open monster cyclopedia monsters"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameOpenMonsterCyclopediaMonstersOpcode);
 	if(g_clientVersion >= 1215)
@@ -7839,6 +7938,9 @@ void ProtocolGame::sendOpenMonsterCyclopediaMonsters(const std::string& race)
 
 void ProtocolGame::sendOpenMonsterCyclopediaRace(Uint16 raceId)
 {
+	if(!requireSendFeature(GAME_FEATURE_CYCLOPEDIA_MONSTERS, "GameCyclopediaMonsters", "open monster cyclopedia race"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameOpenMonsterCyclopediaRaceOpcode);
 	msg.addU16(raceId);
@@ -7927,6 +8029,9 @@ void ProtocolGame::sendCyclopediaHouseAction()
 
 void ProtocolGame::sendPreyHuntingTaskAction()
 {
+	if(!requireSendFeature(GAME_FEATURE_PREY, "GamePrey", "prey hunting task action"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GamePreyHuntingTaskActionOpcode);
 	msg.addU8(0);//??
@@ -7942,6 +8047,9 @@ void ProtocolGame::sendPreyHuntingTaskAction()
 
 void ProtocolGame::sendOpenRewardWall()
 {
+	if(!requireSendFeature(GAME_FEATURE_REWARD_WALL, "GameRewardWall", "open reward wall"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameOpenRewardWallOpcode);
 	onSend(msg);
@@ -7949,6 +8057,9 @@ void ProtocolGame::sendOpenRewardWall()
 
 void ProtocolGame::sendOpenRewardHistory()
 {
+	if(!requireSendFeature(GAME_FEATURE_REWARD_WALL, "GameRewardWall", "open reward history"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameOpenRewardHistoryOpcode);
 	onSend(msg);
@@ -7956,6 +8067,9 @@ void ProtocolGame::sendOpenRewardHistory()
 
 void ProtocolGame::sendColectReward(bool shrine, std::vector<RewardCollection>& rewards)
 {
+	if(!requireSendFeature(GAME_FEATURE_REWARD_WALL, "GameRewardWall", "collect reward"))
+		return;
+
 	size_t rewardSize = UTIL_min<size_t>(0xFF, rewards.size());
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameCollectRewardOpcode);
@@ -7972,6 +8086,9 @@ void ProtocolGame::sendColectReward(bool shrine, std::vector<RewardCollection>& 
 
 void ProtocolGame::sendQuickLoot(const Position& position, Uint16 itemId, Uint8 stackpos)
 {
+	if(!requireSendFeature(GAME_FEATURE_QUICK_LOOT, "GameQuickLoot", "quick loot"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameQuickLootOpcode);
 	msg.addPosition(position);
@@ -7982,6 +8099,9 @@ void ProtocolGame::sendQuickLoot(const Position& position, Uint16 itemId, Uint8 
 
 void ProtocolGame::sendLootContainer(LootContainerData& lootData)
 {
+	if(!requireSendFeature(GAME_FEATURE_QUICK_LOOT, "GameQuickLoot", "loot container"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameLootContainerOpcode);
 	msg.addU8(lootData.action);
@@ -8005,6 +8125,9 @@ void ProtocolGame::sendLootContainer(LootContainerData& lootData)
 
 void ProtocolGame::sendQuickLootBlackWhitelist(QuickLootFilter filter, std::vector<Uint16>& itemIds)
 {
+	if(!requireSendFeature(GAME_FEATURE_QUICK_LOOT, "GameQuickLoot", "quick loot filter"))
+		return;
+
 	size_t items = UTIL_min<size_t>(0xFFFF, itemIds.size());
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameQuickLootBlackWhitelistOpcode);
@@ -8035,6 +8158,9 @@ void ProtocolGame::sendMarkGameNewsAsRead(Uint32 newsId, bool readed)
 
 void ProtocolGame::sendClaimTournamentReward(Uint8 rewardId)
 {
+	if(!requireSendFeature(GAME_FEATURE_TOURNAMENTS, "GameTournaments", "claim tournament reward"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameClaimTournamentReward);
 	msg.addU8(rewardId);
@@ -8043,6 +8169,9 @@ void ProtocolGame::sendClaimTournamentReward(Uint8 rewardId)
 
 void ProtocolGame::sendTournamentInformation()
 {
+	if(!requireSendFeature(GAME_FEATURE_TOURNAMENTS, "GameTournaments", "tournament information"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameTournamentInformationOpcode);
 	onSend(msg);
@@ -8050,6 +8179,9 @@ void ProtocolGame::sendTournamentInformation()
 
 void ProtocolGame::sendTournamentLeaderboard(const std::string& worldName, Uint16 currentPage, const std::string& searchCharacter, Uint8 elementsPerPage/* = 20*/)
 {
+	if(!requireSendFeature(GAME_FEATURE_TOURNAMENTS, "GameTournaments", "tournament leaderboard"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameTournamentLeaderboardOpcode);
 
@@ -8077,6 +8209,9 @@ void ProtocolGame::sendTournamentLeaderboard(const std::string& worldName, Uint1
 
 void ProtocolGame::sendTournamentTicketAction()
 {
+	if(!requireSendFeature(GAME_FEATURE_TOURNAMENTS, "GameTournaments", "tournament ticket action"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameTournamentTicketActionOpcode);
 	msg.addU8(0);
@@ -8096,6 +8231,9 @@ void ProtocolGame::sendThankYou(Uint32 statementId)
 
 void ProtocolGame::sendGetOfferDescription(Uint32 offerId)
 {
+	if(!requireSendFeature(GAME_FEATURE_STORE, "GameIngameStore", "get offer description"))
+		return;
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameGetOfferDescriptionOpcode);
 	msg.addU32(offerId);
@@ -8104,6 +8242,12 @@ void ProtocolGame::sendGetOfferDescription(Uint32 offerId)
 
 void ProtocolGame::sendRequestResourceBalance(ResourceBalanceTypes resource)
 {
+	if(!g_game.hasGameFeature(GAME_FEATURE_STORE) && !g_game.hasGameFeature(GAME_FEATURE_PREY))
+	{
+		UTIL_protocolDebugLog("game", "%s", "ignore send resource balance because GameIngameStore and GamePrey are disabled by features.lua");
+		return;
+	}
+
 	OutputMessage msg(getHeaderPos());
 	msg.addU8(GameRequestResourceBalanceOpcode);
 	msg.addU8(SDL_static_cast(Uint8, resource));

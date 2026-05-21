@@ -37,6 +37,7 @@
 #include "animator.h"
 #include "protocollogin.h"
 #include "protocolgame.h"
+#include "protocolfeatures.h"
 #include "creature.h"
 #include "game.h"
 #include "config.h"
@@ -109,25 +110,30 @@ Engine::Engine()
 void Engine::loadCFG()
 {
 	Config cfg;
+	getProtocolFeatureManager().load();
+	bool versionConfigured = false;
 	SDL_snprintf(g_buffer, sizeof(g_buffer), "%sconfig.cfg", g_prefPath.c_str());
 	if(cfg.openToRead(g_buffer))
 	{
 		std::string data = cfg.fetchKey("Version");
-		if(data.empty())
-			return;
-		#if !(CLIENT_OVVERIDE_VERSION > 0)
-		else
+		if(!data.empty())
+		{
 			g_clientVersion = SDL_static_cast(Uint32, SDL_strtoul(data.c_str(), NULL, 10));
+			versionConfigured = true;
+		}
 
 		data = cfg.fetchKey("Host");
-		m_clientHost.assign(data);
+		if(!data.empty())
+			m_clientHost.assign(data);
 		data = cfg.fetchKey("Port");
-		m_clientPort.assign(data);
+		if(!data.empty())
+			m_clientPort.assign(data);
 		data = cfg.fetchKey("Proxy");
-		m_clientProxy.assign(data);
+		if(!data.empty())
+			m_clientProxy.assign(data);
 		data = cfg.fetchKey("ProxyAuth");
-		m_clientProxyAuth.assign(data);
-		#endif
+		if(!data.empty())
+			m_clientProxyAuth.assign(data);
 
 		data = cfg.fetchKey("Engine");
 		m_engine = SDL_static_cast(Uint8, SDL_strtoul(data.c_str(), NULL, 10));
@@ -415,9 +421,21 @@ void Engine::loadCFG()
 		m_rightPanel = (m_rightPanel == 0 ? GUI_PANEL_MAIN : m_rightPanel + GUI_PANEL_EXTRA_RIGHT_START - 1);
 	}
 	#if CLIENT_OVVERIDE_VERSION > 0
-	g_clientVersion = CLIENT_OVERRIDE_PROTOCOL_VERSION;
-	g_game.clientChangeVersion(CLIENT_OVERRIDE_PROTOCOL_VERSION, CLIENT_OVERRIDE_FILE_VERSION);
+	if(!versionConfigured)
+		g_clientVersion = getProtocolFeatureManager().getDefaultProtocol(CLIENT_OVERRIDE_PROTOCOL_VERSION);
+	m_clientHost = getProtocolFeatureManager().getDefaultHost(m_clientHost.empty() ? std::string(CLIENT_OVERRIDE_LOGIN_HOST) : m_clientHost);
+	if(m_clientPort.empty())
+	{
+		Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%u", CLIENT_OVERRIDE_LOGIN_PORT);
+		m_clientPort.assign(g_buffer, SDL_static_cast(size_t, len));
+	}
+	m_clientPort = getProtocolFeatureManager().getDefaultPort(m_clientPort);
+	g_game.clientChangeVersion(g_clientVersion, CLIENT_OVERRIDE_FILE_VERSION);
 	#else
+	if(!versionConfigured)
+		g_clientVersion = getProtocolFeatureManager().getDefaultProtocol(g_clientVersion);
+	m_clientHost = getProtocolFeatureManager().getDefaultHost(m_clientHost);
+	m_clientPort = getProtocolFeatureManager().getDefaultPort(m_clientPort);
 	g_game.clientChangeVersion(g_clientVersion, g_clientVersion);
 	#endif
 }
@@ -428,19 +446,13 @@ void Engine::saveCFG()
 	SDL_snprintf(g_buffer, sizeof(g_buffer), "%sconfig.cfg", g_prefPath.c_str());
 	if(cfg.openToSave(g_buffer))
 	{
-		#if CLIENT_OVVERIDE_VERSION > 0
-		Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%u", CLIENT_OVVERIDE_VERSION);
-		#else
 		Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%u", g_clientVersion);
-		#endif
 		cfg.insertKey("Version", std::string(g_buffer, SDL_static_cast(size_t, len)));
 
-		#if !(CLIENT_OVVERIDE_VERSION > 0)
 		cfg.insertKey("Host", m_clientHost);
 		cfg.insertKey("Port", m_clientPort);
 		cfg.insertKey("Proxy", m_clientProxy);
 		cfg.insertKey("ProxyAuth", m_clientProxyAuth);
-		#endif
 
 		len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%u", SDL_static_cast(Uint32, m_engine));
 		cfg.insertKey("Engine", std::string(g_buffer, SDL_static_cast(size_t, len)));
@@ -3610,20 +3622,12 @@ void Engine::issueNewConnection(bool protocolGame)
 		protocol = new ProtocolGame();
 
 		CharacterDetail& character = m_characters[SDL_static_cast(size_t, m_characterSelectId)];
-		#if CLIENT_OVVERIDE_VERSION == 0
 		g_connection = new Connection(character.worldIp.c_str(), character.worldPort, m_clientProxy.c_str(), m_clientProxyAuth.c_str(), protocol);
-		#else
-		g_connection = new Connection(character.worldIp.c_str(), character.worldPort, "", "", protocol);
-		#endif
 	}
 	else
 	{
 		protocol = new ProtocolLogin();
-		#if CLIENT_OVVERIDE_VERSION == 0
 		g_connection = new Connection(m_clientHost.c_str(), SDL_static_cast(Uint16, SDL_strtoul(m_clientPort.c_str(), NULL, 10)), m_clientProxy.c_str(), m_clientProxyAuth.c_str(), protocol);
-		#else
-		g_connection = new Connection(CLIENT_OVERRIDE_LOGIN_HOST, CLIENT_OVERRIDE_LOGIN_PORT, "", "", protocol);
-		#endif
 	}
 }
 

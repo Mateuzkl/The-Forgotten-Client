@@ -240,9 +240,6 @@ Uint16 Protocol::getOtclientV8OS()
 
 Uint16 Protocol::getProtocolVersion()
 {
-	#if CLIENT_OVVERIDE_VERSION > 0
-	return CLIENT_OVERRIDE_PROTOCOL_VERSION;
-	#else
 	switch(g_clientVersion)
 	{
 		case 980: return 972;
@@ -269,14 +266,9 @@ Uint16 Protocol::getProtocolVersion()
 		case 1156: return 1150;
 		default: return SDL_static_cast(Uint16, g_clientVersion);
 	}
-	#endif
 }
 
 Uint32 Protocol::getClientVersion()
 {
-	#if CLIENT_OVVERIDE_VERSION > 0
-	return CLIENT_OVERRIDE_PROTOCOL_VERSION;
-	#else
 	return g_clientVersion;
-	#endif
 }
