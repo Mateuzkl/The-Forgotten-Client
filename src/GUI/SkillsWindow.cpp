@@ -698,11 +698,6 @@ void UTIL_recreateSkillsWindow(GUI_SkillsContainer* container)
 	newDescription->setName(true, std::move(getSkillData(SKILLS_MANA_EVENTID)));
 	container->addChild(newDescription, false);
 	PosY += 14;
-	newDescription = new GUI_SkillDescription(iRect(10, PosY, 135, 12), SKILLS_SOUL_EVENTID);
-	newDescription->setName(false, SKILLS_SOUL_TITLE);
-	newDescription->setName(true, std::move(getSkillData(SKILLS_SOUL_EVENTID)));
-	container->addChild(newDescription, false);
-	PosY += 14;
 	newDescription = new GUI_SkillDescription(iRect(10, PosY, 135, 12), SKILLS_CAPACITY_EVENTID);
 	newDescription->setName(false, SKILLS_CAPACITY_TITLE);
 	newDescription->setName(true, std::move(getSkillData(SKILLS_CAPACITY_EVENTID)));
@@ -1091,13 +1086,6 @@ void UTIL_updateSkillsWindowStats()
 		pDescription = SDL_static_cast(GUI_SkillDescription*, container->getChild(SKILLS_MANA_EVENTID));
 		if(pDescription)
 			pDescription->setName(true, std::move(getSkillData(SKILLS_MANA_EVENTID)));
-	}
-
-	if(g_game.hasCachedStat(CACHED_STAT_SOUL))
-	{
-		pDescription = SDL_static_cast(GUI_SkillDescription*, container->getChild(SKILLS_SOUL_EVENTID));
-		if(pDescription)
-			pDescription->setName(true, std::move(getSkillData(SKILLS_SOUL_EVENTID)));
 	}
 
 	if(g_game.hasCachedStat(CACHED_STAT_CAPACITY))

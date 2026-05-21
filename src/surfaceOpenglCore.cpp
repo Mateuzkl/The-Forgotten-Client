@@ -631,9 +631,9 @@ bool SurfaceOpenglCore::isSupported()
 		{
 			UINT n = OwglGetGPUIDsAMD(0, 0);
 			UINT* ids = new UINT[n];
-			size_t vram = 0;
+			UINT vram = 0;
 			OwglGetGPUIDsAMD(n, ids);
-			OwglGetGPUInfoAMD(ids[0], 0x21A3, 0x1405, sizeof(size_t), &vram);
+			OwglGetGPUInfoAMD(ids[0], 0x21A3, 0x1405, sizeof(UINT), &vram);
 			delete[] ids;
 			m_totalVRAM = UTIL_power_of_2(SDL_static_cast(Uint32, vram));
 		}
@@ -649,9 +649,9 @@ bool SurfaceOpenglCore::isSupported()
 		{
 			unsigned int n = OglXGetGPUIDsAMD(0, 0);
 			unsigned int* ids = new unsigned int[n];
-			size_t vram = 0;
+			unsigned int vram = 0;
 			OglXGetGPUIDsAMD(n, ids);
-			OglXGetGPUInfoAMD(ids[0], 0x21A3, 0x1405, sizeof(size_t), &vram);
+			OglXGetGPUInfoAMD(ids[0], 0x21A3, 0x1405, sizeof(unsigned int), &vram);
 			delete[] ids;
 			m_totalVRAM = UTIL_power_of_2(SDL_static_cast(Uint32, vram));
 		}
@@ -659,9 +659,9 @@ bool SurfaceOpenglCore::isSupported()
 	#endif
 	else if(SDL_GL_ExtensionSupported("GL_ATI_meminfo"))
 	{
-		int vram = 0;
-		OglGetIntegerv(0x87FC, &vram);
-		m_totalVRAM = UTIL_power_of_2(SDL_static_cast(Uint32, vram) / 1024);
+		int vram[4] = {0, 0, 0, 0};
+		OglGetIntegerv(0x87FC, vram);
+		m_totalVRAM = UTIL_power_of_2(SDL_static_cast(Uint32, vram[0]) / 1024);
 	}
 	return true;
 }

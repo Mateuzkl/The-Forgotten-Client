@@ -91,6 +91,7 @@ class GUI_Window
 
 		GUI_Element* getActiveElement() {return m_actElement;}
 		void setActiveElement(GUI_Element* actElement);
+		void lockActiveElement(bool lock) {m_lockActive = lock;}
 
 		void onReshape(Sint32 w, Sint32 h);
 
@@ -123,6 +124,7 @@ class GUI_Window
 		iRect m_tRect;
 		bool m_bMouseDragging = false;
 		bool m_bActive = true;
+		bool m_lockActive = false;
 };
 
 #endif /* __FILE_GUI_WINDOW_h_ */

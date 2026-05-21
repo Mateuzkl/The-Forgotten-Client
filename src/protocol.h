@@ -30,6 +30,12 @@ enum ProtocolOS : Uint8
 {
 	LEGACY_CIPBIA_OS = 2,
 	QT_CIPBIA_OS = 5,
+	OTCLIENTV8_OS_LINUX = 20,
+	OTCLIENTV8_OS_WINDOWS = 21,
+	OTCLIENTV8_OS_MACOSX = 22,
+	OTCLIENTV8_OS_ANDROID = 23,
+	OTCLIENTV8_OS_IPHONEOS = 24,
+	OTCLIENTV8_OS_WEB = 25,
 	PROTOCOL_OS_ANDROID = 100,
 	PROTOCOL_OS_IPHONEOS = 101,
 	PROTOCOL_OS_MACOSX = 102,
@@ -86,6 +92,7 @@ class Protocol
 		Uint16 getHeaderPos();
 
 		static Uint8 getOS();
+		static Uint16 getOtclientV8OS();
 		static Uint16 getProtocolVersion();
 		static Uint32 getClientVersion();
 

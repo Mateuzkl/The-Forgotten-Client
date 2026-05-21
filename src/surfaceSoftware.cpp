@@ -599,7 +599,15 @@ void SurfaceSoftware::drawBackground(Uint16 pictureId, Sint32 sx, Sint32 sy, Sin
 		else
 			SDL_BlitScaled(surf, &sr, m_background, &dr);
 	}
-	UTIL_FastCopy(SDL_reinterpret_cast(Uint8*, m_renderSurface->pixels), SDL_reinterpret_cast(const Uint8*, m_background->pixels), w * h * m_renderSurface->format->BytesPerPixel);
+	if(m_renderSurface->pitch == w * m_renderSurface->format->BytesPerPixel)
+	{
+		UTIL_FastCopy(SDL_reinterpret_cast(Uint8*, m_renderSurface->pixels), SDL_reinterpret_cast(const Uint8*, m_background->pixels), w * h * m_renderSurface->format->BytesPerPixel);
+	}
+	else
+	{
+		SDL_Rect dr = {x, y, w, h};
+		SDL_BlitSurface(m_background, NULL, m_renderSurface, &dr);
+	}
 }
 
 void SurfaceSoftware::drawPictureRepeat(Uint16 pictureId, Sint32 sx, Sint32 sy, Sint32 sw, Sint32 sh, Sint32 x, Sint32 y, Sint32 w, Sint32 h)

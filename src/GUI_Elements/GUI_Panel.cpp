@@ -189,7 +189,10 @@ void GUI_Panel::checkPanels()
 		newPanelRect.y1 = m_lastPosY;
 		newPanelRect.x2 = panelRect.x2;
 		newPanelRect.y2 = panelRect.y2;
-		panel->setRect(newPanelRect, true);
+		// Only call setRect (which moves children) if position actually changed
+		if(newPanelRect.x1 != panelRect.x1 || newPanelRect.y1 != panelRect.y1 ||
+		   newPanelRect.x2 != panelRect.x2 || newPanelRect.y2 != panelRect.y2)
+			panel->setRect(newPanelRect, true);
 		m_lastPosY += panelRect.y2;
 		m_freeHeight -= panelRect.y2;
 	}
@@ -410,7 +413,11 @@ void GUI_Panel::render()
 	renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_ICON_HORIZONTAL_LINE_BRIGHT_X, GUI_UI_ICON_HORIZONTAL_LINE_BRIGHT_Y, GUI_UI_ICON_HORIZONTAL_LINE_BRIGHT_W, GUI_UI_ICON_HORIZONTAL_LINE_BRIGHT_H, m_tRect.x1, m_tRect.y1, m_tRect.x2 - 2, 2);
 	renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_ICON_HORIZONTAL_LINE_DARK_X, GUI_UI_ICON_HORIZONTAL_LINE_DARK_Y, GUI_UI_ICON_HORIZONTAL_LINE_DARK_W, GUI_UI_ICON_HORIZONTAL_LINE_DARK_H, m_tRect.x1 + 2, m_tRect.y1 + m_tRect.y2 - 2, m_tRect.x2 - 2, 2);
 	if(m_freeHeight > 0)
-		renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_BACKGROUND_GREY_X, GUI_UI_BACKGROUND_GREY_Y, GUI_UI_BACKGROUND_GREY_W, GUI_UI_BACKGROUND_GREY_H, m_tRect.x1 + 2, m_lastPosY, m_tRect.x2 - 4, m_freeHeight);
+	{
+		renderer->setClipRect(m_tRect.x1 + 2, m_lastPosY, m_tRect.x2 - 4, m_freeHeight);
+		renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_BACKGROUND_GREY_X, GUI_UI_BACKGROUND_GREY_Y, GUI_UI_BACKGROUND_GREY_W, GUI_UI_BACKGROUND_GREY_H, m_tRect.x1 + 2, 0, m_tRect.x2 - 4, g_engine.getWindowHeight());
+		renderer->disableClipRect();
+	}
 
 	if(g_engine.getTopPanel())
 	{

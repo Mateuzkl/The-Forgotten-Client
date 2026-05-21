@@ -574,9 +574,9 @@ bool SurfaceOpengl::isSupported()
 	#endif
 	else if(SDL_GL_ExtensionSupported("GL_ATI_meminfo"))
 	{
-		int vram = 0;
-		OglGetIntegerv(0x87FC, &vram);
-		m_totalVRAM = UTIL_power_of_2(SDL_static_cast(Uint32, vram) / 1024);
+		int vram[4] = {0, 0, 0, 0};
+		OglGetIntegerv(0x87FC, vram);
+		m_totalVRAM = UTIL_power_of_2(SDL_static_cast(Uint32, vram[0]) / 1024);
 	}
 	return true;
 }

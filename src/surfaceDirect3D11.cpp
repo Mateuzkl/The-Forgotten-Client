@@ -2361,7 +2361,7 @@ bool SurfaceDirect3D11::loadSprite(Uint32 spriteId, Direct3D11Texture* texture, 
 		unsigned char* srcPixels = pixels;
 		if(length > textureMemory.RowPitch)
 			length = textureMemory.RowPitch;
-		for(Uint32 row = 0; row < texture->m_height; ++row)
+		for(Uint32 row = 0; row < 32; ++row)
 		{
 			UTIL_FastCopy(SDL_reinterpret_cast(Uint8*, dstData), SDL_reinterpret_cast(const Uint8*, srcPixels), length);
 			srcPixels += length;
@@ -2416,7 +2416,7 @@ bool SurfaceDirect3D11::loadSpriteMask(Uint32 spriteId, Uint32 maskSpriteId, Uin
 		unsigned char* srcPixels = pixels;
 		if(length > textureMemory.RowPitch)
 			length = textureMemory.RowPitch;
-		for(Uint32 row = 0; row < texture->m_height; ++row)
+		for(Uint32 row = 0; row < 32; ++row)
 		{
 			UTIL_FastCopy(SDL_reinterpret_cast(Uint8*, dstData), SDL_reinterpret_cast(const Uint8*, srcPixels), length);
 			srcPixels += length;

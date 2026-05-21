@@ -33,11 +33,18 @@ extern Uint32 g_datRevision;
 extern Uint32 g_picRevision;
 extern Uint32 g_sprRevision;
 
+static bool shouldUseOtclientV8Login()
+{
+	return (Protocol::getProtocolVersion() == 860 && g_game.hasGameFeature(GAME_FEATURE_EXTENDED_CLIENT_PING));
+}
+
 void ProtocolLogin::parseMessage(InputMessage& msg)
 {
 	m_skipErrors = true;//Since we read something skip disconnect errors
 
+	Uint16 opcodePos = msg.getReadPos();
 	Uint8 header = msg.getU8();
+	UTIL_protocolDebugLog("login", "recv opcode=0x%02X pos=%u size=%u unread=%u", SDL_static_cast(Uint32, header), SDL_static_cast(Uint32, opcodePos), SDL_static_cast(Uint32, msg.getMessageSize()), SDL_static_cast(Uint32, msg.getUnreadSize()));
 	switch(header)
 	{
 		case RecvErrorOpcode:
@@ -54,6 +61,8 @@ void ProtocolLogin::parseMessage(InputMessage& msg)
 		case RecvCharacterListNewOpcode: parseCharacterListNew(msg); break;
 		default:
 		{
+			UTIL_protocolDebugLog("login", "unsupported opcode=0x%02X pos=%u size=%u unread=%u", SDL_static_cast(Uint32, header), SDL_static_cast(Uint32, opcodePos), SDL_static_cast(Uint32, msg.getMessageSize()), SDL_static_cast(Uint32, msg.getUnreadSize()));
+			UTIL_protocolDebugDumpMessage("login", "unsupported", msg.getBuffer() + opcodePos, msg.getMessageSize() - opcodePos, 0, header);
 			msg.setReadPos(msg.getMessageSize());//Make sure we don't read anymore
 			SDL_snprintf(g_buffer, sizeof(g_buffer), "Received unsupported packet header: 0x%02X", SDL_static_cast(Uint32, header));
 			UTIL_messageBox("Error", std::string(g_buffer));
@@ -142,6 +151,7 @@ void ProtocolLogin::parseUpdateBlock(InputMessage& msg)
 void ProtocolLogin::parseSessionKey(InputMessage& msg)
 {
 	const std::string sessionKey = msg.getString();
+	UTIL_protocolDebugLog("login", "received session key length=%u", SDL_static_cast(Uint32, sessionKey.length()));
 	g_engine.setAccountSessionKey(sessionKey);
 }
 
@@ -161,6 +171,7 @@ void ProtocolLogin::parseCharacterList(InputMessage& msg)
 			world.worldIp = msg.getString();
 			world.worldPort = msg.getU16();
 			world.previewState = msg.getBool();
+			UTIL_protocolDebugLog("login", "world id=%u name=%s ip=%s port=%u preview=%u", SDL_static_cast(Uint32, worldId), world.worldName.c_str(), world.worldIp.c_str(), SDL_static_cast(Uint32, world.worldPort), SDL_static_cast(Uint32, world.previewState));
 		}
 
 		Uint8 characterCount = msg.getU8();
@@ -179,6 +190,7 @@ void ProtocolLogin::parseCharacterList(InputMessage& msg)
 				character.worldPort = world.worldPort;
 				character.previewState = world.previewState;
 				character.lookType = 0;
+				UTIL_protocolDebugLog("login", "character name=%s world=%s ip=%s port=%u", character.name.c_str(), character.worldName.c_str(), character.worldIp.c_str(), SDL_static_cast(Uint32, character.worldPort));
 			}
 			else
 				msg.getRawString();
@@ -201,6 +213,7 @@ void ProtocolLogin::parseCharacterList(InputMessage& msg)
 				character.previewState = false;
 			
 			character.lookType = 0;
+			UTIL_protocolDebugLog("login", "character name=%s world=%s ip=%s port=%u", character.name.c_str(), character.worldName.c_str(), character.worldIp.c_str(), SDL_static_cast(Uint32, character.worldPort));
 		}
 	}
 
@@ -266,6 +279,7 @@ void ProtocolLogin::parseCharacterListNew(InputMessage& msg)
 		character.worldIp = UTIL_ipv4_tostring(msg.getU32());
 		character.worldPort = msg.getU16();
 		character.previewState = false;
+		UTIL_protocolDebugLog("login", "character(new) name=%s world=%s ip=%s port=%u level=%u", character.name.c_str(), character.worldName.c_str(), character.worldIp.c_str(), SDL_static_cast(Uint32, character.worldPort), SDL_static_cast(Uint32, character.level));
 	}
 
 	Uint8 accountStatus = AccountStatus_Ok;
@@ -292,11 +306,17 @@ void ProtocolLogin::onConnect()
 	bool checksumFeature = (g_game.hasGameFeature(GAME_FEATURE_CHECKSUM) || g_game.hasGameFeature(GAME_FEATURE_PROTOCOLSEQUENCE));
 	bool xteaFeature = g_game.hasGameFeature(GAME_FEATURE_XTEA);
 	bool rsa1024Feature = g_game.hasGameFeature(GAME_FEATURE_RSA1024);
+	UTIL_protocolDebugLog("login", "send login protocol=%u client=%u dat=%u spr=%u pic=%u checksum=%u xtea=%u rsa1024=%u accountNameFeature=%u", SDL_static_cast(Uint32, Protocol::getProtocolVersion()), Protocol::getClientVersion(), g_datRevision, g_sprRevision, g_picRevision, SDL_static_cast(Uint32, checksumFeature), SDL_static_cast(Uint32, xteaFeature), SDL_static_cast(Uint32, rsa1024Feature), SDL_static_cast(Uint32, g_game.hasGameFeature(GAME_FEATURE_ACCOUNT_NAME)));
 
 	OutputMessage msg((checksumFeature ? 6 : 2));
 	msg.addU8(SendLoginOpcode);
-	msg.addU8((g_game.hasGameFeature(GAME_FEATURE_PROTOCOLSEQUENCE) ? QT_CIPBIA_OS : LEGACY_CIPBIA_OS));
-	msg.addU8(Protocol::getOS());
+	if(shouldUseOtclientV8Login())
+		msg.addU16(Protocol::getOtclientV8OS());
+	else
+	{
+		msg.addU8((g_game.hasGameFeature(GAME_FEATURE_PROTOCOLSEQUENCE) ? QT_CIPBIA_OS : LEGACY_CIPBIA_OS));
+		msg.addU8(Protocol::getOS());
+	}
 	msg.addU16(Protocol::getProtocolVersion());
 	if(g_game.hasGameFeature(GAME_FEATURE_CLIENT_VERSION))
 		msg.addU32(Protocol::getClientVersion());
@@ -330,6 +350,11 @@ void ProtocolLogin::onConnect()
 		msg.addU32(SDL_static_cast(Uint32, SDL_strtoul(g_engine.getAccountName().c_str(), NULL, 10)));
 
 	msg.addString(g_engine.getAccountPassword());
+	if(shouldUseOtclientV8Login())
+	{
+		msg.addString("OTCv8");
+		msg.addU16(860);
+	}
 	if(rsa1024Feature)
 	{
 		msg.addPaddingBytes(128 - (msg.getWritePos() - firstByte), 0xFF);

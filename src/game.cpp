@@ -132,7 +132,25 @@ void Game::clientChangeVersion(Uint32 clientVersion, Uint32 fileVersion)
 	if(clientVersion >= 854)
 		enableGameFeature(GAME_FEATURE_CREATURE_EMBLEM);
 	if(clientVersion >= 860)
+	{
 		enableGameFeature(GAME_FEATURE_ATTACK_SEQUENCE);
+		enableGameFeature(GAME_FEATURE_MOUNTS);
+		enableGameFeature(GAME_FEATURE_EFFECTS_U16);
+		enableGameFeature(GAME_FEATURE_DISTANCEEFFECTS_U16);
+		enableGameFeature(GAME_FEATURE_DOUBLE_HEALTH);
+		enableGameFeature(GAME_FEATURE_OFFLINE_TRAINING);
+		enableGameFeature(GAME_FEATURE_BASE_SKILLS);
+		enableGameFeature(GAME_FEATURE_BASE_SKILL_U16);
+		enableGameFeature(GAME_FEATURE_ADDITIONAL_SKILLS);
+		enableGameFeature(GAME_FEATURE_FRAMEGROUPS);
+		enableGameFeature(GAME_FEATURE_ENHANCED_ANIMATIONS);
+		enableGameFeature(GAME_FEATURE_EXTENDED_CLIENT_PING);
+		enableGameFeature(GAME_FEATURE_EXTENDED_SPRITES);
+		enableGameFeature(GAME_FEATURE_DOUBLE_PLAYER_GOODS_MONEY);
+		enableGameFeature(GAME_FEATURE_CREATURE_ICONS);
+		enableGameFeature(GAME_FEATURE_PURSE_SLOT);
+		enableGameFeature(GAME_FEATURE_PREY);
+	}
 	if(clientVersion >= 862)
 		enableGameFeature(GAME_FEATURE_DEATH_PENALTY);
 	if(clientVersion >= 870)

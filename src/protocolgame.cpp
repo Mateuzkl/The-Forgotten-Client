@@ -48,9 +48,48 @@ extern Connection* g_connection;
 extern Uint32 g_datRevision;
 extern Uint16 g_ping;
 
+static bool shouldUseOtclientV8Login()
+{
+	return (Protocol::getProtocolVersion() == 860 && g_game.hasGameFeature(GAME_FEATURE_EXTENDED_CLIENT_PING));
+}
+
+static bool isOtclientV8LuaServerOpcode(Uint8 opcode)
+{
+	if(!shouldUseOtclientV8Login())
+		return false;
+
+	switch(opcode)
+	{
+		case 0x29: // supply stash
+		case 0x2F: // unjustified points
+		case 0x48: // cyclopedia/bestiary
+		case 0xD1: // hunt analyzer
+		case 0xDB: // custom market
+		case 0xEB: // imbuing window
+		case 0xEC: // close imbuing
+		case 0xED: // prey
+		case 0xEE: // resource balance
+		case 0xF0: // quest log
+		case 0xF1: // quest line
+		case 0xFD: // store/history
+			return true;
+		default: break;
+	}
+	return false;
+}
+
 void ProtocolGame::parseMessage(InputMessage& msg)
 {
+	Uint16 opcodePos = msg.getReadPos();
 	Uint8 header = msg.getU8();
+	UTIL_protocolDebugLog("game", "recv opcode=0x%02X pos=%u size=%u unread=%u", SDL_static_cast(Uint32, header), SDL_static_cast(Uint32, opcodePos), SDL_static_cast(Uint32, msg.getMessageSize()), SDL_static_cast(Uint32, msg.getUnreadSize()));
+	if(isOtclientV8LuaServerOpcode(header))
+	{
+		parseOtclientV8LuaPacket(msg, header);
+		m_skipErrors = true;
+		return;
+	}
+
 	switch(header)
 	{
 		case RecvCreatureDataOpcode: parseCreatureData(msg); break;
@@ -75,6 +114,7 @@ void ProtocolGame::parseMessage(InputMessage& msg)
 		case RecvTeamFinderTeamLeaderOpcode: parseTeamFinderTeamLeader(msg); break;
 		case RecvTeamFinderTeamMemberOpcode: parseTeamFinderTeamMember(msg); break;
 		case RecvOtclientOpcode: parseOtclient(msg); break;
+		case RecvServerFeaturesOpcode: parseServerFeatures(msg); break;
 		case RecvClientCheckOpcode: parseClientCheck(msg); break;
 		case RecvMapDescriptionOpcode: parseMapDescription(msg); break;
 		case RecvMapNorthOpcode: parseMapNorth(msg); break;
@@ -225,6 +265,8 @@ void ProtocolGame::parseMessage(InputMessage& msg)
 		case RecvStoreCompletePurchaseOpcode: parseStoreCompletePurchase(msg); break;
 		default:
 		{
+			UTIL_protocolDebugLog("game", "unsupported opcode=0x%02X pos=%u size=%u unread=%u initialized=%u pending=%u", SDL_static_cast(Uint32, header), SDL_static_cast(Uint32, opcodePos), SDL_static_cast(Uint32, msg.getMessageSize()), SDL_static_cast(Uint32, msg.getUnreadSize()), SDL_static_cast(Uint32, m_gameInitialized), SDL_static_cast(Uint32, m_pendingGame));
+			UTIL_protocolDebugDumpMessage("game", "unsupported", msg.getBuffer() + opcodePos, msg.getMessageSize() - opcodePos, 0, header);
 			msg.setReadPos(msg.getMessageSize());//Make sure we don't read anymore
 			Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "Received unsupported packet header: 0x%02X", SDL_static_cast(Uint32, header));
 			UTIL_messageBox("Error", std::string(g_buffer, SDL_static_cast(size_t, len)));
@@ -238,6 +280,114 @@ void ProtocolGame::parseOtclient(InputMessage& msg)
 {
 	msg.getU8();
 	msg.getRawString();
+}
+
+void ProtocolGame::parseOtclientV8LuaPacket(InputMessage& msg, Uint8 opcode)
+{
+	UTIL_protocolDebugLog("game", "ignore otcv8 lua opcode=0x%02X unread=%u", SDL_static_cast(Uint32, opcode), SDL_static_cast(Uint32, msg.getUnreadSize()));
+	msg.setReadPos(msg.getMessageSize());
+}
+
+void ProtocolGame::parseServerFeatures(InputMessage& msg)
+{
+	Uint16 featureCount = msg.getU16();
+	UTIL_protocolDebugLog("game", "server features count=%u", SDL_static_cast(Uint32, featureCount));
+	for(Uint16 i = 0; i < featureCount && msg.getUnreadSize() >= 2; ++i)
+	{
+		Uint8 featureId = msg.getU8();
+		bool enabled = msg.getBool();
+		GameFeatures feature = GAME_FEATURE_LAST;
+
+		switch(featureId)
+		{
+			case 1: feature = GAME_FEATURE_CHECKSUM; break;
+			case 2: feature = GAME_FEATURE_ACCOUNT_NAME; break;
+			case 3: feature = GAME_FEATURE_SERVER_SENDFIRST; break;
+			case 4: feature = GAME_FEATURE_DEATH_PENALTY; break;
+			case 5: feature = GAME_FEATURE_NPC_NAME_ON_TRADE; break;
+			case 6: feature = GAME_FEATURE_DOUBLE_CAPACITY; break;
+			case 7: feature = GAME_FEATURE_DOUBLE_EXPERIENCE; break;
+			case 8: feature = GAME_FEATURE_TOTAL_CAPACITY; break;
+			case 9: feature = GAME_FEATURE_BASE_SKILLS; break;
+			case 10: feature = GAME_FEATURE_REGENERATION_TIME; break;
+			case 11: feature = GAME_FEATURE_CHAT_PLAYERLIST; break;
+			case 12: feature = GAME_FEATURE_MOUNTS; break;
+			case 13: feature = GAME_FEATURE_ENVIRONMENT_EFFECTS; break;
+			case 14: feature = GAME_FEATURE_CREATURE_EMBLEM; break;
+			case 15: feature = GAME_FEATURE_ITEM_ANIMATION_PHASES; break;
+			case 16: feature = GAME_FEATURE_EFFECTS_U16; break;
+			case 17: feature = GAME_FEATURE_MARKET; break;
+			case 18: feature = GAME_FEATURE_EXTENDED_SPRITES; break;
+			case 19: feature = GAME_FEATURE_TILE_ADDTHING_STACKPOS; break;
+			case 20: feature = GAME_FEATURE_OFFLINE_TRAINING; break;
+			case 21: feature = GAME_FEATURE_PURSE_SLOT; break;
+			case 23: feature = GAME_FEATURE_SPELL_LIST; break;
+			case 24: feature = GAME_FEATURE_PING; break;
+			case 25: feature = GAME_FEATURE_EXTENDED_CLIENT_PING; break;
+			case 28: feature = GAME_FEATURE_DOUBLE_HEALTH; break;
+			case 29: feature = GAME_FEATURE_DOUBLE_SKILLS; break;
+			case 32: feature = GAME_FEATURE_ATTACK_SEQUENCE; break;
+			case 38: feature = GAME_FEATURE_MINIMAP_REMOVEMARK; break;
+			case 39: feature = GAME_FEATURE_DOUBLE_SHOPSELLAMOUNT; break;
+			case 40: feature = GAME_FEATURE_CONTAINER_PAGINATION; break;
+			case 41:
+				if(enabled)
+				{
+					g_game.enableGameFeature(GAME_FEATURE_ITEM_MARK);
+					g_game.enableGameFeature(GAME_FEATURE_CREATURE_MARK);
+				}
+				else
+				{
+					g_game.disableGameFeature(GAME_FEATURE_ITEM_MARK);
+					g_game.disableGameFeature(GAME_FEATURE_CREATURE_MARK);
+				}
+				UTIL_protocolDebugLog("game", "server feature id=%u mapped=thing marks enabled=%u", SDL_static_cast(Uint32, featureId), SDL_static_cast(Uint32, enabled));
+				continue;
+			case 42: feature = GAME_FEATURE_LOOKTYPE_U16; break;
+			case 43: feature = GAME_FEATURE_STAMINA; break;
+			case 44: feature = GAME_FEATURE_ADDONS; break;
+			case 45: feature = GAME_FEATURE_MESSAGE_STATEMENT; break;
+			case 46: feature = GAME_FEATURE_MESSAGE_LEVEL; break;
+			case 47: feature = GAME_FEATURE_NEWFLUIDS; break;
+			case 48: feature = GAME_FEATURE_PLAYERICONS_U16; break;
+			case 49: feature = GAME_FEATURE_NEWOUTFITS; break;
+			case 50: feature = GAME_FEATURE_PVP_MODE; break;
+			case 51: feature = GAME_FEATURE_WRITABLE_DATE; break;
+			case 52: feature = GAME_FEATURE_ADDITIONAL_VIPINFO; break;
+			case 53: feature = GAME_FEATURE_BASE_SKILL_U16; break;
+			case 54: feature = GAME_FEATURE_CREATURE_ICONS; break;
+			case 55: feature = GAME_FEATURE_HIDE_NPC_NAMES; break;
+			case 57: feature = GAME_FEATURE_PREMIUM_EXPIRATION; break;
+			case 58: feature = GAME_FEATURE_BROWSEFIELD; break;
+			case 59: feature = GAME_FEATURE_ENHANCED_ANIMATIONS; break;
+			case 60: feature = GAME_FEATURE_RENDER_INFORMATION; break;
+			case 62: feature = GAME_FEATURE_PREVIEW_STATE; break;
+			case 64: feature = GAME_FEATURE_CLIENT_VERSION; break;
+			case 65: feature = GAME_FEATURE_CONTENT_REVISION; break;
+			case 66: feature = GAME_FEATURE_EXPERIENCE_BONUS; break;
+			case 67: feature = GAME_FEATURE_AUTHENTICATOR; break;
+			case 68: feature = GAME_FEATURE_UNJUSTIFIED_POINTS; break;
+			case 69: feature = GAME_FEATURE_SESSIONKEY; break;
+			case 70: feature = GAME_FEATURE_DEATH_TYPE; break;
+			case 73: feature = GAME_FEATURE_STORE; break;
+			case 75: feature = GAME_FEATURE_STORE_SERVICETYPE; break;
+			case 76: feature = GAME_FEATURE_ADDITIONAL_SKILLS; break;
+			case 77: feature = GAME_FEATURE_DISTANCEEFFECTS_U16; break;
+			case 78: feature = GAME_FEATURE_PREY; break;
+			case 85: feature = GAME_FEATURE_DOUBLE_PLAYER_GOODS_MONEY; break;
+			case 131: feature = GAME_FEATURE_ITEM_TIER_BYTE; break;
+			default: break;
+		}
+
+		if(feature != GAME_FEATURE_LAST)
+		{
+			if(enabled)
+				g_game.enableGameFeature(feature);
+			else
+				g_game.disableGameFeature(feature);
+		}
+		UTIL_protocolDebugLog("game", "server feature id=%u mapped=%u enabled=%u", SDL_static_cast(Uint32, featureId), SDL_static_cast(Uint32, feature != GAME_FEATURE_LAST), SDL_static_cast(Uint32, enabled));
+	}
 }
 
 void ProtocolGame::parseCreatureData(InputMessage& msg)
@@ -273,6 +423,7 @@ void ProtocolGame::parseLogin(InputMessage& msg)
 {
 	Uint32 playerId = msg.getU32();
 	Uint16 serverBeat = msg.getU16();
+	UTIL_protocolDebugLog("game", "login success playerId=%u serverBeat=%u", playerId, SDL_static_cast(Uint32, serverBeat));
 	if(g_game.hasGameFeature(GAME_FEATURE_NEWSPEED_LAW))
 	{
 		Creature::speedA = msg.getDouble();
@@ -338,11 +489,13 @@ void ProtocolGame::parseLoginOrPending(InputMessage& msg)
 {
 	if(g_game.hasGameFeature(GAME_FEATURE_LOGIN_PENDING))
 	{
+		UTIL_protocolDebugLog("game", "login pending: sending enter game");
 		m_pendingGame = true;
 		sendEnterGame();
 	}
 	else
 	{
+		UTIL_protocolDebugLog("game", "login without pending");
 		parseLogin(msg);
 		if(!m_gameInitialized)
 		{
@@ -380,6 +533,7 @@ void ProtocolGame::parseReadyForSecondaryConnection(InputMessage& msg)
 
 void ProtocolGame::parseEnterGame(InputMessage&)
 {
+	UTIL_protocolDebugLog("game", "entered game");
 	m_pendingGame = false;
 	if(!m_gameInitialized)
 	{
@@ -1196,7 +1350,7 @@ void ProtocolGame::parseNpcOpenTrade(InputMessage& msg)
 void ProtocolGame::parseNpcPlayerGoods(InputMessage& msg)
 {
 	Uint64 playerMoney;
-	if(g_clientVersion >= 973)
+	if(g_game.hasGameFeature(GAME_FEATURE_DOUBLE_PLAYER_GOODS_MONEY) || g_clientVersion >= 973)
 		playerMoney = msg.getU64();
 	else
 		playerMoney = SDL_static_cast(Uint64, msg.getU32());
@@ -2032,6 +2186,8 @@ void ProtocolGame::parseChooseOutfit(InputMessage& msg)
 			MountDetail& newMount = mounts[i];
 			newMount.mountID = msg.getU16();
 			newMount.mountName = msg.getString();
+			if(i < 20)
+				UTIL_protocolDebugLog("game", "outfit mount[%u] id=%u name=%s", SDL_static_cast(Uint32, i), SDL_static_cast(Uint32, newMount.mountID), newMount.mountName.c_str());
 
 			Uint8 outfitLocked = 0;
 			Uint32 offerId = 0;
@@ -2043,6 +2199,8 @@ void ProtocolGame::parseChooseOutfit(InputMessage& msg)
 			}
 		}
 	}
+	UTIL_protocolDebugLog("game", "outfit window lookType=%u lookMount=%u outfits=%u mounts=%u", SDL_static_cast(Uint32, lookType), SDL_static_cast(Uint32, lookMount), SDL_static_cast(Uint32, outfits.size()), SDL_static_cast(Uint32, mounts.size()));
+
 	if(g_clientVersion >= 1185)
 	{
 		Uint8 tryOutfit = msg.getU8();
@@ -2182,6 +2340,9 @@ void ProtocolGame::parsePlayerDataBasic(InputMessage& msg)
 	Uint8 vocation = msg.getU8();
 	bool promoted = (vocation >= 10);
 	vocation %= 10;
+	if(g_game.hasGameFeature(GAME_FEATURE_PREY) && g_clientVersion < 1100)
+		msg.getBool();
+
 	if(g_clientVersion >= 1100)
 	{
 		bool hasReachedMain = msg.getBool();
@@ -2334,7 +2495,9 @@ void ProtocolGame::parsePlayerSkills(InputMessage& msg)
 		Uint16 baseLevel = level;
 		if(g_game.hasGameFeature(GAME_FEATURE_BASE_SKILLS))
 		{
-			if(g_game.hasGameFeature(GAME_FEATURE_DOUBLE_SKILLS))
+			if(g_game.hasGameFeature(GAME_FEATURE_BASE_SKILL_U16))
+				baseLevel = msg.getU16();
+			else if(g_game.hasGameFeature(GAME_FEATURE_DOUBLE_SKILLS))
 				baseLevel = msg.getU16();
 			else
 				baseLevel = SDL_static_cast(Uint16, msg.getU8());
@@ -5985,6 +6148,7 @@ void ProtocolGame::parseCharacterTradeConfigurationLight(InputMessage& msg)
 
 void ProtocolGame::onConnect()
 {
+	UTIL_protocolDebugLog("game", "connected to game server character=%s world=%s protocol=%u client=%u serverSendFirst=%u", g_engine.getCharacterName().c_str(), g_engine.getCharacterWorldName().c_str(), SDL_static_cast(Uint32, Protocol::getProtocolVersion()), Protocol::getClientVersion(), SDL_static_cast(Uint32, g_game.hasGameFeature(GAME_FEATURE_SERVER_SENDFIRST)));
 	if(g_game.hasGameFeature(GAME_FEATURE_SERVER_SENDFIRST))
 		setChecksumMethod(CHECKSUM_METHOD_CHALLENGE);
 	else
@@ -6045,6 +6209,7 @@ void ProtocolGame::sendServerName(const std::string& serverName)
 	if(!g_connection)
 		return;
 
+	UTIL_protocolDebugLog("game", "send server name=%s", serverName.c_str());
 	OutputMessage msg(0);
 	for(size_t i = 0, len = serverName.length(); i < len; ++i)
 		msg.addU8(serverName[i]);
@@ -6058,11 +6223,17 @@ void ProtocolGame::sendLogin(Uint32 challengeTimestamp, Uint8 challengeRandom)
 	bool checksumFeature = (g_game.hasGameFeature(GAME_FEATURE_CHECKSUM) || g_game.hasGameFeature(GAME_FEATURE_PROTOCOLSEQUENCE));
 	bool xteaFeature = g_game.hasGameFeature(GAME_FEATURE_XTEA);
 	bool rsa1024Feature = g_game.hasGameFeature(GAME_FEATURE_RSA1024);
+	UTIL_protocolDebugLog("game", "send game login character=%s protocol=%u client=%u checksum=%u xtea=%u rsa1024=%u challengeTs=%u challengeRandom=%u sessionKeyFeature=%u", g_engine.getCharacterName().c_str(), SDL_static_cast(Uint32, Protocol::getProtocolVersion()), Protocol::getClientVersion(), SDL_static_cast(Uint32, checksumFeature), SDL_static_cast(Uint32, xteaFeature), SDL_static_cast(Uint32, rsa1024Feature), challengeTimestamp, SDL_static_cast(Uint32, challengeRandom), SDL_static_cast(Uint32, g_game.hasGameFeature(GAME_FEATURE_SESSIONKEY)));
 
 	OutputMessage msg((checksumFeature ? 6 : 2));
 	msg.addU8(GameLoginOpcode);
-	msg.addU8((g_game.hasGameFeature(GAME_FEATURE_PROTOCOLSEQUENCE) ? QT_CIPBIA_OS : LEGACY_CIPBIA_OS));
-	msg.addU8(Protocol::getOS());
+	if(shouldUseOtclientV8Login())
+		msg.addU16(Protocol::getOtclientV8OS());
+	else
+	{
+		msg.addU8((g_game.hasGameFeature(GAME_FEATURE_PROTOCOLSEQUENCE) ? QT_CIPBIA_OS : LEGACY_CIPBIA_OS));
+		msg.addU8(Protocol::getOS());
+	}
 	msg.addU16(Protocol::getProtocolVersion());
 	if(g_game.hasGameFeature(GAME_FEATURE_CLIENT_VERSION))
 		msg.addU32(Protocol::getClientVersion());
@@ -6121,6 +6292,13 @@ void ProtocolGame::sendLogin(Uint32 challengeTimestamp, Uint8 challengeRandom)
 		msg.addU8(challengeRandom);
 	}
 
+	if(shouldUseOtclientV8Login())
+	{
+		msg.addString("OTCv8");
+		msg.addU16(860);
+		msg.addString("OTCv8TierByte");
+	}
+
 	if(rsa1024Feature)
 	{
 		msg.addPaddingBytes(128 - (msg.getWritePos() - firstByte), 0xFF);
@@ -6171,7 +6349,16 @@ void ProtocolGame::sendPing()
 	if(m_pingReceived != m_pingSent)
 		return;
 
-	if(g_game.hasGameFeature(GAME_FEATURE_PING))
+	if(g_game.hasGameFeature(GAME_FEATURE_EXTENDED_CLIENT_PING))
+	{
+		OutputMessage msg(getHeaderPos());
+		msg.addU8(GameOtclientOpcode);
+		msg.addU8(2);
+		msg.addString("");
+		onSend(msg);
+		return;
+	}
+	else if(g_game.hasGameFeature(GAME_FEATURE_PING))
 	{
 		OutputMessage msg(getHeaderPos());
 		msg.addU8(GamePingOpcode);
@@ -6898,6 +7085,9 @@ void ProtocolGame::sendSetOutfit(Uint16 lookType, Uint8 lookHead, Uint8 lookBody
 		msg.addU32(0);//??
 	}
 	onSend(msg);
+
+	if(shouldUseOtclientV8Login() && g_game.hasGameFeature(GAME_FEATURE_MOUNTS))
+		sendMount(lookMount != 0);
 }
 
 void ProtocolGame::sendMount(bool active)
@@ -8729,6 +8919,9 @@ Item* ProtocolGame::getItem(InputMessage& msg, Uint16 thingId, const Position& p
 			msg.getU32();
 	}
 
+	if(g_game.hasGameFeature(GAME_FEATURE_ITEM_TIER_BYTE))
+		msg.getU8();
+
 	Sint32 phase = AnimationPhase_Automatic;
 	if(g_game.hasGameFeature(GAME_FEATURE_ITEM_ANIMATION_PHASES))
 	{
@@ -8772,6 +8965,9 @@ ItemUI* ProtocolGame::getItemUI(InputMessage& msg, Uint16 thingId)
 		if(assignedToQuickLoot)
 			msg.getU32();
 	}
+
+	if(g_game.hasGameFeature(GAME_FEATURE_ITEM_TIER_BYTE))
+		msg.getU8();
 
 	Sint32 phase = AnimationPhase_Automatic;
 	if(g_game.hasGameFeature(GAME_FEATURE_ITEM_ANIMATION_PHASES))

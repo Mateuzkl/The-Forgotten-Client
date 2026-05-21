@@ -146,6 +146,7 @@ class Engine
 
 		HotkeyUsage* getHotkey(SDL_Keycode key, Uint16 mods);
 		void bindHotkey(ClientHotkeyKeys hotKey, SDL_Keycode key, Uint16 mods, ClientHotkeys hotkeyType);
+		void bindHotkeyAction(SDL_Keycode key, Uint16 mods, const std::string& text, bool sendAutomatically);
 		void resetToDefaultHotkeys(bool wasd);
 
 		Sint32 calculateMainHeight();

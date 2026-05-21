@@ -1484,7 +1484,11 @@ void Chat::render(iRect& rect)
 	renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_BACKGROUND_GREY_X, GUI_UI_BACKGROUND_GREY_Y, GUI_UI_BACKGROUND_GREY_W, GUI_UI_BACKGROUND_GREY_H, rect.x1, rect.y1 + 1, rect.x2, 3);
 	renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_ICON_HORIZONTAL_LINE_DARK_X, GUI_UI_ICON_HORIZONTAL_LINE_DARK_Y, GUI_UI_ICON_HORIZONTAL_LINE_DARK_W, GUI_UI_ICON_HORIZONTAL_LINE_DARK_H, rect.x1, rect.y1 + 4, rect.x2, 1);
 	renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_ICON_CONSOLE_BACKGROUND_X, GUI_UI_ICON_CONSOLE_BACKGROUND_Y, GUI_UI_ICON_CONSOLE_BACKGROUND_W, GUI_UI_ICON_CONSOLE_BACKGROUND_H, rect.x1, rect.y1 + 5, rect.x2, 16);
-	renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_BACKGROUND_GREY_X, GUI_UI_BACKGROUND_GREY_Y, GUI_UI_BACKGROUND_GREY_W, GUI_UI_BACKGROUND_GREY_H, rect.x1 + 2, rect.y1 + 23, rect.x2 - 4, rect.y2 - 25);
+	// Draw background anchored to absolute screen position so it doesn't shift during resize.
+	// Use clip rect to constrain to the chat area, then draw from y=0 so tiles are always at same absolute position.
+	renderer->setClipRect(rect.x1 + 2, rect.y1 + 23, rect.x2 - 4, rect.y2 - 25);
+	renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_BACKGROUND_GREY_X, GUI_UI_BACKGROUND_GREY_Y, GUI_UI_BACKGROUND_GREY_W, GUI_UI_BACKGROUND_GREY_H, rect.x1 + 2, 0, rect.x2 - 4, g_engine.getWindowHeight());
+	renderer->disableClipRect();
 	
 	renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_TOPLEFT_BORDER_X, GUI_UI_ICON_TOPLEFT_BORDER_Y, rect.x1 + 4, rect.y1 + 26, GUI_UI_ICON_TOPLEFT_BORDER_W, GUI_UI_ICON_TOPLEFT_BORDER_H);
 	renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_BOTLEFT_BORDER_X, GUI_UI_ICON_BOTLEFT_BORDER_Y, rect.x1 + 4, rect.y1 + rect.y2 - 25, GUI_UI_ICON_BOTLEFT_BORDER_W, GUI_UI_ICON_BOTLEFT_BORDER_H);

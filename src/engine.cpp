@@ -47,6 +47,7 @@
 #include "GUI_Elements/GUI_Description.h"
 #include "GUI_Elements/GUI_ContextMenu.h"
 #include "GUI_Elements/GUI_Log.h"
+#include "GUI_Elements/GUI_TextBox.h"
 #include "GUI/itemUI.h"
 #include "GUI/Chat.h"
 
@@ -1507,7 +1508,17 @@ void Engine::onKeyDown(SDL_Event& event)
 				break;
 				case CLIENT_HOTKEY_ACTION:
 				{
-					//Implement actions
+					if(event.key.repeat == 0 && hotkey->action.type == CLIENT_HOTKEY_ACTION_TEXT && hotkey->action.text.text && !hotkey->action.text.text->empty())
+					{
+						if(hotkey->action.text.sendAutomatically)
+							g_game.sendSay(MessageSay, 0, std::string(), *hotkey->action.text.text);
+						else
+						{
+							GUI_TextBox* chatInput = g_chat.getTextBox();
+							if(chatInput)
+								chatInput->setText(*hotkey->action.text.text);
+						}
+					}
 				}
 				break;
 				default: break;
@@ -2651,6 +2662,59 @@ void Engine::bindHotkey(ClientHotkeyKeys hotKey, SDL_Keycode key, Uint16 mods, C
 	m_hotkeys.push_back(newHotkey);
 }
 
+void Engine::bindHotkeyAction(SDL_Keycode key, Uint16 mods, const std::string& text, bool sendAutomatically)
+{
+	// Find existing entry or create new one
+	std::map<Uint16, std::map<SDL_Keycode, size_t>>::iterator mit = m_hotkeyFastAccess.find(mods);
+	if(mit != m_hotkeyFastAccess.end())
+	{
+		std::map<SDL_Keycode, size_t>::iterator it = mit->second.find(key);
+		if(it != mit->second.end())
+		{
+			// Update existing
+			HotkeyUsage& usage = m_hotkeys[it->second];
+			// Free old text if any
+			if(usage.action.type == CLIENT_HOTKEY_ACTION_TEXT && usage.action.text.text)
+			{
+				delete usage.action.text.text;
+				usage.action.text.text = NULL;
+			}
+			if(text.empty())
+			{
+				usage.action.type = CLIENT_HOTKEY_ACTION_NONE;
+			}
+			else
+			{
+				usage.action.type = CLIENT_HOTKEY_ACTION_TEXT;
+				usage.action.text.sendAutomatically = sendAutomatically;
+				usage.action.text.text = new std::string(text);
+			}
+			return;
+		}
+	}
+
+	// Create new entry
+	HotkeyUsage newHotkey;
+	if(text.empty())
+	{
+		newHotkey.action.type = CLIENT_HOTKEY_ACTION_NONE;
+		newHotkey.action.text.text = NULL;
+		newHotkey.action.text.sendAutomatically = false;
+	}
+	else
+	{
+		newHotkey.action.type = CLIENT_HOTKEY_ACTION_TEXT;
+		newHotkey.action.text.sendAutomatically = sendAutomatically;
+		newHotkey.action.text.text = new std::string(text);
+	}
+	newHotkey.keycode = key;
+	newHotkey.hotkey = CLIENT_HOTKEY_ACTION;
+	newHotkey.modifers = mods;
+	newHotkey.keyid = SDL_static_cast(Uint8, CLIENT_HOTKEY_FIRST_KEY);
+	m_hotkeyFastAccess[mods][key] = m_hotkeys.size();
+	m_hotkeys.push_back(newHotkey);
+}
+
 void Engine::resetToDefaultHotkeys(bool wasd)
 {
 	if(wasd)
@@ -3502,16 +3566,16 @@ unsigned char* Engine::LoadPicture(Uint16 pictureId, bool bgra, Sint32& width, S
 									pixels[offset + 2] = SDL_ReadU8(pictures);
 									pixels[offset + 1] = SDL_ReadU8(pictures);
 									pixels[offset] = SDL_ReadU8(pictures);
-									pixels[offset + 3] = SDL_ReadU8(pictures);
+									pixels[offset + 3] = 0xFF;
 								}
 								else
 								{
 									pixels[offset] = SDL_ReadU8(pictures);
 									pixels[offset + 1] = SDL_ReadU8(pictures);
 									pixels[offset + 2] = SDL_ReadU8(pictures);
-									pixels[offset + 3] = SDL_ReadU8(pictures);
+									pixels[offset + 3] = 0xFF;
 								}
-								readData += 4;
+								readData += 3;
 							}
 						}
 						writeData += chunkSize;

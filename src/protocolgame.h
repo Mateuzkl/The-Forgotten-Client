@@ -34,6 +34,7 @@ enum GameOpcodes : Uint8
 	GameConnectionPingBackOpcode = 0x1C,
 	GamePingOpcode = 0x1D,
 	GamePingBackOpcode = 0x1E,
+	GameOtclientOpcode = 0x32,
 	GameStashActionOpcode = 0x28,
 	GameDepotSearchRetrieveOpcode = 0x29,
 	GameTrackBestiaryRaceOpcode = 0x2A,
@@ -201,6 +202,7 @@ enum GameOpcodes : Uint8
 	RecvTeamFinderTeamLeaderOpcode = 0x2C,
 	RecvTeamFinderTeamMemberOpcode = 0x2D,
 	RecvOtclientOpcode = 0x32,
+	RecvServerFeaturesOpcode = 0x43,
 	RecvClientCheckOpcode = 0x63,
 	RecvMapDescriptionOpcode = 0x64,
 	RecvMapNorthOpcode = 0x65,
@@ -934,6 +936,8 @@ class ProtocolGame : public Protocol
 
 		//Main Functions
 		void parseOtclient(InputMessage& msg);
+		void parseOtclientV8LuaPacket(InputMessage& msg, Uint8 opcode);
+		void parseServerFeatures(InputMessage& msg);
 		void parseCreatureData(InputMessage& msg);
 		void parseSessionDumpStart(InputMessage& msg);
 		void parseLogin(InputMessage& msg);

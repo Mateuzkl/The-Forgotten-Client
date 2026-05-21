@@ -53,17 +53,24 @@ void GUI_PanelWindow::setEventCallback(void (*eventHandlerFunction)(Uint32, Sint
 
 void GUI_PanelWindow::setRect(iRect& NewRect, bool NewPos)
 {
-	for(std::vector<GUI_Element*>::iterator it = m_childs.begin(), end = m_childs.end(); it != end; ++it)
-	{
-		GUI_Element* child = (*it);
-		iRect childRect = child->getRect();
-		iRect newChildRect;
+	// Only move children if x1 or y1 changed (position change = drag)
+	// If only y2 changed (height change = resize), children stay in place
+	bool positionChanged = (NewRect.x1 != m_tRect.x1 || NewRect.y1 != m_tRect.y1);
 
-		newChildRect.x1 = NewRect.x1 + (childRect.x1 - m_tRect.x1);
-		newChildRect.y1 = NewRect.y1 + (childRect.y1 - m_tRect.y1);
-		newChildRect.x2 = childRect.x2;
-		newChildRect.y2 = childRect.y2;
-		child->setRect(newChildRect);
+	if(positionChanged)
+	{
+		for(std::vector<GUI_Element*>::iterator it = m_childs.begin(), end = m_childs.end(); it != end; ++it)
+		{
+			GUI_Element* child = (*it);
+			iRect childRect = child->getRect();
+			iRect newChildRect;
+
+			newChildRect.x1 = NewRect.x1 + (childRect.x1 - m_tRect.x1);
+			newChildRect.y1 = NewRect.y1 + (childRect.y1 - m_tRect.y1);
+			newChildRect.x2 = childRect.x2;
+			newChildRect.y2 = childRect.y2;
+			child->setRect(newChildRect);
+		}
 	}
 	if(NewPos)
 		m_nRect = NewRect;
@@ -338,9 +345,7 @@ void GUI_PanelWindow::render()
 		renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_PWINDOW_LEFT_CENTER_X, GUI_UI_ICON_PWINDOW_LEFT_CENTER_Y, m_tRect.x1 - 2, m_tRect.y1 - 2, GUI_UI_ICON_PWINDOW_LEFT_CENTER_W, GUI_UI_ICON_PWINDOW_LEFT_CENTER_H);
 		renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_ICON_PWINDOW_TOP_CENTER_X, GUI_UI_ICON_PWINDOW_TOP_CENTER_Y, GUI_UI_ICON_PWINDOW_TOP_CENTER_W, GUI_UI_ICON_PWINDOW_TOP_CENTER_H, m_tRect.x1 + 2, m_tRect.y1 - 2, m_tRect.x2 - 4, 15);
 		renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_PWINDOW_RIGHT_CENTER_X, GUI_UI_ICON_PWINDOW_RIGHT_CENTER_Y, m_tRect.x1 + m_tRect.x2 - 2, m_tRect.y1 - 2, GUI_UI_ICON_PWINDOW_RIGHT_CENTER_W, GUI_UI_ICON_PWINDOW_RIGHT_CENTER_H);
-		renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_PWINDOW_BOTLEFT_BORDER_X, GUI_UI_ICON_PWINDOW_BOTLEFT_BORDER_Y, m_tRect.x1 - 2, m_tRect.y1 + m_tRect.y2 - 6, GUI_UI_ICON_PWINDOW_BOTLEFT_BORDER_W, GUI_UI_ICON_PWINDOW_BOTLEFT_BORDER_H);
 		renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_ICON_BOTTOM_SLIDER_X, GUI_UI_ICON_BOTTOM_SLIDER_Y, GUI_UI_ICON_BOTTOM_SLIDER_W, GUI_UI_ICON_BOTTOM_SLIDER_H, m_tRect.x1 + 2, m_tRect.y1 + m_tRect.y2 - 6, m_tRect.x2 - 4, 4);
-		renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_PWINDOW_BOTRIGHT_BORDER_X, GUI_UI_ICON_PWINDOW_BOTRIGHT_BORDER_Y, m_tRect.x1 + m_tRect.x2 - 2, m_tRect.y1 + m_tRect.y2 - 6, GUI_UI_ICON_PWINDOW_BOTRIGHT_BORDER_W, GUI_UI_ICON_PWINDOW_BOTRIGHT_BORDER_H);
 		if(!m_bMouseDragging)
 		{
 			renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_EXTRA_BORDER_X, GUI_UI_ICON_EXTRA_BORDER_Y, m_tRect.x1 + m_tRect.x2, m_tRect.y1 + m_tRect.y2 - 2, GUI_UI_ICON_EXTRA_BORDER_W, GUI_UI_ICON_EXTRA_BORDER_H);
@@ -348,7 +353,10 @@ void GUI_PanelWindow::render()
 		}
 		if(m_tRect.y2 > 19)
 		{
-			renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_BACKGROUND_GREY_X, GUI_UI_BACKGROUND_GREY_Y, GUI_UI_BACKGROUND_GREY_W, GUI_UI_BACKGROUND_GREY_H, m_tRect.x1 + 2, m_tRect.y1 + 13, m_tRect.x2 - 4, m_tRect.y2 - 19);
+			// Draw background anchored to absolute position to prevent shifting during resize
+			renderer->setClipRect(m_tRect.x1 + 2, m_tRect.y1 + 13, m_tRect.x2 - 4, m_tRect.y2 - 19);
+			renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_BACKGROUND_GREY_X, GUI_UI_BACKGROUND_GREY_Y, GUI_UI_BACKGROUND_GREY_W, GUI_UI_BACKGROUND_GREY_H, m_tRect.x1 + 2, 0, m_tRect.x2 - 4, g_engine.getWindowHeight());
+			renderer->disableClipRect();
 			renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_ICON_LEFT_SLIDER_X, GUI_UI_ICON_LEFT_SLIDER_Y, GUI_UI_ICON_LEFT_SLIDER_W, GUI_UI_ICON_LEFT_SLIDER_H, m_tRect.x1 - 2, m_tRect.y1 + 13, 4, m_tRect.y2 - 19);
 			renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_ICON_RIGHT_SLIDER_X, GUI_UI_ICON_RIGHT_SLIDER_Y, GUI_UI_ICON_RIGHT_SLIDER_W, GUI_UI_ICON_RIGHT_SLIDER_H, m_tRect.x1 + m_tRect.x2 - 2, m_tRect.y1 + 13, 4, m_tRect.y2 - 19);
 		}
@@ -357,6 +365,5 @@ void GUI_PanelWindow::render()
 		renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_BACKGROUND_GREY_X, GUI_UI_BACKGROUND_GREY_Y, GUI_UI_BACKGROUND_GREY_W, GUI_UI_BACKGROUND_GREY_H, m_tRect.x1, m_tRect.y1, m_tRect.x2, m_tRect.y2);
 	for(std::vector<GUI_Element*>::iterator it = m_childs.begin(), end = m_childs.end(); it != end; ++it)
 		(*it)->render();
-	if(m_windowed && m_tRect.y2 > 19)
-		renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_PWINDOW_RESIZER_X, GUI_UI_ICON_PWINDOW_RESIZER_Y, m_tRect.x1 + 1, m_tRect.y1 + m_tRect.y2 - 21, GUI_UI_ICON_PWINDOW_RESIZER_W, GUI_UI_ICON_PWINDOW_RESIZER_H);
+
 }

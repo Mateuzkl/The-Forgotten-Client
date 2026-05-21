@@ -64,6 +64,9 @@ void UTIL_SetClipboardTextLatin1(const char* clipboardText);
 char* UTIL_GetClipboardTextLatin1();
 
 void UTIL_MessageBox(bool fatalError, const char* message);
+std::string UTIL_protocolDebugLogPath();
+void UTIL_protocolDebugLog(const char* scope, const char* format, ...);
+void UTIL_protocolDebugDumpMessage(const char* scope, const char* direction, const Uint8* buffer, Uint16 size, Uint16 readPos, Uint8 opcode);
 void UTIL_OpenURL(const char* url);
 void UTIL_TakeScreenshot(const char* filename, Uint32 flags);
 void UTIL_ResizeEvent(Uint32 windowId, Sint32 width, Sint32 height);

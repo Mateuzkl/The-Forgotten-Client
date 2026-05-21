@@ -69,6 +69,7 @@ void Connection::closeConnection()
 
 void Connection::closeConnectionError(ConnectionError error)
 {
+	UTIL_protocolDebugLog("connection", "close with error=%d host=%s port=%u state=%d", SDL_static_cast(Sint32, error), (m_host ? m_host : ""), SDL_static_cast(Uint32, m_port), SDL_static_cast(Sint32, m_connectionState));
 	if(m_protocol)
 		m_protocol->onConnectionError(error);
 
@@ -82,6 +83,7 @@ void Connection::updateConnection()
 	{
 		case CONNECTION_STATE_INIT:
 		{
+			UTIL_protocolDebugLog("connection", "connecting host=%s port=%u", (m_host ? m_host : ""), SDL_static_cast(Uint32, m_port));
 			m_curlHandle = SDL_reinterpret_cast(void*, curl_multi_init());
 			CURL* curl = curl_easy_init();
 			m_curlEasyHandle = SDL_reinterpret_cast(void*, curl);
@@ -115,6 +117,7 @@ void Connection::updateConnection()
 								m_connectionState = CONNECTION_STATE_CONNECTED;
 								m_messageSize = 2;
 								m_inputMessage.reset();
+								UTIL_protocolDebugLog("connection", "connected host=%s port=%u", (m_host ? m_host : ""), SDL_static_cast(Uint32, m_port));
 								if(m_protocol)
 									m_protocol->onConnect();
 							}
@@ -159,6 +162,7 @@ void Connection::updateConnection()
 						{
 							m_inputMessage.setReadPos(0);
 							m_messageSize = m_inputMessage.getU16();
+							UTIL_protocolDebugLog("connection", "incoming packet size=%u host=%s port=%u", SDL_static_cast(Uint32, m_messageSize), (m_host ? m_host : ""), SDL_static_cast(Uint32, m_port));
 							if(m_messageSize == 0 || m_messageSize > INPUTMESSAGE_SIZE)
 							{
 								closeConnectionError(CONNECTION_ERROR_PROTOCOL_FAIL);

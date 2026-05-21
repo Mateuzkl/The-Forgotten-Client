@@ -37,13 +37,17 @@ bool Protocol::onRecv(InputMessage& msg)
 	if(!g_connection) //WTF?
 		return false;
 
+	const char* protocolName = (getProtocolGame() ? "game" : "login");
 	bool compression = false;
 	if(m_checksumMethod != CHECKSUM_METHOD_NONE)
 	{
 		if(m_checksumMethod == CHECKSUM_METHOD_ADLER32)
 		{
 			if(!msg.readAdler32())
+			{
+				UTIL_protocolDebugLog(protocolName, "recv failed: invalid adler32 checksum size=%u readPos=%u", SDL_static_cast(Uint32, msg.getMessageSize()), SDL_static_cast(Uint32, msg.getReadPos()));
 				return false;
+			}
 		}
 		else if(m_checksumMethod == CHECKSUM_METHOD_SEQUENCE)
 		{
@@ -59,7 +63,10 @@ bool Protocol::onRecv(InputMessage& msg)
 			Uint32 expectedSequence = m_serverSequence++;
 			m_serverSequence &= 0x7FFFFFFF;
 			if(receivedChecksum != expectedSequence)
+			{
+				UTIL_protocolDebugLog(protocolName, "recv failed: invalid sequence received=%u expected=%u size=%u", receivedChecksum, expectedSequence, SDL_static_cast(Uint32, msg.getMessageSize()));
 				return false;
+			}
 		}
 		else if(m_checksumMethod == CHECKSUM_METHOD_CHALLENGE)
 		{
@@ -71,7 +78,10 @@ bool Protocol::onRecv(InputMessage& msg)
 			//1 byte random value
 			Uint16 challengeSize = msg.getU16();
 			if(challengeSize != 6)
+			{
+				UTIL_protocolDebugLog(protocolName, "recv failed: invalid challenge size=%u", SDL_static_cast(Uint32, challengeSize));
 				return false;
+			}
 		}
 	}
 	
@@ -80,7 +90,10 @@ bool Protocol::onRecv(InputMessage& msg)
 		XTEA_decrypt(msg.getReadBuffer(), msg.getUnreadSize(), m_encryptionKeys);
 		Uint16 messageSize = msg.getU16();
 		if(messageSize > msg.getUnreadSize())
+		{
+			UTIL_protocolDebugLog(protocolName, "recv failed: invalid xtea payload size=%u unread=%u", SDL_static_cast(Uint32, messageSize), SDL_static_cast(Uint32, msg.getUnreadSize()));
 			return false;
+		}
 
 		msg.setMessageSize(messageSize + msg.getReadPos());
 	}
@@ -101,16 +114,25 @@ bool Protocol::onRecv(InputMessage& msg)
 
 		Sint32 ret = inflate(m_inflateStream.get(), Z_FINISH);
 		if(ret != Z_OK && ret != Z_STREAM_END)
+		{
+			UTIL_protocolDebugLog(protocolName, "recv failed: inflate error ret=%d unread=%u", ret, SDL_static_cast(Uint32, msg.getUnreadSize()));
 			return false;
+		}
 
 		Uint32 totalSize = SDL_static_cast(Uint32, m_inflateStream->total_out);
 		inflateReset(m_inflateStream.get());
 		if(totalSize == 0)
+		{
+			UTIL_protocolDebugLog(protocolName, "recv failed: inflate produced zero bytes");
 			return false;
+		}
 
 		UTIL_FastCopy(msg.getReadBuffer(), infBuffer, SDL_static_cast(size_t, totalSize));
 		msg.setMessageSize(SDL_static_cast(Uint16, totalSize) + msg.getReadPos());
 	}
+
+	if(!msg.eof())
+		UTIL_protocolDebugDumpMessage(protocolName, "recv", msg.getReadBuffer(), msg.getUnreadSize(), 0, msg.peekU8());
 
 	while(!msg.eof())
 		parseMessage(msg);
@@ -122,6 +144,13 @@ bool Protocol::onSend(OutputMessage& msg)
 {
 	if(!g_connection) //WTF?
 		return false;
+
+	const char* protocolName = (getProtocolGame() ? "game" : "login");
+	if(msg.getMessageSize() > 0)
+	{
+		Uint16 payloadPos = msg.getWritePos() - msg.getMessageSize();
+		UTIL_protocolDebugDumpMessage(protocolName, "send", msg.getBuffer() + payloadPos, msg.getMessageSize(), 0, msg.getBuffer()[payloadPos]);
+	}
 
 	if(m_encryption)
 	{
@@ -196,10 +225,23 @@ Uint8 Protocol::getOS()
 	#endif
 }
 
+Uint16 Protocol::getOtclientV8OS()
+{
+	switch(getOS())
+	{
+		case PROTOCOL_OS_ANDROID: return OTCLIENTV8_OS_ANDROID;
+		case PROTOCOL_OS_IPHONEOS: return OTCLIENTV8_OS_IPHONEOS;
+		case PROTOCOL_OS_MACOSX: return OTCLIENTV8_OS_MACOSX;
+		case PROTOCOL_OS_EMSCRIPTEN: return OTCLIENTV8_OS_WEB;
+		case PROTOCOL_OS_UNIX: return OTCLIENTV8_OS_LINUX;
+		default: return OTCLIENTV8_OS_WINDOWS;
+	}
+}
+
 Uint16 Protocol::getProtocolVersion()
 {
 	#if CLIENT_OVVERIDE_VERSION > 0
-	return CLIENT_OVVERIDE_VERSION;
+	return CLIENT_OVERRIDE_PROTOCOL_VERSION;
 	#else
 	switch(g_clientVersion)
 	{
@@ -233,7 +275,7 @@ Uint16 Protocol::getProtocolVersion()
 Uint32 Protocol::getClientVersion()
 {
 	#if CLIENT_OVVERIDE_VERSION > 0
-	return CLIENT_OVVERIDE_VERSION;
+	return CLIENT_OVERRIDE_PROTOCOL_VERSION;
 	#else
 	return g_clientVersion;
 	#endif

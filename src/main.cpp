@@ -277,14 +277,8 @@ int main(int argc, char* argv[])
 	else//Unsupported try local path
 		g_prefPath = std::string("", 0);
 
-	char* mapPath = SDL_GetPrefPath(CONFIG_CATALOG, AUTOMAP_CATALOG);
-	if(mapPath)
-	{
-		g_mapPath = std::string(mapPath);
-		SDL_free(mapPath);
-	}
-	else//Unsupported try local path
-		g_mapPath = std::string("", 0);
+	// Store automap next to the exe for easy distribution
+	g_mapPath = g_basePath + std::string(AUTOMAP_CATALOG) + PATH_PLATFORM_SLASH;
 
 	initCursors();
 	if(!checkPicFile())

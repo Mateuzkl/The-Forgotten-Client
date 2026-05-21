@@ -1,4 +1,4 @@
-/*
+﻿/*
   The Forgotten Client
   Copyright (C) 2020 Saiyans King
 
@@ -127,13 +127,13 @@ void UTIL_createInventoryPanel(bool minimized)
 		pPanel->clearChilds();
 		if(minimized)
 		{
-			iRect rect = pPanel->getRect(); rect.y2 = 64;
+			iRect rect = pPanel->getRect(); rect.y2 = 48;
 			pPanel->setRect(rect, true);
 			pPanel->setInternalID(GUI_PANEL_WINDOW_INVENTORY_MINIMIZED);
 		}
 		else
 		{
-			iRect rect = pPanel->getRect(); rect.y2 = 170;
+			iRect rect = pPanel->getRect(); rect.y2 = 151;
 			pPanel->setRect(rect, true);
 			pPanel->setInternalID(GUI_PANEL_WINDOW_INVENTORY);
 		}
@@ -142,9 +142,9 @@ void UTIL_createInventoryPanel(bool minimized)
 	{
 		newWindow = true;
 		if(minimized)
-			pPanel = new GUI_PanelWindow(iRect(0, 0, GAME_PANEL_FIXED_WIDTH - 4, 64), false, GUI_PANEL_WINDOW_INVENTORY_MINIMIZED);
+			pPanel = new GUI_PanelWindow(iRect(0, 0, GAME_PANEL_FIXED_WIDTH - 4, 48), false, GUI_PANEL_WINDOW_INVENTORY_MINIMIZED);
 		else
-			pPanel = new GUI_PanelWindow(iRect(0, 0, GAME_PANEL_FIXED_WIDTH - 4, 170), false, GUI_PANEL_WINDOW_INVENTORY);
+			pPanel = new GUI_PanelWindow(iRect(0, 0, GAME_PANEL_FIXED_WIDTH - 4, 151), false, GUI_PANEL_WINDOW_INVENTORY);
 	}
 
 	if(minimized)
@@ -239,26 +239,19 @@ void UTIL_createInventoryPanel(bool minimized)
 		newIcon->setButtonEventCallback(&inventory_Events, INVENTORY_MAXIMIZE_EVENTID);
 		newIcon->startEvents();
 		pPanel->addChild(newIcon);
+		// Soul background stays (now shows status icons)
 		GUI_StaticImage* newImage = new GUI_StaticImage(iRect(22, 4, GUI_UI_STATUS_BACKGROUND_BIG_W, GUI_UI_STATUS_BACKGROUND_H), GUI_UI_IMAGE, GUI_UI_STATUS_BACKGROUND_BIG_X, GUI_UI_STATUS_BACKGROUND_BIG_Y, 0, INVENTORY_SOUL_DESCRIPTION);
 		pPanel->addChild(newImage);
+		// Cap background stays
 		newImage = new GUI_StaticImage(iRect(22, 25, GUI_UI_STATUS_BACKGROUND_BIG_W, GUI_UI_STATUS_BACKGROUND_H), GUI_UI_IMAGE, GUI_UI_STATUS_BACKGROUND_BIG_X, GUI_UI_STATUS_BACKGROUND_BIG_Y + GUI_UI_STATUS_BACKGROUND_H, 0, INVENTORY_CAP_DESCRIPTION);
 		pPanel->addChild(newImage);
-		GUI_Icons* newIcons = new GUI_Icons(iRect(15, 48, GUI_UI_ICON_STATUS_BAR_W, GUI_UI_ICON_STATUS_BAR_H));
+		GUI_Icons* newIcons = new GUI_Icons(iRect(22, 4, GUI_UI_STATUS_BACKGROUND_BIG_W, GUI_UI_STATUS_BACKGROUND_H));
 		pPanel->addChild(newIcons);
-		GUI_Label* newLabel = new GUI_Label(iRect(38, 6, 0, 0), "Soul:", 0, 255, 255, 255);
+		GUI_Label* newLabel = new GUI_Label(iRect(38, 27, 0, 0), "Cap:", 0, 255, 255, 255);
 		newLabel->setAlign(CLIENT_FONT_ALIGN_CENTER);
 		newLabel->setFont(CLIENT_FONT_SMALL);
 		pPanel->addChild(newLabel);
-		Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%u", SDL_static_cast(Uint32, g_game.getPlayerSoul()));
-		newLabel = new GUI_Label(iRect(38, 15, 0, 0), UTIL_formatStringCommas(std::string(g_buffer, SDL_static_cast(size_t, len))), INVENTORY_SOUL_EVENTID, 255, 255, 255);
-		newLabel->setAlign(CLIENT_FONT_ALIGN_CENTER);
-		newLabel->setFont(CLIENT_FONT_SMALL);
-		pPanel->addChild(newLabel);
-		newLabel = new GUI_Label(iRect(38, 27, 0, 0), "Cap:", 0, 255, 255, 255);
-		newLabel->setAlign(CLIENT_FONT_ALIGN_CENTER);
-		newLabel->setFont(CLIENT_FONT_SMALL);
-		pPanel->addChild(newLabel);
-		len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%u", SDL_static_cast(Uint32, g_game.getPlayerCapacity()));
+		Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%u", SDL_static_cast(Uint32, g_game.getPlayerCapacity()));
 		newLabel = new GUI_Label(iRect(38, 36, 0, 0), UTIL_formatStringCommas(std::string(g_buffer, SDL_static_cast(size_t, len))), INVENTORY_CAP_EVENTID, 255, 255, 255);
 		newLabel->setAlign(CLIENT_FONT_ALIGN_CENTER);
 		newLabel->setFont(CLIENT_FONT_SMALL);
@@ -379,8 +372,10 @@ void UTIL_createInventoryPanel(bool minimized)
 		newIcon->setButtonEventCallback(&inventory_Events, INVENTORY_MINIMIZE_EVENTID);
 		newIcon->startEvents();
 		pPanel->addChild(newIcon);
+		// Soul background stays (now shows status icons instead of Soul text)
 		GUI_StaticImage* newImage = new GUI_StaticImage(iRect(8, 128, GUI_UI_STATUS_BACKGROUND_W, GUI_UI_STATUS_BACKGROUND_H), GUI_UI_IMAGE, GUI_UI_STATUS_BACKGROUND_X, GUI_UI_STATUS_BACKGROUND_Y, 0, INVENTORY_SOUL_DESCRIPTION);
 		pPanel->addChild(newImage);
+		// Cap background stays
 		newImage = new GUI_StaticImage(iRect(82, 128, GUI_UI_STATUS_BACKGROUND_W, GUI_UI_STATUS_BACKGROUND_H), GUI_UI_IMAGE, GUI_UI_STATUS_BACKGROUND_X, GUI_UI_STATUS_BACKGROUND_Y, 0, INVENTORY_CAP_DESCRIPTION);
 		pPanel->addChild(newImage);
 		GUI_InventoryItem* newInventoryItem = new GUI_InventoryItem(iRect(46, 5, 32, 32), GUI_UI_INVENTORY_HEAD_X, GUI_UI_INVENTORY_HEAD_Y, SLOT_HEAD);
@@ -413,22 +408,15 @@ void UTIL_createInventoryPanel(bool minimized)
 		newInventoryItem = new GUI_InventoryItem(iRect(83, 93, 32, 32), GUI_UI_INVENTORY_AMMO_X, GUI_UI_INVENTORY_AMMO_Y, SLOT_AMMO);
 		newInventoryItem->startEvents();
 		pPanel->addChild(newInventoryItem);
-		GUI_Icons* newIcons = new GUI_Icons(iRect(8, 151, GUI_UI_ICON_STATUS_BAR_W, GUI_UI_ICON_STATUS_BAR_H));
+		// Status icons in Soul area (replaces Soul label+value)
+		GUI_Icons* newIcons = new GUI_Icons(iRect(8, 128, GUI_UI_STATUS_BACKGROUND_W, GUI_UI_STATUS_BACKGROUND_H));
 		pPanel->addChild(newIcons);
-		GUI_Label* newLabel = new GUI_Label(iRect(25, 130, 0, 0), "Soul:", 0, 255, 255, 255);
+		// Cap label and value
+		GUI_Label* newLabel = new GUI_Label(iRect(99, 130, 0, 0), "Cap:", 0, 255, 255, 255);
 		newLabel->setAlign(CLIENT_FONT_ALIGN_CENTER);
 		newLabel->setFont(CLIENT_FONT_SMALL);
 		pPanel->addChild(newLabel);
-		Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%u", SDL_static_cast(Uint32, g_game.getPlayerSoul()));
-		newLabel = new GUI_Label(iRect(25, 140, 0, 0), UTIL_formatStringCommas(std::string(g_buffer, SDL_static_cast(size_t, len))), INVENTORY_SOUL_EVENTID, 255, 255, 255);
-		newLabel->setAlign(CLIENT_FONT_ALIGN_CENTER);
-		newLabel->setFont(CLIENT_FONT_SMALL);
-		pPanel->addChild(newLabel);
-		newLabel = new GUI_Label(iRect(99, 130, 0, 0), "Cap:", 0, 255, 255, 255);
-		newLabel->setAlign(CLIENT_FONT_ALIGN_CENTER);
-		newLabel->setFont(CLIENT_FONT_SMALL);
-		pPanel->addChild(newLabel);
-		len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%u", SDL_static_cast(Uint32, g_game.getPlayerCapacity()));
+		Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%u", SDL_static_cast(Uint32, g_game.getPlayerCapacity()));
 		newLabel = new GUI_Label(iRect(99, 140, 0, 0), UTIL_formatStringCommas(std::string(g_buffer, SDL_static_cast(size_t, len))), INVENTORY_CAP_EVENTID, 255, 255, 255);
 		newLabel->setAlign(CLIENT_FONT_ALIGN_CENTER);
 		newLabel->setFont(CLIENT_FONT_SMALL);
@@ -450,16 +438,6 @@ void UTIL_updateInventoryPanel()
 	if(pPanel)
 	{
 		GUI_Label* pLabel;
-		if(g_game.hasCachedStat(CACHED_STAT_SOUL))
-		{
-			pLabel = SDL_static_cast(GUI_Label*, pPanel->getChild(INVENTORY_SOUL_EVENTID));
-			if(pLabel)
-			{
-				Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%u", SDL_static_cast(Uint32, g_game.getPlayerSoul()));
-				pLabel->setName(UTIL_formatStringCommas(std::string(g_buffer, SDL_static_cast(size_t, len))));
-			}
-		}
-		
 		if(g_game.hasCachedStat(CACHED_STAT_CAPACITY))
 		{
 			pLabel = SDL_static_cast(GUI_Label*, pPanel->getChild(INVENTORY_CAP_EVENTID));
@@ -490,271 +468,95 @@ GUI_Icons::GUI_Icons(iRect boxRect, Uint32 internalID)
 
 void GUI_Icons::onMouseMove(Sint32 x, Sint32 y, bool isInsideParent)
 {
-	if(isInsideParent && m_tRect.isPointInside(x, y))
+	if(!isInsideParent || !m_tRect.isPointInside(x, y))
+		return;
+
+	// Build the same icon list as render() - with descriptions
+	struct HoverIcon { Sint32 sx, sy, sw, sh; const char* desc; };
+	std::vector<HoverIcon> icons;
+
+	Uint32 playerIcons = g_game.getIcons();
+	if(playerIcons & ICON_POISON)     icons.push_back({0,0,0,0, "You are poisoned"});
+	if(playerIcons & ICON_BURN)       icons.push_back({0,0,0,0, "You are burning"});
+	if(playerIcons & ICON_ENERGY)     icons.push_back({0,0,0,0, "You are electrified"});
+	if(playerIcons & ICON_SWORDS)     icons.push_back({0,0,0,0, "You may not logout during a fight"});
+	if(playerIcons & ICON_DRUNK)      icons.push_back({0,0,0,0, "You are drunk"});
+	if(playerIcons & ICON_MANASHIELD) icons.push_back({0,0,0,0, "You are protected by a magic shield"});
+	if(playerIcons & ICON_HASTE)      icons.push_back({0,0,0,0, "You are hasted"});
+	if(playerIcons & ICON_PARALYZE)   icons.push_back({0,0,0,0, "You are paralysed"});
+	if(playerIcons & ICON_DROWNING)   icons.push_back({0,0,0,0, "You are drowning"});
+	if(playerIcons & ICON_FREEZING)   icons.push_back({0,0,0,0, "You are freezing"});
+	if(playerIcons & ICON_DAZZLED)    icons.push_back({0,0,0,0, "You are dazzled"});
+	if(playerIcons & ICON_CURSED)     icons.push_back({0,0,0,0, "You are cursed"});
+	if(playerIcons & ICON_PARTY_BUFF) icons.push_back({0,0,0,0, "You are strengthened"});
+	if(playerIcons & ICON_REDSWORDS)  icons.push_back({0,0,0,0, "You may not logout or enter a protection zone"});
+	if(playerIcons & ICON_PIGEON)     icons.push_back({0,0,0,0, "You are within a protection zone"});
+	if(playerIcons & ICON_BLEEDING)   icons.push_back({0,0,0,0, "You are bleeding"});
+	if(playerIcons & ICON_LESSERHEX)  icons.push_back({0,0,0,0, "You are suffering from a lesser hex (reduces received healing)"});
+	if(playerIcons & ICON_INTENSEHEX) icons.push_back({0,0,0,0, "You are suffering from an intense hex (reduces damage output, reduces received healing)"});
+	if(playerIcons & ICON_GREATEREHEX)icons.push_back({0,0,0,0, "You are suffering from a greater hex (reduces maximum hit points, reduces damage output, reduces received healing)"});
+
+	Creature* localPlayer = g_map.getLocalCreature();
+	if(localPlayer)
 	{
-		Uint32 playerIcons = g_game.getIcons();
-		iRect rect = iRect(m_tRect.x1 + 2, m_tRect.y1 + 2, 9, 9);
-		if(playerIcons & ICON_POISON)
-		{
-			if(rect.isPointInside(x, y))
-			{
-				g_engine.showDescription(x, y, "You are poisoned");
-				return;
-			}
-			rect.x1 += 10;
-		}
-		if(playerIcons & ICON_BURN)
-		{
-			if(rect.isPointInside(x, y))
-			{
-				g_engine.showDescription(x, y, "You are burning");
-				return;
-			}
-			rect.x1 += 10;
-		}
-		if(playerIcons & ICON_ENERGY)
-		{
-			if(rect.isPointInside(x, y))
-			{
-				g_engine.showDescription(x, y, "You are electrified");
-				return;
-			}
-			rect.x1 += 10;
-		}
-		if(playerIcons & ICON_SWORDS)
-		{
-			if(rect.isPointInside(x, y))
-			{
-				g_engine.showDescription(x, y, "You may not logout during a fight");
-				return;
-			}
-			rect.x1 += 10;
-		}
-		if(playerIcons & ICON_DRUNK)
-		{
-			if(rect.isPointInside(x, y))
-			{
-				g_engine.showDescription(x, y, "You are drunk");
-				return;
-			}
-			rect.x1 += 10;
-		}
-		if(playerIcons & ICON_MANASHIELD)
-		{
-			if(rect.isPointInside(x, y))
-			{
-				g_engine.showDescription(x, y, "You are protected by a magic shield");
-				return;
-			}
-			rect.x1 += 10;
-		}
-		if(playerIcons & ICON_HASTE)
-		{
-			if(rect.isPointInside(x, y))
-			{
-				g_engine.showDescription(x, y, "You are hasted");
-				return;
-			}
-			rect.x1 += 10;
-		}
-		if(playerIcons & ICON_PARALYZE)
-		{
-			if(rect.isPointInside(x, y))
-			{
-				g_engine.showDescription(x, y, "You are paralysed");
-				return;
-			}
-			rect.x1 += 10;
-		}
-		if(playerIcons & ICON_DROWNING)
-		{
-			if(rect.isPointInside(x, y))
-			{
-				g_engine.showDescription(x, y, "You are drowning");
-				return;
-			}
-			rect.x1 += 10;
-		}
-		if(playerIcons & ICON_FREEZING)
-		{
-			if(rect.isPointInside(x, y))
-			{
-				g_engine.showDescription(x, y, "You are freezing");
-				return;
-			}
-			rect.x1 += 10;
-		}
-		if(playerIcons & ICON_DAZZLED)
-		{
-			if(rect.isPointInside(x, y))
-			{
-				g_engine.showDescription(x, y, "You are dazzled");
-				return;
-			}
-			rect.x1 += 10;
-		}
-		if(playerIcons & ICON_CURSED)
-		{
-			if(rect.isPointInside(x, y))
-			{
-				g_engine.showDescription(x, y, "You are cursed");
-				return;
-			}
-			rect.x1 += 10;
-		}
-		if(playerIcons & ICON_PARTY_BUFF)
-		{
-			if(rect.isPointInside(x, y))
-			{
-				g_engine.showDescription(x, y, "You are strengthened");
-				return;
-			}
-			rect.x1 += 10;
-		}
-		if(playerIcons & ICON_REDSWORDS)
-		{
-			if(rect.isPointInside(x, y))
-			{
-				g_engine.showDescription(x, y, "You may not logout or enter a protection zone");
-				return;
-			}
-			rect.x1 += 10;
-		}
-		if(playerIcons & ICON_PIGEON)
-		{
-			if(rect.isPointInside(x, y))
-			{
-				g_engine.showDescription(x, y, "You are within a protection zone");
-				return;
-			}
-			rect.x1 += 10;
-		}
-		if(playerIcons & ICON_BLEEDING)
-		{
-			if(rect.isPointInside(x, y))
-			{
-				g_engine.showDescription(x, y, "You are bleeding");
-				return;
-			}
-			rect.x1 += 10;
-		}
-		if(playerIcons & ICON_LESSERHEX)
-		{
-			if(rect.isPointInside(x, y))
-			{
-				g_engine.showDescription(x, y, "You are suffering from a lesser hex (reduces received healing)");
-				return;
-			}
-			rect.x1 += 10;
-		}
-		if(playerIcons & ICON_INTENSEHEX)
-		{
-			if(rect.isPointInside(x, y))
-			{
-				g_engine.showDescription(x, y, "You are suffering from an intense hex (reduces damage output, reduces received healing)");
-				return;
-			}
-			rect.x1 += 10;
-		}
-		if(playerIcons & ICON_GREATEREHEX)
-		{
-			if(rect.isPointInside(x, y))
-			{
-				g_engine.showDescription(x, y, "You are suffering from a greater hex (reduces maximum hit points, reduces damage output, reduces received healing)");
-				return;
-			}
-			rect.x1 += 10;
-		}
-
-		Creature* localPlayer = g_map.getLocalCreature();
-		if(!localPlayer)
-			return;
-
 		if(g_game.hasGameFeature(GAME_FEATURE_REGENERATION_TIME) && g_game.getPlayerRegeneration() == 0)
-		{
-			if(rect.isPointInside(x, y))
-			{
-				g_engine.showDescription(x, y, "You are hungry");
-				return;
-			}
-			rect.x1 += 10;
-		}
+			icons.push_back({0,0,0,0, "You are hungry"});
 
 		Uint8 playerSkull = localPlayer->getSkull();
 		switch(playerSkull)
 		{
-			case SKULL_YELLOW:
-			{
-				if(rect.isPointInside(x, y))
-				{
-					g_engine.showDescription(x, y, "You may be attacked by other players");
-					return;
-				}
-				rect.x1 += 10;
-			}
-			break;
-			case SKULL_GREEN:
-			{
-				if(rect.isPointInside(x, y))
-				{
-					g_engine.showDescription(x, y, "You are a member of a party");
-					return;
-				}
-				rect.x1 += 10;
-			}
-			break;
-			case SKULL_WHITE:
-			{
-				if(rect.isPointInside(x, y))
-				{
-					g_engine.showDescription(x, y, "You have attacked an unmarked player");
-					return;
-				}
-				rect.x1 += 10;
-			}
-			break;
-			case SKULL_RED:
-			{
-				if(rect.isPointInside(x, y))
-				{
-					g_engine.showDescription(x, y, "You have killed too many unmarked players");
-					return;
-				}
-				rect.x1 += 10;
-			}
-			break;
-			case SKULL_BLACK:
-			{
-				if(rect.isPointInside(x, y))
-				{
-					g_engine.showDescription(x, y, "You have excessively killed unmarked players");
-					return;
-				}
-				rect.x1 += 10;
-			}
-			break;
-			case SKULL_ORANGE:
-			{
-				if(rect.isPointInside(x, y))
-				{
-					g_engine.showDescription(x, y, "You may suffer revenge from your former victim");
-					return;
-				}
-				rect.x1 += 10;
-			}
-			break;
+			case SKULL_YELLOW: icons.push_back({0,0,0,0, "You may be attacked by other players"}); break;
+			case SKULL_GREEN:  icons.push_back({0,0,0,0, "You are a member of a party"}); break;
+			case SKULL_WHITE:  icons.push_back({0,0,0,0, "You have attacked an unmarked player"}); break;
+			case SKULL_RED:    icons.push_back({0,0,0,0, "You have killed too many unmarked players"}); break;
+			case SKULL_BLACK:  icons.push_back({0,0,0,0, "You have excessively killed unmarked players"}); break;
+			case SKULL_ORANGE: icons.push_back({0,0,0,0, "You may suffer revenge from your former victim"}); break;
 			default: break;
 		}
 
 		Uint8 playerEmblem = localPlayer->getEmblem();
 		if(playerEmblem != GUILDEMBLEM_NONE && playerEmblem <= GUILDEMBLEM_NEUTRAL)
+			icons.push_back({0,0,0,0, "You are involved in a guild war"});
+	}
+
+	if(icons.empty())
+		return;
+
+	// Cap at 6 - same as render()
+	if(icons.size() > 6)
+		icons.resize(6);
+
+	Sint32 count = SDL_static_cast(Sint32, icons.size());
+
+	static const Sint32 ICON_CELL = 10;
+	Sint32 topCols, botCols, rows;
+	if(count <= 2)      { topCols = count; botCols = 0; rows = 1; }
+	else if(count == 3) { topCols = 2;     botCols = 1; rows = 2; }
+	else if(count == 4) { topCols = 2;     botCols = 2; rows = 2; }
+	else if(count == 5) { topCols = 3;     botCols = 2; rows = 2; }
+	else                { topCols = 3;     botCols = 3; rows = 2; }
+
+	Sint32 maxCols = UTIL_max<Sint32>(topCols, botCols);
+	Sint32 gridW = maxCols * ICON_CELL;
+	Sint32 gridH = rows * ICON_CELL;
+	Sint32 startX = m_tRect.x1 + (m_tRect.x2 - gridW) / 2;
+	Sint32 startY = m_tRect.y1 + (m_tRect.y2 - gridH) / 2;
+
+	for(Sint32 i = 0; i < count; ++i)
+	{
+		Sint32 row, col, colsInRow;
+		if(i < topCols) { row = 0; col = i;           colsInRow = topCols; }
+		else            { row = 1; col = i - topCols;  colsInRow = botCols; }
+
+		Sint32 rowOffsetX = (maxCols - colsInRow) * ICON_CELL / 2;
+		Sint32 px = startX + col * ICON_CELL + rowOffsetX;
+		Sint32 py = startY + row * ICON_CELL;
+
+		iRect iconRect = iRect(px, py, 9, 9);
+		if(iconRect.isPointInside(x, y))
 		{
-			if(rect.isPointInside(x, y))
-			{
-				g_engine.showDescription(x, y, "You are involved in a guild war");
-				return;
-			}
-			rect.x1 += 10;
+			g_engine.showDescription(x, y, icons[SDL_static_cast(size_t, i)].desc);
+			return;
 		}
 	}
 }
@@ -762,164 +564,96 @@ void GUI_Icons::onMouseMove(Sint32 x, Sint32 y, bool isInsideParent)
 void GUI_Icons::render()
 {
 	auto& renderer = g_engine.getRender();
-	renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_STATUS_BAR_X, GUI_UI_ICON_STATUS_BAR_Y, m_tRect.x1, m_tRect.y1, m_tRect.x2, m_tRect.y2);
-	
-	Sint32 posX = m_tRect.x1 + 2;
-	Sint32 posY = m_tRect.y1 + 2;
+
+	// Collect all active icons into a list
+	struct IconEntry { Sint32 sx, sy, sw, sh; };
+	std::vector<IconEntry> icons;
+
 	Uint32 playerIcons = g_game.getIcons();
-	if(playerIcons & ICON_POISON)
-	{
-		renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_STATUS_POISON_X, GUI_UI_STATUS_POISON_Y, posX, posY, GUI_UI_STATUS_POISON_W, GUI_UI_STATUS_POISON_H);
-		posX += 10;
-	}
-	if(playerIcons & ICON_BURN)
-	{
-		renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_STATUS_BURN_X, GUI_UI_STATUS_BURN_Y, posX, posY, GUI_UI_STATUS_BURN_W, GUI_UI_STATUS_BURN_H);
-		posX += 10;
-	}
-	if(playerIcons & ICON_ENERGY)
-	{
-		renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_STATUS_ENERGY_X, GUI_UI_STATUS_ENERGY_Y, posX, posY, GUI_UI_STATUS_ENERGY_W, GUI_UI_STATUS_ENERGY_H);
-		posX += 10;
-	}
-	if(playerIcons & ICON_SWORDS)
-	{
-		renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_STATUS_SWORDS_X, GUI_UI_STATUS_SWORDS_Y, posX, posY, GUI_UI_STATUS_SWORDS_W, GUI_UI_STATUS_SWORDS_H);
-		posX += 10;
-	}
-	if(playerIcons & ICON_DRUNK)
-	{
-		renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_STATUS_DRUNK_X, GUI_UI_STATUS_DRUNK_Y, posX, posY, GUI_UI_STATUS_DRUNK_W, GUI_UI_STATUS_DRUNK_H);
-		posX += 10;
-	}
-	if(playerIcons & ICON_MANASHIELD)
-	{
-		renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_STATUS_MANASHIELD_X, GUI_UI_STATUS_MANASHIELD_Y, posX, posY, GUI_UI_STATUS_MANASHIELD_W, GUI_UI_STATUS_MANASHIELD_H);
-		posX += 10;
-	}
-	if(playerIcons & ICON_HASTE)
-	{
-		renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_STATUS_HASTE_X, GUI_UI_STATUS_HASTE_Y, posX, posY, GUI_UI_STATUS_HASTE_W, GUI_UI_STATUS_HASTE_H);
-		posX += 10;
-	}
-	if(playerIcons & ICON_PARALYZE)
-	{
-		renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_STATUS_PARALYZE_X, GUI_UI_STATUS_PARALYZE_Y, posX, posY, GUI_UI_STATUS_PARALYZE_W, GUI_UI_STATUS_PARALYZE_H);
-		posX += 10;
-	}
-	if(playerIcons & ICON_DROWNING)
-	{
-		renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_STATUS_DROWNING_X, GUI_UI_STATUS_DROWNING_Y, posX, posY, GUI_UI_STATUS_DROWNING_W, GUI_UI_STATUS_DROWNING_H);
-		posX += 10;
-	}
-	if(playerIcons & ICON_FREEZING)
-	{
-		renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_STATUS_FREEZING_X, GUI_UI_STATUS_FREEZING_Y, posX, posY, GUI_UI_STATUS_FREEZING_W, GUI_UI_STATUS_FREEZING_H);
-		posX += 10;
-	}
-	if(playerIcons & ICON_DAZZLED)
-	{
-		renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_STATUS_DAZZLED_X, GUI_UI_STATUS_DAZZLED_Y, posX, posY, GUI_UI_STATUS_DAZZLED_W, GUI_UI_STATUS_DAZZLED_H);
-		posX += 10;
-	}
-	if(playerIcons & ICON_CURSED)
-	{
-		renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_STATUS_CURSED_X, GUI_UI_STATUS_CURSED_Y, posX, posY, GUI_UI_STATUS_CURSED_W, GUI_UI_STATUS_CURSED_H);
-		posX += 10;
-	}
-	if(playerIcons & ICON_PARTY_BUFF)
-	{
-		renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_STATUS_BUFF_X, GUI_UI_STATUS_BUFF_Y, posX, posY, GUI_UI_STATUS_BUFF_W, GUI_UI_STATUS_BUFF_H);
-		posX += 10;
-	}
-	if(playerIcons & ICON_REDSWORDS)
-	{
-		renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_STATUS_PZLOCK_X, GUI_UI_STATUS_PZLOCK_Y, posX, posY, GUI_UI_STATUS_PZLOCK_W, GUI_UI_STATUS_PZLOCK_H);
-		posX += 10;
-	}
-	if(playerIcons & ICON_PIGEON)
-	{
-		renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_STATUS_PIGEON_X, GUI_UI_STATUS_PIGEON_Y, posX, posY, GUI_UI_STATUS_PIGEON_W, GUI_UI_STATUS_PIGEON_H);
-		posX += 10;
-	}
-	if(playerIcons & ICON_BLEEDING)
-	{
-		renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_STATUS_BLEEDING_X, GUI_UI_STATUS_BLEEDING_Y, posX, posY, GUI_UI_STATUS_BLEEDING_W, GUI_UI_STATUS_BLEEDING_H);
-		posX += 10;
-	}
-	if(playerIcons & ICON_LESSERHEX)
-	{
-		renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_STATUS_LESSERHEX_X, GUI_UI_STATUS_LESSERHEX_Y, posX, posY, GUI_UI_STATUS_LESSERHEX_W, GUI_UI_STATUS_LESSERHEX_H);
-		posX += 10;
-	}
-	if(playerIcons & ICON_INTENSEHEX)
-	{
-		renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_STATUS_INTENSEHEX_X, GUI_UI_STATUS_INTENSEHEX_Y, posX, posY, GUI_UI_STATUS_INTENSEHEX_W, GUI_UI_STATUS_INTENSEHEX_H);
-		posX += 10;
-	}
-	if(playerIcons & ICON_GREATEREHEX)
-	{
-		renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_STATUS_GREATEREHEX_X, GUI_UI_STATUS_GREATEREHEX_Y, posX, posY, GUI_UI_STATUS_GREATEREHEX_W, GUI_UI_STATUS_GREATEREHEX_H);
-		posX += 10;
-	}
+	if(playerIcons & ICON_POISON)      icons.push_back({GUI_UI_STATUS_POISON_X,      GUI_UI_STATUS_POISON_Y,      GUI_UI_STATUS_POISON_W,      GUI_UI_STATUS_POISON_H});
+	if(playerIcons & ICON_BURN)        icons.push_back({GUI_UI_STATUS_BURN_X,        GUI_UI_STATUS_BURN_Y,        GUI_UI_STATUS_BURN_W,        GUI_UI_STATUS_BURN_H});
+	if(playerIcons & ICON_ENERGY)      icons.push_back({GUI_UI_STATUS_ENERGY_X,      GUI_UI_STATUS_ENERGY_Y,      GUI_UI_STATUS_ENERGY_W,      GUI_UI_STATUS_ENERGY_H});
+	if(playerIcons & ICON_SWORDS)      icons.push_back({GUI_UI_STATUS_SWORDS_X,      GUI_UI_STATUS_SWORDS_Y,      GUI_UI_STATUS_SWORDS_W,      GUI_UI_STATUS_SWORDS_H});
+	if(playerIcons & ICON_DRUNK)       icons.push_back({GUI_UI_STATUS_DRUNK_X,       GUI_UI_STATUS_DRUNK_Y,       GUI_UI_STATUS_DRUNK_W,       GUI_UI_STATUS_DRUNK_H});
+	if(playerIcons & ICON_MANASHIELD)  icons.push_back({GUI_UI_STATUS_MANASHIELD_X,  GUI_UI_STATUS_MANASHIELD_Y,  GUI_UI_STATUS_MANASHIELD_W,  GUI_UI_STATUS_MANASHIELD_H});
+	if(playerIcons & ICON_HASTE)       icons.push_back({GUI_UI_STATUS_HASTE_X,       GUI_UI_STATUS_HASTE_Y,       GUI_UI_STATUS_HASTE_W,       GUI_UI_STATUS_HASTE_H});
+	if(playerIcons & ICON_PARALYZE)    icons.push_back({GUI_UI_STATUS_PARALYZE_X,    GUI_UI_STATUS_PARALYZE_Y,    GUI_UI_STATUS_PARALYZE_W,    GUI_UI_STATUS_PARALYZE_H});
+	if(playerIcons & ICON_DROWNING)    icons.push_back({GUI_UI_STATUS_DROWNING_X,    GUI_UI_STATUS_DROWNING_Y,    GUI_UI_STATUS_DROWNING_W,    GUI_UI_STATUS_DROWNING_H});
+	if(playerIcons & ICON_FREEZING)    icons.push_back({GUI_UI_STATUS_FREEZING_X,    GUI_UI_STATUS_FREEZING_Y,    GUI_UI_STATUS_FREEZING_W,    GUI_UI_STATUS_FREEZING_H});
+	if(playerIcons & ICON_DAZZLED)     icons.push_back({GUI_UI_STATUS_DAZZLED_X,     GUI_UI_STATUS_DAZZLED_Y,     GUI_UI_STATUS_DAZZLED_W,     GUI_UI_STATUS_DAZZLED_H});
+	if(playerIcons & ICON_CURSED)      icons.push_back({GUI_UI_STATUS_CURSED_X,      GUI_UI_STATUS_CURSED_Y,      GUI_UI_STATUS_CURSED_W,      GUI_UI_STATUS_CURSED_H});
+	if(playerIcons & ICON_PARTY_BUFF)  icons.push_back({GUI_UI_STATUS_BUFF_X,        GUI_UI_STATUS_BUFF_Y,        GUI_UI_STATUS_BUFF_W,        GUI_UI_STATUS_BUFF_H});
+	if(playerIcons & ICON_REDSWORDS)   icons.push_back({GUI_UI_STATUS_PZLOCK_X,      GUI_UI_STATUS_PZLOCK_Y,      GUI_UI_STATUS_PZLOCK_W,      GUI_UI_STATUS_PZLOCK_H});
+	if(playerIcons & ICON_PIGEON)      icons.push_back({GUI_UI_STATUS_PIGEON_X,      GUI_UI_STATUS_PIGEON_Y,      GUI_UI_STATUS_PIGEON_W,      GUI_UI_STATUS_PIGEON_H});
+	if(playerIcons & ICON_BLEEDING)    icons.push_back({GUI_UI_STATUS_BLEEDING_X,    GUI_UI_STATUS_BLEEDING_Y,    GUI_UI_STATUS_BLEEDING_W,    GUI_UI_STATUS_BLEEDING_H});
+	if(playerIcons & ICON_LESSERHEX)   icons.push_back({GUI_UI_STATUS_LESSERHEX_X,   GUI_UI_STATUS_LESSERHEX_Y,   GUI_UI_STATUS_LESSERHEX_W,   GUI_UI_STATUS_LESSERHEX_H});
+	if(playerIcons & ICON_INTENSEHEX)  icons.push_back({GUI_UI_STATUS_INTENSEHEX_X,  GUI_UI_STATUS_INTENSEHEX_Y,  GUI_UI_STATUS_INTENSEHEX_W,  GUI_UI_STATUS_INTENSEHEX_H});
+	if(playerIcons & ICON_GREATEREHEX) icons.push_back({GUI_UI_STATUS_GREATEREHEX_X, GUI_UI_STATUS_GREATEREHEX_Y, GUI_UI_STATUS_GREATEREHEX_W, GUI_UI_STATUS_GREATEREHEX_H});
 
 	Creature* localPlayer = g_map.getLocalCreature();
-	if(!localPlayer)
+	if(localPlayer)
+	{
+		if(g_game.hasGameFeature(GAME_FEATURE_REGENERATION_TIME) && g_game.getPlayerRegeneration() == 0)
+			icons.push_back({GUI_UI_STATUS_HUNGRY_X, GUI_UI_STATUS_HUNGRY_Y, GUI_UI_STATUS_HUNGRY_W, GUI_UI_STATUS_HUNGRY_H});
+
+		Uint8 playerSkull = localPlayer->getSkull();
+		switch(playerSkull)
+		{
+			case SKULL_YELLOW: icons.push_back({GUI_UI_STATUS_YELLOWSKULL_X, GUI_UI_STATUS_YELLOWSKULL_Y, GUI_UI_STATUS_YELLOWSKULL_W, GUI_UI_STATUS_YELLOWSKULL_H}); break;
+			case SKULL_GREEN:  icons.push_back({GUI_UI_STATUS_GREENSKULL_X,  GUI_UI_STATUS_GREENSKULL_Y,  GUI_UI_STATUS_GREENSKULL_W,  GUI_UI_STATUS_GREENSKULL_H});  break;
+			case SKULL_WHITE:  icons.push_back({GUI_UI_STATUS_WHITESKULL_X,  GUI_UI_STATUS_WHITESKULL_Y,  GUI_UI_STATUS_WHITESKULL_W,  GUI_UI_STATUS_WHITESKULL_H});  break;
+			case SKULL_RED:    icons.push_back({GUI_UI_STATUS_REDSKULL_X,    GUI_UI_STATUS_REDSKULL_Y,    GUI_UI_STATUS_REDSKULL_W,    GUI_UI_STATUS_REDSKULL_H});    break;
+			case SKULL_BLACK:  icons.push_back({GUI_UI_STATUS_BLACKSKULL_X,  GUI_UI_STATUS_BLACKSKULL_Y,  GUI_UI_STATUS_BLACKSKULL_W,  GUI_UI_STATUS_BLACKSKULL_H});  break;
+			case SKULL_ORANGE: icons.push_back({GUI_UI_STATUS_ORANGOSKULL_X, GUI_UI_STATUS_ORANGOSKULL_Y, GUI_UI_STATUS_ORANGOSKULL_W, GUI_UI_STATUS_ORANGOSKULL_H}); break;
+			default: break;
+		}
+
+		Uint8 playerEmblem = localPlayer->getEmblem();
+		if(playerEmblem != GUILDEMBLEM_NONE && playerEmblem <= GUILDEMBLEM_NEUTRAL)
+			icons.push_back({GUI_UI_STATUS_GUILDWAR_X, GUI_UI_STATUS_GUILDWAR_Y, GUI_UI_STATUS_GUILDWAR_W, GUI_UI_STATUS_GUILDWAR_H});
+	}
+
+	if(icons.empty())
 		return;
 
-	if(g_game.hasGameFeature(GAME_FEATURE_REGENERATION_TIME) && g_game.getPlayerRegeneration() == 0)
-	{
-		renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_STATUS_HUNGRY_X, GUI_UI_STATUS_HUNGRY_Y, posX, posY, GUI_UI_STATUS_HUNGRY_W, GUI_UI_STATUS_HUNGRY_H);
-		posX += 10;
-	}
+	// Cap at 6 icons max
+	if(icons.size() > 6)
+		icons.resize(6);
 
-	Uint8 playerSkull = localPlayer->getSkull();
-	switch(playerSkull)
-	{
-		case SKULL_YELLOW:
-		{
-			renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_STATUS_YELLOWSKULL_X, GUI_UI_STATUS_YELLOWSKULL_Y, posX, posY, GUI_UI_STATUS_YELLOWSKULL_W, GUI_UI_STATUS_YELLOWSKULL_H);
-			posX += 10;
-		}
-		break;
-		case SKULL_GREEN:
-		{
-			renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_STATUS_GREENSKULL_X, GUI_UI_STATUS_GREENSKULL_Y, posX, posY, GUI_UI_STATUS_GREENSKULL_W, GUI_UI_STATUS_GREENSKULL_H);
-			posX += 10;
-		}
-		break;
-		case SKULL_WHITE:
-		{
-			renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_STATUS_WHITESKULL_X, GUI_UI_STATUS_WHITESKULL_Y, posX, posY, GUI_UI_STATUS_WHITESKULL_W, GUI_UI_STATUS_WHITESKULL_H);
-			posX += 10;
-		}
-		break;
-		case SKULL_RED:
-		{
-			renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_STATUS_REDSKULL_X, GUI_UI_STATUS_REDSKULL_Y, posX, posY, GUI_UI_STATUS_REDSKULL_W, GUI_UI_STATUS_REDSKULL_H);
-			posX += 10;
-		}
-		break;
-		case SKULL_BLACK:
-		{
-			renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_STATUS_BLACKSKULL_X, GUI_UI_STATUS_BLACKSKULL_Y, posX, posY, GUI_UI_STATUS_BLACKSKULL_W, GUI_UI_STATUS_BLACKSKULL_H);
-			posX += 10;
-		}
-		break;
-		case SKULL_ORANGE:
-		{
-			renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_STATUS_ORANGOSKULL_X, GUI_UI_STATUS_ORANGOSKULL_Y, posX, posY, GUI_UI_STATUS_ORANGOSKULL_W, GUI_UI_STATUS_ORANGOSKULL_H);
-			posX += 10;
-		}
-		break;
-		default: break;
-	}
+	Sint32 count = SDL_static_cast(Sint32, icons.size());
 
-	Uint8 playerEmblem = localPlayer->getEmblem();
-	if(playerEmblem != GUILDEMBLEM_NONE && playerEmblem <= GUILDEMBLEM_NEUTRAL)
+	// Layout rules (icon cell = 10px: 9px icon + 1px gap):
+	// 1 → 1 col, 1 row   2 → 2 col, 1 row
+	// 3 → 2 top, 1 bot   4 → 2 col, 2 row (square)
+	// 5 → 3 top, 2 bot   6 → 3 col, 2 row
+	static const Sint32 ICON_CELL = 10;
+
+	Sint32 topCols, botCols, rows;
+	if(count <= 2)      { topCols = count; botCols = 0; rows = 1; }
+	else if(count == 3) { topCols = 2;     botCols = 1; rows = 2; }
+	else if(count == 4) { topCols = 2;     botCols = 2; rows = 2; }
+	else if(count == 5) { topCols = 3;     botCols = 2; rows = 2; }
+	else                { topCols = 3;     botCols = 3; rows = 2; }
+
+	Sint32 maxCols = UTIL_max<Sint32>(topCols, botCols);
+	Sint32 gridW = maxCols * ICON_CELL;
+	Sint32 gridH = rows * ICON_CELL;
+
+	Sint32 startX = m_tRect.x1 + (m_tRect.x2 - gridW) / 2;
+	Sint32 startY = m_tRect.y1 + (m_tRect.y2 - gridH) / 2;
+
+	for(Sint32 i = 0; i < count; ++i)
 	{
-		renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_STATUS_GUILDWAR_X, GUI_UI_STATUS_GUILDWAR_Y, posX, posY, GUI_UI_STATUS_GUILDWAR_W, GUI_UI_STATUS_GUILDWAR_H);
-		posX += 10;
+		Sint32 row, col, colsInRow;
+		if(i < topCols) { row = 0; col = i;           colsInRow = topCols; }
+		else            { row = 1; col = i - topCols;  colsInRow = botCols; }
+
+		Sint32 rowOffsetX = (maxCols - colsInRow) * ICON_CELL / 2;
+		Sint32 px = startX + col * ICON_CELL + rowOffsetX;
+		Sint32 py = startY + row * ICON_CELL;
+
+		const IconEntry& ic = icons[SDL_static_cast(size_t, i)];
+		renderer->drawPicture(GUI_UI_IMAGE, ic.sx, ic.sy, px, py, ic.sw, ic.sh);
 	}
 }
 

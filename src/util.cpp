@@ -22,6 +22,9 @@
 #include "util.h"
 #include "engine.h"
 
+#include <cstdarg>
+#include <ctime>
+#include <fstream>
 #include <random>
 #ifdef __WIN32__
 #include <Shellapi.h>
@@ -34,6 +37,8 @@ LPXTEA_ENCRYPT XTEA_encrypt;
 LPADLER32CHECKSUM adler32Checksum;
 
 extern Engine g_engine;
+extern std::string g_basePath;
+extern std::string g_prefPath;
 
 static const Uint8 outfitColorTable[][3] =
 {
@@ -69,6 +74,66 @@ Uint8 colorTo8bit(Uint8 r, Uint8 g, Uint8 b)
 	c += (g / 51) * 6;
 	c += (b / 51);
 	return SDL_static_cast(Uint8, c);
+}
+
+std::string UTIL_protocolDebugLogPath()
+{
+	if(!g_prefPath.empty())
+		return g_prefPath + "tfc_protocol_debug.log";
+	if(!g_basePath.empty())
+		return g_basePath + "tfc_protocol_debug.log";
+	return "tfc_protocol_debug.log";
+}
+
+void UTIL_protocolDebugLog(const char* scope, const char* format, ...)
+{
+	char message[2048];
+	va_list args;
+	va_start(args, format);
+	SDL_vsnprintf(message, sizeof(message), format, args);
+	va_end(args);
+
+	const char* logScope = (scope ? scope : "protocol");
+	std::ofstream logFile(UTIL_protocolDebugLogPath().c_str(), std::ios::app);
+	if(logFile.is_open())
+	{
+		char timeBuffer[64];
+		time_t now = time(NULL);
+		tm localTime;
+		#if defined(_MSC_VER)
+		localtime_s(&localTime, &now);
+		#else
+		localTime = *localtime(&now);
+		#endif
+		strftime(timeBuffer, sizeof(timeBuffer), "%Y-%m-%d %H:%M:%S", &localTime);
+		logFile << "[" << timeBuffer << "][" << SDL_GetTicks() << "ms][" << logScope << "] " << message << '\n';
+	}
+
+	SDL_Log("[TFC Protocol][%s] %s", logScope, message);
+}
+
+void UTIL_protocolDebugDumpMessage(const char* scope, const char* direction, const Uint8* buffer, Uint16 size, Uint16 readPos, Uint8 opcode)
+{
+	const Uint16 dumpSize = UTIL_min<Uint16>(size, 512);
+	UTIL_protocolDebugLog(scope, "%s packet opcode=0x%02X size=%u readPos=%u dumpBytes=%u", (direction ? direction : "packet"), SDL_static_cast(Uint32, opcode), SDL_static_cast(Uint32, size), SDL_static_cast(Uint32, readPos), SDL_static_cast(Uint32, dumpSize));
+
+	std::ofstream logFile(UTIL_protocolDebugLogPath().c_str(), std::ios::app);
+	if(!logFile.is_open())
+		return;
+
+	logFile << "  hex:";
+	for(Uint16 i = 0; i < dumpSize; ++i)
+	{
+		if((i % 16) == 0)
+			logFile << "\n    ";
+
+		char byteBuffer[4];
+		SDL_snprintf(byteBuffer, sizeof(byteBuffer), "%02X", SDL_static_cast(Uint32, buffer[i]));
+		logFile << byteBuffer << ' ';
+	}
+	if(size > dumpSize)
+		logFile << "\n    ...";
+	logFile << '\n';
 }
 
 void colorFrom8bitFloat(Uint8 color, float& r, float& g, float& b)

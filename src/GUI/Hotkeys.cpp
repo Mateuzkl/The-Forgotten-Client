@@ -26,155 +26,282 @@
 #include "../GUI_Elements/GUI_Separator.h"
 #include "../GUI_Elements/GUI_CheckBox.h"
 #include "../GUI_Elements/GUI_ListBox.h"
+#include "../GUI_Elements/GUI_Label.h"
+#include "../GUI_Elements/GUI_TextBox.h"
 
-#define HOTKEYS_TITLE "Hotkeys"
-#define HOTKEYS_WIDTH 540
-#define HOTKEYS_HEIGHT 485
+// Window dimensions - noticeably narrower than Options (286px)
+#define HOTKEYS_TITLE "Hotkey Options"
+#define HOTKEYS_WIDTH 220
+#define HOTKEYS_HEIGHT 285
 #define HOTKEYS_CANCEL_EVENTID 1000
 #define HOTKEYS_OK_EVENTID 1001
 
-#define HOTKEYS_PRESETS_X 18
-#define HOTKEYS_PRESETS_Y 30
-#define HOTKEYS_PRESETS_W 378
-#define HOTKEYS_PRESETS_H 54
-#define HOTKEYS_PRESETS_EVENTID 1002
+// Hotkey list
+#define HOTKEYS_LIST_X 18
+#define HOTKEYS_LIST_Y 30
+#define HOTKEYS_LIST_W (HOTKEYS_WIDTH - 36)
+#define HOTKEYS_LIST_H 130
+#define HOTKEYS_LIST_EVENTID 1002
 
-#define HOTKEYS_ADD_TEXT "Add"
-#define HOTKEYS_ADD_X 401
-#define HOTKEYS_ADD_Y 34
-#define HOTKEYS_ADD_W GUI_UI_BUTTON_58PX_GRAY_UP_W
-#define HOTKEYS_ADD_H GUI_UI_BUTTON_58PX_GRAY_UP_H
-#define HOTKEYS_ADD_EVENTID 1003
+// "Edit hotkey text:" label
+#define HOTKEYS_LABEL_TEXT_X 18
+#define HOTKEYS_LABEL_TEXT_Y 168
+#define HOTKEYS_LABEL_TEXT_TITLE "Edit hotkey text:"
 
-#define HOTKEYS_COPY_TEXT "Copy"
-#define HOTKEYS_COPY_X 401
-#define HOTKEYS_COPY_Y 59
-#define HOTKEYS_COPY_W GUI_UI_BUTTON_58PX_GRAY_UP_W
-#define HOTKEYS_COPY_H GUI_UI_BUTTON_58PX_GRAY_UP_H
-#define HOTKEYS_COPY_EVENTID 1004
+// Text input box
+#define HOTKEYS_TEXTBOX_X 18
+#define HOTKEYS_TEXTBOX_Y 182
+#define HOTKEYS_TEXTBOX_W (HOTKEYS_WIDTH - 36)
+#define HOTKEYS_TEXTBOX_H 16
+#define HOTKEYS_TEXTBOX_EVENTID 1003
 
-#define HOTKEYS_RENAME_TEXT "Rename"
-#define HOTKEYS_RENAME_X 464
-#define HOTKEYS_RENAME_Y 34
-#define HOTKEYS_RENAME_W GUI_UI_BUTTON_58PX_GRAY_UP_W
-#define HOTKEYS_RENAME_H GUI_UI_BUTTON_58PX_GRAY_UP_H
-#define HOTKEYS_RENAME_EVENTID 1005
+// "Send automatically" checkbox
+#define HOTKEYS_SEND_AUTO_TEXT "Send automatically"
+#define HOTKEYS_SEND_AUTO_X 18
+#define HOTKEYS_SEND_AUTO_Y 204
+#define HOTKEYS_SEND_AUTO_W (HOTKEYS_WIDTH - 36)
+#define HOTKEYS_SEND_AUTO_H 22
+#define HOTKEYS_SEND_AUTO_EVENTID 1004
 
-#define HOTKEYS_REMOVE_TEXT "Remove"
-#define HOTKEYS_REMOVE_X 464
-#define HOTKEYS_REMOVE_Y 59
-#define HOTKEYS_REMOVE_W GUI_UI_BUTTON_58PX_GRAY_UP_W
-#define HOTKEYS_REMOVE_H GUI_UI_BUTTON_58PX_GRAY_UP_H
-#define HOTKEYS_REMOVE_EVENTID 1006
+// "Available hotkeys:" label
+#define HOTKEYS_LABEL_AVAIL_X 18
+#define HOTKEYS_LABEL_AVAIL_Y 18
+#define HOTKEYS_LABEL_AVAIL_TITLE "Available hotkeys:"
 
-#define HOTKEYS_SWITCH_PRESET_TEXT "Auto-Switch Hotkey Preset"
-#define HOTKEYS_SWITCH_PRESET_X 18
-#define HOTKEYS_SWITCH_PRESET_Y 89
-#define HOTKEYS_SWITCH_PRESET_W 504
-#define HOTKEYS_SWITCH_PRESET_H 22
-#define HOTKEYS_SWITCH_PRESET_EVENTID 1007
-#define HOTKEYS_CHAT_MODE_ON_TEXT "Chat Mode On"
-#define HOTKEYS_CHAT_MODE_ON_X 18
-#define HOTKEYS_CHAT_MODE_ON_Y 116
-#define HOTKEYS_CHAT_MODE_ON_W 247
-#define HOTKEYS_CHAT_MODE_ON_H 22
-#define HOTKEYS_CHAT_MODE_ON_EVENTID 1008
-#define HOTKEYS_CHAT_MODE_OFF_TEXT "Chat Mode Off"
-#define HOTKEYS_CHAT_MODE_OFF_X 275
-#define HOTKEYS_CHAT_MODE_OFF_Y 116
-#define HOTKEYS_CHAT_MODE_OFF_W 247
-#define HOTKEYS_CHAT_MODE_OFF_H 22
-#define HOTKEYS_CHAT_MODE_OFF_EVENTID 1009
+// Total number of configurable hotkeys: F1-F12, Shift+F1-F12, Ctrl+F1-F12
+#define HOTKEYS_COUNT 36
 
 extern Engine g_engine;
 
-struct HotkeyTable
+struct HotkeySlot
 {
-	const char* hotkeyName;
-	ClientHotkeys hotkeyType;
+	const char* label;
+	SDL_Keycode key;
+	Uint16 mod;
 };
 
-HotkeyTable hotkeyTable[] =
+static const HotkeySlot s_hotkeySlots[HOTKEYS_COUNT] =
 {
-	{"Movement:\x0E\xC0\xC0\xC0 Go East", CLIENT_HOTKEY_MOVEMENT_GOEAST},
-	{"Movement:\x0E\xC0\xC0\xC0 Go North", CLIENT_HOTKEY_MOVEMENT_GONORTH},
-	{"Movement:\x0E\xC0\xC0\xC0 Go North-East", CLIENT_HOTKEY_MOVEMENT_GONORTHEAST},
-	{"Movement:\x0E\xC0\xC0\xC0 Go North-West", CLIENT_HOTKEY_MOVEMENT_GONORTHWEST},
-	{"Movement:\x0E\xC0\xC0\xC0 Go South", CLIENT_HOTKEY_MOVEMENT_GOSOUTH},
-	{"Movement:\x0E\xC0\xC0\xC0 Go South-East", CLIENT_HOTKEY_MOVEMENT_GOSOUTHEAST},
-	{"Movement:\x0E\xC0\xC0\xC0 Go South-West", CLIENT_HOTKEY_MOVEMENT_GOSOUTHWEST},
-	{"Movement:\x0E\xC0\xC0\xC0 Go West", CLIENT_HOTKEY_MOVEMENT_GOWEST},
-	{"Movement:\x0E\xC0\xC0\xC0 Turn East", CLIENT_HOTKEY_MOVEMENT_TURNEAST},
-	{"Movement:\x0E\xC0\xC0\xC0 Turn North", CLIENT_HOTKEY_MOVEMENT_TURNNORTH},
-	{"Movement:\x0E\xC0\xC0\xC0 Turn South", CLIENT_HOTKEY_MOVEMENT_TURNSOUTH},
-	{"Movement:\x0E\xC0\xC0\xC0 Turn West", CLIENT_HOTKEY_MOVEMENT_TURNWEST},
-	{"Movement:\x0E\xC0\xC0\xC0 Mount/Dismount", CLIENT_HOTKEY_MOVEMENT_MOUNT},
-	{"Movement:\x0E\xC0\xC0\xC0 Stop All Actions", CLIENT_HOTKEY_MOVEMENT_STOPACTIONS},
-	{"Dialogs:\x0E\xC0\xC0\xC0 Open Bugreport", CLIENT_HOTKEY_DIALOGS_OPENBUGREPORTS},
-	{"Dialogs:\x0E\xC0\xC0\xC0 Open Ignore List", CLIENT_HOTKEY_DIALOGS_OPENIGNORELIST},
-	{"Dialogs:\x0E\xC0\xC0\xC0 Open Options", CLIENT_HOTKEY_DIALOGS_OPENOPTIONS},
-	{"Dialogs:\x0E\xC0\xC0\xC0 Open Hotkeys", CLIENT_HOTKEY_DIALOGS_OPENHOTKEYS},
-	{"Dialogs:\x0E\xC0\xC0\xC0 Open Questlog", CLIENT_HOTKEY_DIALOGS_OPENQUESTLOG},
-	{"Dialogs:\x0E\xC0\xC0\xC0 Open Terminal", CLIENT_HOTKEY_DIALOGS_OPENTERMINAL},
-	{"Windows:\x0E\xC0\xC0\xC0 Show/Hide VIP List", CLIENT_HOTKEY_WINDOWS_OPENVIPWINDOW},
-	{"Windows:\x0E\xC0\xC0\xC0 Show/Hide Battle List", CLIENT_HOTKEY_WINDOWS_OPENBATTLEWINDOW},
-	{"Windows:\x0E\xC0\xC0\xC0 Show/Hide Skills Window", CLIENT_HOTKEY_WINDOWS_OPENSKILLSWINDOW},
-	{"Chat Channel:\x0E\xC0\xC0\xC0 Close Current Channel", CLIENT_HOTKEY_CHAT_CLOSECHANNEL},
-	{"Chat Channel:\x0E\xC0\xC0\xC0 Next Channel", CLIENT_HOTKEY_CHAT_NEXTCHANNEL},
-	{"Chat Channel:\x0E\xC0\xC0\xC0 Open Channel List", CLIENT_HOTKEY_CHAT_OPENCHANNELLIST},
-	{"Chat Channel:\x0E\xC0\xC0\xC0 Open Help Channel", CLIENT_HOTKEY_CHAT_OPENHELPCHANNEL},
-	{"Chat Channel:\x0E\xC0\xC0\xC0 Open NPC Channel", CLIENT_HOTKEY_CHAT_OPENNPCCHANNEL},
-	{"Chat Channel:\x0E\xC0\xC0\xC0 Previous Channel", CLIENT_HOTKEY_CHAT_PREVIOUSCHANNEL},
-	{"Chat Channel:\x0E\xC0\xC0\xC0 Show Default Channel", CLIENT_HOTKEY_CHAT_DEFAULTCHANNEL},
-	{"Chat Mode:\x0E\xC0\xC0\xC0 Toggle Chat[On/Off]", CLIENT_HOTKEY_CHAT_TOGGLECHAT},
-	{"Minimap:\x0E\xC0\xC0\xC0 Center", CLIENT_HOTKEY_MINIMAP_CENTER},
-	{"Minimap:\x0E\xC0\xC0\xC0 One Floor Down", CLIENT_HOTKEY_MINIMAP_FLOORDOWN},
-	{"Minimap:\x0E\xC0\xC0\xC0 One Floor Up", CLIENT_HOTKEY_MINIMAP_FLOORUP},
-	{"Minimap:\x0E\xC0\xC0\xC0 Scroll East", CLIENT_HOTKEY_MINIMAP_SCROLLEAST},
-	{"Minimap:\x0E\xC0\xC0\xC0 Scroll North", CLIENT_HOTKEY_MINIMAP_SCROLLNORTH},
-	{"Minimap:\x0E\xC0\xC0\xC0 Scroll South", CLIENT_HOTKEY_MINIMAP_SCROLLSOUTH},
-	{"Minimap:\x0E\xC0\xC0\xC0 Scroll West", CLIENT_HOTKEY_MINIMAP_SCROLLWEST},
-	{"Minimap:\x0E\xC0\xC0\xC0 Zoom In", CLIENT_HOTKEY_MINIMAP_ZOOMIN},
-	{"Minimap:\x0E\xC0\xC0\xC0 Zoom Out", CLIENT_HOTKEY_MINIMAP_ZOOMOUT},
-	{"UI:\x0E\xC0\xC0\xC0 Show/Hide Creature Info", CLIENT_HOTKEY_UI_TOGGLECREATUREINFO},
-	{"UI:\x0E\xC0\xC0\xC0 Show/Hide FPS/Ping indicator", CLIENT_HOTKEY_UI_TOGGLEFPSINDICATOR},
-	{"UI:\x0E\xC0\xC0\xC0 Toggle Fullscreen", CLIENT_HOTKEY_UI_TOGGLEFULLSCREEN},
-	{"Combat:\x0E\xC0\xC0\xC0 Set to Offensive", CLIENT_HOTKEY_COMBAT_SETOFFENSIVE},
-	{"Combat:\x0E\xC0\xC0\xC0 Set to Balanced", CLIENT_HOTKEY_COMBAT_SETBALANCED},
-	{"Combat:\x0E\xC0\xC0\xC0 Set to Defensive", CLIENT_HOTKEY_COMBAT_SETDEFENSIVE},
-	{"Combat:\x0E\xC0\xC0\xC0 Toggle Chase Mode", CLIENT_HOTKEY_COMBAT_TOGGLECHASEMODE},
-	{"Combat:\x0E\xC0\xC0\xC0 Toggle Secure Mode", CLIENT_HOTKEY_COMBAT_TOGGLESECUREMODE},
-	{"PvP Mode:\x0E\xC0\xC0\xC0 Set to Dove", CLIENT_HOTKEY_PVPMODE_SETDOVE},
-	{"PvP Mode:\x0E\xC0\xC0\xC0 Set to Red Fist", CLIENT_HOTKEY_PVPMODE_SETREDFIST},
-	{"PvP Mode:\x0E\xC0\xC0\xC0 Set to White Hand", CLIENT_HOTKEY_PVPMODE_SETWHITEHAND},
-	{"PvP Mode:\x0E\xC0\xC0\xC0 Set to Yellow Hand", CLIENT_HOTKEY_PVPMODE_SETYELLOWHAND},
-	{"Misc.:\x0E\xC0\xC0\xC0 Activate Lenshelp", CLIENT_HOTKEY_MISC_LENSHELP},
-	{"Misc.:\x0E\xC0\xC0\xC0 Change Character", CLIENT_HOTKEY_MISC_CHANGECHARACTER},
-	{"Misc.:\x0E\xC0\xC0\xC0 Change Outfit", CLIENT_HOTKEY_MISC_CHANGEOUTFIT},
-	{"Misc.:\x0E\xC0\xC0\xC0 Logout", CLIENT_HOTKEY_MISC_LOGOUT},
-	{"Misc.:\x0E\xC0\xC0\xC0 Next Hotkey Preset", CLIENT_HOTKEY_MISC_NEXTPRESET},
-	{"Misc.:\x0E\xC0\xC0\xC0 Previous Hotkey Preset", CLIENT_HOTKEY_MISC_PREVIOUSPRESET},
-	{"Misc.:\x0E\xC0\xC0\xC0 Take Screenshot", CLIENT_HOTKEY_MISC_TAKESCREENSHOT}
+	{"F1:",         SDLK_F1,  KMOD_NONE},
+	{"F2:",         SDLK_F2,  KMOD_NONE},
+	{"F3:",         SDLK_F3,  KMOD_NONE},
+	{"F4:",         SDLK_F4,  KMOD_NONE},
+	{"F5:",         SDLK_F5,  KMOD_NONE},
+	{"F6:",         SDLK_F6,  KMOD_NONE},
+	{"F7:",         SDLK_F7,  KMOD_NONE},
+	{"F8:",         SDLK_F8,  KMOD_NONE},
+	{"F9:",         SDLK_F9,  KMOD_NONE},
+	{"F10:",        SDLK_F10, KMOD_NONE},
+	{"F11:",        SDLK_F11, KMOD_NONE},
+	{"F12:",        SDLK_F12, KMOD_NONE},
+	{"Shift+F1:",   SDLK_F1,  KMOD_SHIFT},
+	{"Shift+F2:",   SDLK_F2,  KMOD_SHIFT},
+	{"Shift+F3:",   SDLK_F3,  KMOD_SHIFT},
+	{"Shift+F4:",   SDLK_F4,  KMOD_SHIFT},
+	{"Shift+F5:",   SDLK_F5,  KMOD_SHIFT},
+	{"Shift+F6:",   SDLK_F6,  KMOD_SHIFT},
+	{"Shift+F7:",   SDLK_F7,  KMOD_SHIFT},
+	{"Shift+F8:",   SDLK_F8,  KMOD_SHIFT},
+	{"Shift+F9:",   SDLK_F9,  KMOD_SHIFT},
+	{"Shift+F10:",  SDLK_F10, KMOD_SHIFT},
+	{"Shift+F11:",  SDLK_F11, KMOD_SHIFT},
+	{"Shift+F12:",  SDLK_F12, KMOD_SHIFT},
+	{"Ctrl+F1:",    SDLK_F1,  KMOD_CTRL},
+	{"Ctrl+F2:",    SDLK_F2,  KMOD_CTRL},
+	{"Ctrl+F3:",    SDLK_F3,  KMOD_CTRL},
+	{"Ctrl+F4:",    SDLK_F4,  KMOD_CTRL},
+	{"Ctrl+F5:",    SDLK_F5,  KMOD_CTRL},
+	{"Ctrl+F6:",    SDLK_F6,  KMOD_CTRL},
+	{"Ctrl+F7:",    SDLK_F7,  KMOD_CTRL},
+	{"Ctrl+F8:",    SDLK_F8,  KMOD_CTRL},
+	{"Ctrl+F9:",    SDLK_F9,  KMOD_CTRL},
+	{"Ctrl+F10:",   SDLK_F10, KMOD_CTRL},
+	{"Ctrl+F11:",   SDLK_F11, KMOD_CTRL},
+	{"Ctrl+F12:",   SDLK_F12, KMOD_CTRL},
 };
+
+static std::string getHotkeyText(Sint32 slotIndex)
+{
+	if(slotIndex < 0 || slotIndex >= HOTKEYS_COUNT)
+		return std::string();
+
+	const HotkeySlot& slot = s_hotkeySlots[slotIndex];
+	HotkeyUsage* usage = g_engine.getHotkey(slot.key, slot.mod);
+	if(!usage || usage->action.type != CLIENT_HOTKEY_ACTION_TEXT)
+		return std::string();
+
+	if(usage->action.text.text)
+		return *usage->action.text.text;
+
+	return std::string();
+}
+
+static bool getHotkeySendAuto(Sint32 slotIndex)
+{
+	if(slotIndex < 0 || slotIndex >= HOTKEYS_COUNT)
+		return false;
+
+	const HotkeySlot& slot = s_hotkeySlots[slotIndex];
+	HotkeyUsage* usage = g_engine.getHotkey(slot.key, slot.mod);
+	if(!usage || usage->action.type != CLIENT_HOTKEY_ACTION_TEXT)
+		return false;
+
+	return usage->action.text.sendAutomatically;
+}
+
+// Builds the display string for a list entry.
+// sendAuto=true  → white text (both selected and unselected)
+// sendAuto=false → grey text (both selected and unselected)
+// We use \x0E R G B to override the base color that drawFont uses.
+static std::string buildListEntry(Sint32 slotIndex, const std::string& overrideText = std::string(), Sint32 overrideAuto = -1)
+{
+	std::string text = (overrideText.empty() && overrideAuto == -1) ? getHotkeyText(slotIndex) : overrideText;
+	bool sendAuto = (overrideAuto == -1) ? getHotkeySendAuto(slotIndex) : (overrideAuto != 0);
+
+	std::string entry;
+	if(sendAuto)
+	{
+		// White for both selected and unselected rows
+		entry += "\x0E\xFF\xFF\xFF";
+	}
+	else
+	{
+		// Grey for both selected and unselected rows
+		// This overrides the white (255,255,255) that selected rows use by default
+		entry += "\x0E\xAF\xAF\xAF";
+	}
+	entry += s_hotkeySlots[slotIndex].label;
+	if(!text.empty())
+	{
+		entry += " ";
+		entry += text;
+	}
+	entry += "\x0F";
+
+	return entry;
+}
+
+static void saveCurrentSlot(Sint32 slotIndex, const std::string& text, bool sendAuto)
+{
+	if(slotIndex < 0 || slotIndex >= HOTKEYS_COUNT)
+		return;
+
+	const HotkeySlot& slot = s_hotkeySlots[slotIndex];
+	g_engine.bindHotkeyAction(slot.key, slot.mod, text, sendAuto);
+}
+
+static Sint32 s_currentSlot = 0;
+
+// Helper: get the window's listbox, textbox and checkbox
+static void getHotkeyControls(GUI_Window* pWindow, GUI_ListBox*& pList, GUI_TextBox*& pText, GUI_CheckBox*& pCheck)
+{
+	pList  = SDL_static_cast(GUI_ListBox*, pWindow->getChild(HOTKEYS_LIST_EVENTID));
+	pText  = SDL_static_cast(GUI_TextBox*, pWindow->getChild(HOTKEYS_TEXTBOX_EVENTID));
+	pCheck = SDL_static_cast(GUI_CheckBox*, pWindow->getChild(HOTKEYS_SEND_AUTO_EVENTID));
+}
+
+// Live-update the list entry for the current slot from the current UI state
+static void liveUpdateCurrentEntry(GUI_Window* pWindow)
+{
+	GUI_ListBox* pList; GUI_TextBox* pText; GUI_CheckBox* pCheck;
+	getHotkeyControls(pWindow, pList, pText, pCheck);
+	if(!pList || !pText || !pCheck)
+		return;
+
+	std::string currentText = pText->getActualText();
+	bool currentAuto = pCheck->isChecked();
+	pList->set(s_currentSlot, buildListEntry(s_currentSlot, currentText, currentAuto ? 1 : 0));
+}
+
+// State: whether a slot has been selected (textbox unlocked)
+static bool s_slotSelected = false;
+
+// Restore focus to the text box - call after any event that might steal focus
+static void restoreFocus(GUI_Window* pWindow)
+{
+	GUI_TextBox* pText = SDL_static_cast(GUI_TextBox*, pWindow->getChild(HOTKEYS_TEXTBOX_EVENTID));
+	if(pText)
+		pWindow->setActiveElement(pText);
+}
 
 void hotkey_Events(Uint32 event, Sint32)
 {
+	GUI_Window* pWindow = g_engine.getCurrentWindow();
+	if(!pWindow || pWindow->getInternalID() != GUI_WINDOW_HOTKEYS)
+		return;
+
 	switch(event)
 	{
 		case HOTKEYS_CANCEL_EVENTID:
-		{
-			GUI_Window* pWindow = g_engine.getCurrentWindow();
-			if(pWindow && pWindow->getInternalID() == GUI_WINDOW_HOTKEYS)
-				g_engine.removeWindow(pWindow);
-		}
-		break;
+			g_engine.removeWindow(pWindow);
+			break;
+
 		case HOTKEYS_OK_EVENTID:
 		{
-			GUI_Window* pWindow = g_engine.getCurrentWindow();
-			if(pWindow && pWindow->getInternalID() == GUI_WINDOW_HOTKEYS)
-				g_engine.removeWindow(pWindow);
+			if(s_slotSelected)
+			{
+				GUI_ListBox* pList; GUI_TextBox* pText; GUI_CheckBox* pCheck;
+				getHotkeyControls(pWindow, pList, pText, pCheck);
+				if(pText && pCheck)
+					saveCurrentSlot(s_currentSlot, pText->getActualText(), pCheck->isChecked());
+			}
+			g_engine.removeWindow(pWindow);
 		}
 		break;
+
+		case HOTKEYS_LIST_EVENTID:
+		{
+			GUI_ListBox* pList; GUI_TextBox* pText; GUI_CheckBox* pCheck;
+			getHotkeyControls(pWindow, pList, pText, pCheck);
+			if(!pList || !pText || !pCheck)
+				break;
+
+			if(s_slotSelected)
+			{
+				// Save previous slot before switching
+				saveCurrentSlot(s_currentSlot, pText->getActualText(), pCheck->isChecked());
+				pList->set(s_currentSlot, buildListEntry(s_currentSlot));
+			}
+
+			// Switch to new slot
+			s_currentSlot = pList->getSelect();
+			pText->setText(getHotkeyText(s_currentSlot));
+			pCheck->setChecked(getHotkeySendAuto(s_currentSlot));
+
+			if(!s_slotSelected)
+			{
+				// First selection - unlock textbox and lock focus permanently
+				s_slotSelected = true;
+				pWindow->setActiveElement(pText);
+				pWindow->lockActiveElement(true);
+			}
+			else
+			{
+				// Already unlocked - restore focus (listbox click stole it)
+				restoreFocus(pWindow);
+			}
+		}
+		break;
+
+		case HOTKEYS_TEXTBOX_EVENTID:
+		{
+			// Live update list entry as player types
+			if(s_slotSelected)
+				liveUpdateCurrentEntry(pWindow);
+		}
+		break;
+
+		case HOTKEYS_SEND_AUTO_EVENTID:
+		{
+			// Live update + restore focus (checkbox click stole it via lock bypass)
+			if(s_slotSelected)
+			{
+				liveUpdateCurrentEntry(pWindow);
+				restoreFocus(pWindow);
+			}
+		}
+		break;
+
 		default: break;
 	}
 }
@@ -185,58 +312,54 @@ void UTIL_hotkeyOptions()
 	if(pWindow)
 		g_engine.removeWindow(pWindow);
 
+	s_currentSlot = 0;
+	s_slotSelected = false;
+
 	GUI_Window* newWindow = new GUI_Window(iRect(0, 0, HOTKEYS_WIDTH, HOTKEYS_HEIGHT), HOTKEYS_TITLE, GUI_WINDOW_HOTKEYS);
 
-	GUI_ListBox* newListBox = new GUI_ListBox(iRect(HOTKEYS_PRESETS_X, HOTKEYS_PRESETS_Y, HOTKEYS_PRESETS_W, HOTKEYS_PRESETS_H), HOTKEYS_PRESETS_EVENTID);
-	newListBox->add("Test0");
-	newListBox->add("Test1");
-	newListBox->add("Test2");
-	newListBox->add("Test3");
-	newListBox->add("Test4");
-	newListBox->add("Test5");
-	for(auto test : hotkeyTable)
-		newListBox->add(test.hotkeyName);
+	// "Available hotkeys:" label
+	GUI_Label* newLabel = new GUI_Label(iRect(HOTKEYS_LABEL_AVAIL_X, HOTKEYS_LABEL_AVAIL_Y, 0, 0), HOTKEYS_LABEL_AVAIL_TITLE);
+	newWindow->addChild(newLabel);
+
+	// Hotkey list
+	GUI_ListBox* newListBox = new GUI_ListBox(iRect(HOTKEYS_LIST_X, HOTKEYS_LIST_Y, HOTKEYS_LIST_W, HOTKEYS_LIST_H), HOTKEYS_LIST_EVENTID);
+	for(Sint32 i = 0; i < HOTKEYS_COUNT; ++i)
+		newListBox->add(buildListEntry(i));
+	// No initial selection - player must click a row first
+	newListBox->setEventCallback(&hotkey_Events, HOTKEYS_LIST_EVENTID);
 	newListBox->startEvents();
 	newWindow->addChild(newListBox);
 
-	GUI_CheckBox* newCheckBox = new GUI_CheckBox(iRect(HOTKEYS_SWITCH_PRESET_X, HOTKEYS_SWITCH_PRESET_Y, HOTKEYS_SWITCH_PRESET_W, HOTKEYS_SWITCH_PRESET_H), HOTKEYS_SWITCH_PRESET_TEXT, false, HOTKEYS_SWITCH_PRESET_EVENTID);
-	newCheckBox->setBoxEventCallback(&hotkey_Events, HOTKEYS_SWITCH_PRESET_EVENTID);
-	newCheckBox->startEvents();
-	newWindow->addChild(newCheckBox);
-	newCheckBox = new GUI_CheckBox(iRect(HOTKEYS_CHAT_MODE_ON_X, HOTKEYS_CHAT_MODE_ON_Y, HOTKEYS_CHAT_MODE_ON_W, HOTKEYS_CHAT_MODE_ON_H), HOTKEYS_CHAT_MODE_ON_TEXT, false, HOTKEYS_CHAT_MODE_ON_EVENTID);
-	newCheckBox->setBoxEventCallback(&hotkey_Events, HOTKEYS_CHAT_MODE_ON_EVENTID);
-	newCheckBox->startEvents();
-	newWindow->addChild(newCheckBox);
-	newCheckBox = new GUI_CheckBox(iRect(HOTKEYS_CHAT_MODE_OFF_X, HOTKEYS_CHAT_MODE_OFF_Y, HOTKEYS_CHAT_MODE_OFF_W, HOTKEYS_CHAT_MODE_OFF_H), HOTKEYS_CHAT_MODE_OFF_TEXT, false, HOTKEYS_CHAT_MODE_OFF_EVENTID);
-	newCheckBox->setBoxEventCallback(&hotkey_Events, HOTKEYS_CHAT_MODE_OFF_EVENTID);
+	// "Edit hotkey text:" label
+	newLabel = new GUI_Label(iRect(HOTKEYS_LABEL_TEXT_X, HOTKEYS_LABEL_TEXT_Y, 0, 0), HOTKEYS_LABEL_TEXT_TITLE);
+	newWindow->addChild(newLabel);
+
+	// Text input box - initially no text, no focus (unlocked after first row selection)
+	GUI_TextBox* newTextBox = new GUI_TextBox(iRect(HOTKEYS_TEXTBOX_X, HOTKEYS_TEXTBOX_Y, HOTKEYS_TEXTBOX_W, HOTKEYS_TEXTBOX_H), std::string(), HOTKEYS_TEXTBOX_EVENTID);
+	newTextBox->setTextEventCallback(&hotkey_Events, HOTKEYS_TEXTBOX_EVENTID);
+	newTextBox->startEvents();
+	newWindow->addChild(newTextBox);
+
+	// "Send automatically" checkbox - initially unchecked, no callback until slot selected
+	GUI_CheckBox* newCheckBox = new GUI_CheckBox(iRect(HOTKEYS_SEND_AUTO_X, HOTKEYS_SEND_AUTO_Y, HOTKEYS_SEND_AUTO_W, HOTKEYS_SEND_AUTO_H), HOTKEYS_SEND_AUTO_TEXT, false, HOTKEYS_SEND_AUTO_EVENTID);
+	newCheckBox->setBoxEventCallback(&hotkey_Events, HOTKEYS_SEND_AUTO_EVENTID);
 	newCheckBox->startEvents();
 	newWindow->addChild(newCheckBox);
 
+	// Separator
+	GUI_Separator* newSeparator = new GUI_Separator(iRect(13, HOTKEYS_HEIGHT - 40, HOTKEYS_WIDTH - 26, 2));
+	newWindow->addChild(newSeparator);
+
+	// Ok / Cancel buttons
 	GUI_Button* newButton = new GUI_Button(iRect(HOTKEYS_WIDTH - 56, HOTKEYS_HEIGHT - 30, GUI_UI_BUTTON_43PX_GRAY_UP_W, GUI_UI_BUTTON_43PX_GRAY_UP_H), "Cancel", CLIENT_GUI_ESCAPE_TRIGGER);
 	newButton->setButtonEventCallback(&hotkey_Events, HOTKEYS_CANCEL_EVENTID);
 	newButton->startEvents();
 	newWindow->addChild(newButton);
+
 	newButton = new GUI_Button(iRect(HOTKEYS_WIDTH - 109, HOTKEYS_HEIGHT - 30, GUI_UI_BUTTON_43PX_GRAY_UP_W, GUI_UI_BUTTON_43PX_GRAY_UP_H), "Ok", CLIENT_GUI_ENTER_TRIGGER);
 	newButton->setButtonEventCallback(&hotkey_Events, HOTKEYS_OK_EVENTID);
 	newButton->startEvents();
 	newWindow->addChild(newButton);
-	newButton = new GUI_Button(iRect(HOTKEYS_ADD_X, HOTKEYS_ADD_Y, HOTKEYS_ADD_W, HOTKEYS_ADD_H), HOTKEYS_ADD_TEXT, HOTKEYS_ADD_EVENTID);
-	newButton->setButtonEventCallback(&hotkey_Events, HOTKEYS_ADD_EVENTID);
-	newButton->startEvents();
-	newWindow->addChild(newButton);
-	newButton = new GUI_Button(iRect(HOTKEYS_COPY_X, HOTKEYS_COPY_Y, HOTKEYS_COPY_W, HOTKEYS_COPY_H), HOTKEYS_COPY_TEXT, HOTKEYS_COPY_EVENTID);
-	newButton->setButtonEventCallback(&hotkey_Events, HOTKEYS_COPY_EVENTID);
-	newButton->startEvents();
-	newWindow->addChild(newButton);
-	newButton = new GUI_Button(iRect(HOTKEYS_RENAME_X, HOTKEYS_RENAME_Y, HOTKEYS_RENAME_W, HOTKEYS_RENAME_H), HOTKEYS_RENAME_TEXT, HOTKEYS_RENAME_EVENTID);
-	newButton->setButtonEventCallback(&hotkey_Events, HOTKEYS_RENAME_EVENTID);
-	newButton->startEvents();
-	newWindow->addChild(newButton);
-	newButton = new GUI_Button(iRect(HOTKEYS_REMOVE_X, HOTKEYS_REMOVE_Y, HOTKEYS_REMOVE_W, HOTKEYS_REMOVE_H), HOTKEYS_REMOVE_TEXT, HOTKEYS_REMOVE_EVENTID);
-	newButton->setButtonEventCallback(&hotkey_Events, HOTKEYS_REMOVE_EVENTID);
-	newButton->startEvents();
-	newWindow->addChild(newButton);
-	GUI_Separator* newSeparator = new GUI_Separator(iRect(13, HOTKEYS_HEIGHT - 40, HOTKEYS_WIDTH - 26, 2));
-	newWindow->addChild(newSeparator);
+
 	g_engine.addWindow(newWindow, true);
 }

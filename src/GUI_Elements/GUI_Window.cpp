@@ -102,6 +102,9 @@ GUI_Element* GUI_Window::getChild(Uint32 internalID)
 
 void GUI_Window::setActiveElement(GUI_Element* actElement)
 {
+	if(m_lockActive && actElement != m_actElement && actElement != NULL)
+		return; // Focus is locked - ignore attempts to change it
+
 	if(m_actElement == actElement)
 		return;
 
