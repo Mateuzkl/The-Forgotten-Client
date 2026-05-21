@@ -113,6 +113,14 @@ class Creature : public Thing
 		
 		SDL_INLINE ThingType* getThingType() {return m_thingType;}
 		SDL_INLINE ThingType* getMountType() {return m_mountType;}
+		SDL_INLINE Uint32 getOutfitPacked() {return m_outfit;}
+		SDL_INLINE Uint8 getOutfitHead() {return m_outfit & 0xFF;}
+		SDL_INLINE Uint8 getOutfitBody() {return (m_outfit >> 8) & 0xFF;}
+		SDL_INLINE Uint8 getOutfitLegs() {return (m_outfit >> 16) & 0xFF;}
+		SDL_INLINE Uint8 getOutfitFeet() {return (m_outfit >> 24) & 0xFF;}
+		SDL_INLINE Uint8 getLookAddons() {return m_lookAddons;}
+		SDL_INLINE Uint16 getLightRadius() {return m_light[0];}
+		SDL_INLINE Uint16 getLightColor() {return m_light[1];}
 		SDL_INLINE bool isWalkingCheck() {return (m_walking && (m_walkedPixels != 32 || m_preWalking));}
 		SDL_INLINE bool isWalking() {return m_walking;}
 		SDL_INLINE bool isPreWalking() {return m_preWalking;}

@@ -135,6 +135,7 @@ class Map
 		void addCreatureById(Uint32 creatureId, Creature* creature);
 		void removeCreatureById(Uint32 creatureId);
 		Creature* getCreatureById(Uint32 creatureId);
+		knownCreatures& getKnownCreatures() {return m_knownCreatures;}
 
 		void setCentralPosition(Position pos);
 		SDL_INLINE Position& getCentralPosition() {return m_centerPosition;}

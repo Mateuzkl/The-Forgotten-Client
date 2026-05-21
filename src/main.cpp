@@ -20,9 +20,11 @@
 */
 
 #include "engine.h"
+#include "game.h"
 #include "cursors.h"
 #include "connection.h"
 #include "http.h"
+#include "elfbot_compat.h"
 
 #include <curl/curl.h>
 
@@ -32,6 +34,7 @@ SDL_Cursor* g_currentCursor = NULL;
 SDL_Cursor* g_cursors[CLIENT_CURSOR_LAST];
 Connection* g_connection = NULL;
 Engine g_engine;
+extern Game g_game;
 extern Http g_http;
 
 KeyRepeat g_keyRepeat;
@@ -243,6 +246,9 @@ extern "C"
 int main(int argc, char* argv[])
 {
 	SDL_initFramerate(&g_fpsmanager);
+	ElfbotCompat::init();
+	ElfbotCompat::registerTibiaWindowClass();
+
 	if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER) < 0)
 	{
 		SDL_snprintf(g_buffer, sizeof(g_buffer), "Couldn't initialize SDL: %s", SDL_GetError());
@@ -546,7 +552,16 @@ int main(int argc, char* argv[])
 
 			if(g_frameTime >= g_frameUpdate + FPSinterval)
 			{
-				SDL_snprintf(g_buffer, sizeof(g_buffer), "%s [%s: %u FPS, Ping: %u ms]", PRODUCT_NAME, g_engine.getRender()->getName(), g_frames, g_ping);
+				if(g_engine.isIngame())
+				{
+					std::string playerName = g_game.getPlayerName();
+					if(!playerName.empty())
+						SDL_snprintf(g_buffer, sizeof(g_buffer), "%s - %s", PRODUCT_NAME, playerName.c_str());
+					else
+						SDL_snprintf(g_buffer, sizeof(g_buffer), "%s", PRODUCT_NAME);
+				}
+				else
+					SDL_snprintf(g_buffer, sizeof(g_buffer), "%s", PRODUCT_NAME);
 				SDL_SetWindowTitle(g_engine.m_window, g_buffer);
 				g_frameUpdate = g_frameTime;
 				g_lastFrames = g_frames;
@@ -557,6 +572,8 @@ int main(int argc, char* argv[])
 			g_http.updateHttp();
 			if(g_connection)
 				g_connection->updateConnection();
+
+			ElfbotCompat::sync();
 
 			if(!g_active)
 			{
@@ -575,6 +592,7 @@ int main(int argc, char* argv[])
 		delete g_connection;
 
 	g_engine.terminate();
+	ElfbotCompat::shutdown();
 	curl_global_cleanup();
 	SDL_Quit();
 	return 0;

@@ -38,7 +38,7 @@ const char CLIENT_ASSET_DAT[] = "Tibia.dat";
 const char CLIENT_ASSET_SPR[] = "Tibia.spr";
 const char CLIENT_ASSET_CATALOG[] = "catalog-content.json";
 
-const char PRODUCT_NAME[] = "The Forgotten Client";
+const char PRODUCT_NAME[] = "Tibia";
 const char CONFIG_CATALOG[] = "TheForgottenClient";
 const char AUTOMAP_CATALOG[] = "Automap";
 const char ASSETS_CATALOG[] = "Assets";

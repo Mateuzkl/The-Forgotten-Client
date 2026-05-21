@@ -40,6 +40,7 @@
 #include "creature.h"
 #include "game.h"
 #include "config.h"
+#include "elfbot_compat.h"
 
 #include "GUI_Elements/GUI_Window.h"
 #include "GUI_Elements/GUI_Panel.h"
@@ -1180,6 +1181,9 @@ GUI_Window* Engine::getWindow(Uint32 internalID)
 
 void Engine::onKeyDown(SDL_Event& event)
 {
+	ElfbotCompat::forwardKeyEvent(event.key.keysym.sym, event.key.keysym.scancode,
+		event.key.keysym.mod, true);
+
 	if(m_contextMenu)
 		return;
 
@@ -1530,6 +1534,9 @@ void Engine::onKeyDown(SDL_Event& event)
 
 void Engine::onKeyUp(SDL_Event& event)
 {
+	ElfbotCompat::forwardKeyEvent(event.key.keysym.sym, event.key.keysym.scancode,
+		event.key.keysym.mod, false);
+
 	if(m_contextMenu)
 		return;
 

@@ -48,6 +48,12 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\elfbot_compat.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\elfbot_shadow.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\connection.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -383,6 +389,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\elfbot_compat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\connection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -686,5 +695,10 @@
     <ClInclude Include="..\..\GUI\ServerBrowser.h">
       <Filter>Header Files\GUI</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\..\elfbot_version.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>
