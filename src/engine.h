@@ -147,6 +147,8 @@ class Engine
 		HotkeyUsage* getHotkey(SDL_Keycode key, Uint16 mods);
 		void bindHotkey(ClientHotkeyKeys hotKey, SDL_Keycode key, Uint16 mods, ClientHotkeys hotkeyType);
 		void bindHotkeyAction(SDL_Keycode key, Uint16 mods, const std::string& text, bool sendAutomatically);
+		void bindHotkeyItem(SDL_Keycode key, Uint16 mods, Uint16 itemId, Uint8 itemSubtype, Uint8 usageType);
+		void beginHotkeyItemSelection(SDL_Keycode key, Uint16 mods);
 		void resetToDefaultHotkeys(bool wasd);
 
 		Sint32 calculateMainHeight();
@@ -403,6 +405,8 @@ class Engine
 		std::unordered_map<std::string, bool> m_whiteList;
 		std::map<Uint16, std::map<SDL_Keycode, size_t>> m_hotkeyFastAccess;
 		std::vector<HotkeyUsage> m_hotkeys;
+		SDL_Keycode m_pendingHotkeyItemKey = SDLK_UNKNOWN;
+		Uint16 m_pendingHotkeyItemModifiers = KMOD_NONE;
 
 		iRect m_gameBackgroundRect;
 		iRect m_gameWindowRect;

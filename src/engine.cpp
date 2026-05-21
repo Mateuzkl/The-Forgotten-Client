@@ -419,6 +419,62 @@ void Engine::loadCFG()
 		data = cfg.fetchKey("RightSidebars");
 		m_rightPanel = SDL_static_cast(Sint32, SDL_strtol(data.c_str(), NULL, 10));
 		m_rightPanel = (m_rightPanel == 0 ? GUI_PANEL_MAIN : m_rightPanel + GUI_PANEL_EXTRA_RIGHT_START - 1);
+
+		vectorData = cfg.fetchKeys("HotkeyAction");
+		for(StringVector::iterator it = vectorData.begin(), end = vectorData.end(); it != end; ++it)
+		{
+			data = (*it);
+			if(data.empty())
+				continue;
+
+			size_t p1 = data.find('|');
+			if(p1 == std::string::npos)
+				continue;
+			size_t p2 = data.find('|', p1 + 1);
+			if(p2 == std::string::npos)
+				continue;
+			size_t p3 = data.rfind('|');
+			if(p3 == std::string::npos || p3 <= p2)
+				continue;
+
+			SDL_Keycode keycode = SDL_static_cast(SDL_Keycode, SDL_strtol(data.substr(0, p1).c_str(), NULL, 10));
+			Uint16 modifers = SDL_static_cast(Uint16, SDL_strtoul(data.substr(p1 + 1, p2 - p1 - 1).c_str(), NULL, 10));
+			std::string text = data.substr(p2 + 1, p3 - p2 - 1);
+			bool sendAuto = (data.substr(p3 + 1) == "yes");
+
+			if(!text.empty())
+				bindHotkeyAction(keycode, modifers, text, sendAuto);
+		}
+
+		vectorData = cfg.fetchKeys("HotkeyItem");
+		for(StringVector::iterator it = vectorData.begin(), end = vectorData.end(); it != end; ++it)
+		{
+			data = (*it);
+			if(data.empty())
+				continue;
+
+			size_t p1 = data.find('|');
+			if(p1 == std::string::npos)
+				continue;
+			size_t p2 = data.find('|', p1 + 1);
+			if(p2 == std::string::npos)
+				continue;
+			size_t p3 = data.find('|', p2 + 1);
+			if(p3 == std::string::npos)
+				continue;
+			size_t p4 = data.find('|', p3 + 1);
+			if(p4 == std::string::npos)
+				continue;
+
+			SDL_Keycode keycode = SDL_static_cast(SDL_Keycode, SDL_strtol(data.substr(0, p1).c_str(), NULL, 10));
+			Uint16 modifers = SDL_static_cast(Uint16, SDL_strtoul(data.substr(p1 + 1, p2 - p1 - 1).c_str(), NULL, 10));
+			Uint16 itemId = SDL_static_cast(Uint16, SDL_strtoul(data.substr(p2 + 1, p3 - p2 - 1).c_str(), NULL, 10));
+			Uint8 itemSubtype = SDL_static_cast(Uint8, SDL_strtoul(data.substr(p3 + 1, p4 - p3 - 1).c_str(), NULL, 10));
+			Uint8 usageType = SDL_static_cast(Uint8, SDL_strtoul(data.substr(p4 + 1).c_str(), NULL, 10));
+
+			if(itemId != 0)
+				bindHotkeyItem(keycode, modifers, itemId, itemSubtype, usageType);
+		}
 	}
 	#if CLIENT_OVVERIDE_VERSION > 0
 	if(!versionConfigured)
@@ -654,6 +710,42 @@ void Engine::saveCFG()
 		cfg.insertKey("LeftSidebars", std::string(g_buffer, SDL_static_cast(size_t, len)));
 		len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%d", (m_rightPanel == GUI_PANEL_MAIN ? 0 : m_rightPanel - GUI_PANEL_EXTRA_RIGHT_START + 1));
 		cfg.insertKey("RightSidebars", std::string(g_buffer, SDL_static_cast(size_t, len)));
+
+		for(std::vector<HotkeyUsage>::iterator it = m_hotkeys.begin(), end = m_hotkeys.end(); it != end; ++it)
+		{
+			HotkeyUsage& hk = (*it);
+			if(hk.hotkey != CLIENT_HOTKEY_ACTION)
+				continue;
+
+			if(hk.action.type == CLIENT_HOTKEY_ACTION_TEXT && hk.action.text.text && !hk.action.text.text->empty())
+			{
+				std::string entry;
+				entry += std::to_string(SDL_static_cast(Sint32, hk.keycode));
+				entry += '|';
+				entry += std::to_string(SDL_static_cast(Uint32, hk.modifers));
+				entry += '|';
+				entry += *hk.action.text.text;
+				entry += '|';
+				entry += (hk.action.text.sendAutomatically ? "yes" : "no");
+				cfg.insertKey("HotkeyAction", entry);
+			}
+			else if(hk.action.type >= CLIENT_HOTKEY_ACTION_USEITEM &&
+				hk.action.type <= CLIENT_HOTKEY_ACTION_WITHCROSSHAIRS &&
+				hk.action.item.itemId != 0)
+			{
+				std::string entry;
+				entry += std::to_string(SDL_static_cast(Sint32, hk.keycode));
+				entry += '|';
+				entry += std::to_string(SDL_static_cast(Uint32, hk.modifers));
+				entry += '|';
+				entry += std::to_string(SDL_static_cast(Uint32, hk.action.item.itemId));
+				entry += '|';
+				entry += std::to_string(SDL_static_cast(Uint32, hk.action.item.itemSubtype));
+				entry += '|';
+				entry += std::to_string(SDL_static_cast(Uint32, hk.action.item.usageType));
+				cfg.insertKey("HotkeyItem", entry);
+			}
+		}
 	}
 }
 
@@ -1535,6 +1627,56 @@ void Engine::onKeyDown(SDL_Event& event)
 								chatInput->setText(*hotkey->action.text.text);
 						}
 					}
+					else if(event.key.repeat == 0 &&
+						hotkey->action.type >= CLIENT_HOTKEY_ACTION_USEITEM &&
+						hotkey->action.type <= CLIENT_HOTKEY_ACTION_WITHCROSSHAIRS &&
+						hotkey->action.item.itemId != 0)
+					{
+						Position hotkeyPosition(0xFFFF, 0, 0);
+						switch(hotkey->action.item.usageType)
+						{
+							case CLIENT_HOTKEY_ACTION_USEITEM:
+							{
+								g_game.sendUseItem(hotkeyPosition,
+									hotkey->action.item.itemId,
+									hotkey->action.item.itemSubtype,
+									g_game.findEmptyContainerId());
+							}
+							break;
+							case CLIENT_HOTKEY_ACTION_USEONYOURSELF:
+							{
+								g_game.sendUseOnCreature(hotkeyPosition,
+									hotkey->action.item.itemId,
+									hotkey->action.item.itemSubtype,
+									g_game.getPlayerID());
+							}
+							break;
+							case CLIENT_HOTKEY_ACTION_USEONTARGET:
+							{
+								Uint32 attackId = g_game.getAttackID();
+								if(attackId != 0)
+								{
+									g_game.sendUseOnCreature(hotkeyPosition,
+										hotkey->action.item.itemId,
+										hotkey->action.item.itemSubtype,
+										attackId);
+								}
+								else
+									g_game.processTextMessage(MessageFailure, "You must select a target first.");
+							}
+							break;
+							case CLIENT_HOTKEY_ACTION_WITHCROSSHAIRS:
+							{
+								setActionData(CLIENT_ACTION_FIRST, 0,
+									hotkey->action.item.itemId,
+									0xFFFF, 0, 0,
+									hotkey->action.item.itemSubtype);
+								setAction(CLIENT_ACTION_USEWITH);
+							}
+							break;
+							default: break;
+						}
+					}
 				}
 				break;
 				default: break;
@@ -1923,8 +2065,45 @@ void Engine::onLMouseUp(Sint32 x, Sint32 y)
 		}
 		else if(m_actionData == CLIENT_ACTION_SEARCHHOTKEY)
 		{
-			//Make hotkey
+			ItemUI* itemui = NULL;
+			Item* item = NULL;
+
+			GUI_Panel* gPanel = NULL;
+			for(std::vector<GUI_Panel*>::iterator it = m_panels.begin(), end = m_panels.end(); it != end; ++it)
+			{
+				if((*it)->isInsideRect(x, y))
+				{
+					gPanel = (*it);
+					break;
+				}
+			}
+			if(gPanel)
+				itemui = SDL_reinterpret_cast(ItemUI*, gPanel->onAction(x, y));
+			else if(m_gameWindowRect.isPointInside(x, y))
+			{
+				Creature* topCreature = NULL;
+				Tile* tile = g_map.findTile(x, y, m_gameWindowRect, m_scaledSize, m_scale, topCreature, true);
+				if(tile)
+				{
+					Thing* useThing = tile->getTopUseThing();
+					if(useThing && useThing->isItem())
+						item = useThing->getItem();
+				}
+			}
+
+			if(itemui)
+				bindHotkeyItem(m_pendingHotkeyItemKey, m_pendingHotkeyItemModifiers,
+					itemui->getID(), itemui->getItemSubtype(), CLIENT_HOTKEY_ACTION_WITHCROSSHAIRS);
+			else if(item)
+				bindHotkeyItem(m_pendingHotkeyItemKey, m_pendingHotkeyItemModifiers,
+					item->getID(), item->getItemSubtype(), CLIENT_HOTKEY_ACTION_WITHCROSSHAIRS);
+			else
+				g_game.processTextMessage(MessageFailure, "Select an item or rune for the hotkey.");
+
+			m_pendingHotkeyItemKey = SDLK_UNKNOWN;
+			m_pendingHotkeyItemModifiers = KMOD_NONE;
 			setAction(CLIENT_ACTION_NONE);
+			UTIL_hotkeyOptions();
 		}
 		else if((!(mouseState & SDL_BUTTON_RMASK) && m_actionData == CLIENT_ACTION_EXTRAMOUSE) || m_actionData == CLIENT_ACTION_LEFTMOUSE)
 		{
@@ -2708,6 +2887,7 @@ void Engine::bindHotkeyAction(SDL_Keycode key, Uint16 mods, const std::string& t
 				usage.action.text.sendAutomatically = sendAutomatically;
 				usage.action.text.text = new std::string(text);
 			}
+			usage.hotkey = CLIENT_HOTKEY_ACTION;
 			return;
 		}
 	}
@@ -2732,6 +2912,69 @@ void Engine::bindHotkeyAction(SDL_Keycode key, Uint16 mods, const std::string& t
 	newHotkey.keyid = SDL_static_cast(Uint8, CLIENT_HOTKEY_FIRST_KEY);
 	m_hotkeyFastAccess[mods][key] = m_hotkeys.size();
 	m_hotkeys.push_back(newHotkey);
+}
+
+void Engine::bindHotkeyItem(SDL_Keycode key, Uint16 mods, Uint16 itemId, Uint8 itemSubtype, Uint8 usageType)
+{
+	if(usageType < CLIENT_HOTKEY_ACTION_USEITEM || usageType > CLIENT_HOTKEY_ACTION_WITHCROSSHAIRS)
+		usageType = CLIENT_HOTKEY_ACTION_WITHCROSSHAIRS;
+
+	std::map<Uint16, std::map<SDL_Keycode, size_t>>::iterator mit = m_hotkeyFastAccess.find(mods);
+	if(mit != m_hotkeyFastAccess.end())
+	{
+		std::map<SDL_Keycode, size_t>::iterator it = mit->second.find(key);
+		if(it != mit->second.end())
+		{
+			HotkeyUsage& usage = m_hotkeys[it->second];
+			if(usage.action.type == CLIENT_HOTKEY_ACTION_TEXT && usage.action.text.text)
+			{
+				delete usage.action.text.text;
+				usage.action.text.text = NULL;
+			}
+			if(itemId == 0)
+			{
+				usage.action.type = CLIENT_HOTKEY_ACTION_NONE;
+			}
+			else
+			{
+				usage.action.type = usageType;
+				usage.action.item.usageType = usageType;
+				usage.action.item.itemId = itemId;
+				usage.action.item.itemSubtype = itemSubtype;
+			}
+			usage.hotkey = CLIENT_HOTKEY_ACTION;
+			return;
+		}
+	}
+
+	HotkeyUsage newHotkey;
+	if(itemId == 0)
+	{
+		newHotkey.action.type = CLIENT_HOTKEY_ACTION_NONE;
+		newHotkey.action.item.usageType = CLIENT_HOTKEY_ACTION_NONE;
+		newHotkey.action.item.itemId = 0;
+		newHotkey.action.item.itemSubtype = 0;
+	}
+	else
+	{
+		newHotkey.action.type = usageType;
+		newHotkey.action.item.usageType = usageType;
+		newHotkey.action.item.itemId = itemId;
+		newHotkey.action.item.itemSubtype = itemSubtype;
+	}
+	newHotkey.keycode = key;
+	newHotkey.hotkey = CLIENT_HOTKEY_ACTION;
+	newHotkey.modifers = mods;
+	newHotkey.keyid = SDL_static_cast(Uint8, CLIENT_HOTKEY_FIRST_KEY);
+	m_hotkeyFastAccess[mods][key] = m_hotkeys.size();
+	m_hotkeys.push_back(newHotkey);
+}
+
+void Engine::beginHotkeyItemSelection(SDL_Keycode key, Uint16 mods)
+{
+	m_pendingHotkeyItemKey = key;
+	m_pendingHotkeyItemModifiers = mods;
+	setAction(CLIENT_ACTION_SEARCHHOTKEY);
 }
 
 void Engine::resetToDefaultHotkeys(bool wasd)
