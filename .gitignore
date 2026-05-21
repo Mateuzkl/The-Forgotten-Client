@@ -73,3 +73,9 @@ ipch/
 *.psess
 *.vsp
 *.vspx
+src/visual-studio/.vs/visual-studio/FileContentIndex/0ff0c069-8e60-4f58-83a3-26dd53ce1130.vsidx
+src/visual-studio/.vs/visual-studio/v18/Browse.VC.db-shm
+src/visual-studio/.vs/visual-studio/v18/Browse.VC.db-wal
+src/visual-studio/.vs/visual-studio/v18/DocumentLayout.json
+src/visual-studio/.vs/visual-studio/v18/DocumentLayout.backup.json
+src/visual-studio/.vs/visual-studio/v18/fileList.bin

@@ -3124,16 +3124,12 @@ namespace ElfbotCompat
 		log("TLS low Tibia range: ok=%u fail=%u firstFail=0x%IX",
 			s_tlsText.ok, s_tlsText.fail, s_tlsText.firstFail);
 
-		// Keep the client boot independent from the old Tibia 8.60 memory
-		// emulation. It can be forced for debugging with an environment
-		// variable, but it must never be required for the TFC executable.
-		if(GetEnvironmentVariableA("TFC_ENABLE_OLD_TIBIA_MEMORY", NULL, 0) == 0)
-		{
-			log("in-process old Tibia memory emulation disabled; TFC startup continues");
-			s_active = false;
-			return false;
-		}
-
+		// The in-process ElfBot emulation is always enabled.
+		// TFC registers the "TibiaClient" window class so tibiaelf.exe
+		// injects elfbot.dll directly into this process; init() must
+		// always complete so ElfBot finds valid Tibia memory structures
+		// instead of zero-initialised BSS (which causes an immediate
+		// NULL-dereference crash inside elfbot.dll at startup).
 		if(!protectLowTibiaShadow())
 		{
 			log("FATAL: Tibia shadow could not be made writable.");
@@ -3154,6 +3150,12 @@ namespace ElfbotCompat
 			s_active = false;
 			return false;
 		}
+
+		// Install JMP hooks over the Tibia 8.60 function stubs in the
+		// shadow so ElfBot's cavebot (AutoWalk) and combat (SetAttack,
+		// SetFollow) calls are intercepted and forwarded to TFC.
+		// Pass true = shadow is ready (protectLowTibiaShadow succeeded).
+		installOldTibiaActionHooks(true);
 
 		s_active = true;
 		log("init() OK -- in-process ElfBot mode; s_active=true");

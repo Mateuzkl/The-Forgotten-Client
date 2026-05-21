@@ -352,7 +352,7 @@
     <PostBuildEvent>
       <Command>copy /Y "$(ProjectDir)..\lib32\zlib1.dll" "$(OutDir)zlib1.dll"
 if not exist "$(OutDir)data" mkdir "$(OutDir)data"
-copy /Y "$(ProjectDir)..\..\..\data\features.lua" "$(OutDir)data\features.lua"</Command>
+if not exist "$(OutDir)data\features.lua" copy "$(ProjectDir)..\..\..\data\features.lua" "$(OutDir)data\features.lua"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -408,7 +408,7 @@ copy /Y "$(ProjectDir)..\..\..\data\features.lua" "$(OutDir)data\features.lua"</
     <PostBuildEvent>
       <Command>copy /Y "$(ProjectDir)..\lib32\zlib1.dll" "$(OutDir)zlib1.dll"
 if not exist "$(OutDir)data" mkdir "$(OutDir)data"
-copy /Y "$(ProjectDir)..\..\..\data\features.lua" "$(OutDir)data\features.lua"</Command>
+if not exist "$(OutDir)data\features.lua" copy "$(ProjectDir)..\..\..\data\features.lua" "$(OutDir)data\features.lua"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
