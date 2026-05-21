@@ -25,8 +25,10 @@
 #include "../GUI_Elements/GUI_Button.h"
 #include "../GUI_Elements/GUI_CheckBox.h"
 #include "../GUI_Elements/GUI_Separator.h"
+#include "../GUI_Elements/GUI_CheckBox.h"
 #include "../GUI_Elements/GUI_TextBox.h"
 #include "../GUI_Elements/GUI_Label.h"
+#include "../GUI_Elements/GUI_ListBox.h"
 #include "../protocolloginHttp.h"
 #include "../game.h"
 #include "../thingManager.h"
@@ -34,10 +36,9 @@
 
 #define ENTERGAME_TITLE "Enter Game"
 #define ENTERGAME_WIDTH 236
-#define ENTERGAME_HEIGHT 200
+#define ENTERGAME_HEIGHT 176
 #define ENTERGAME_CANCEL_EVENTID 1000
 #define ENTERGAME_OK_EVENTID 1001
-#define ENTERGAME_REMEMBER_EVENTID 1003
 #define ENTERGAME_ACCNAME_LABEL_TEXT1 "Account Name:"
 #define ENTERGAME_ACCNAME_LABEL_TEXT2 "Account Number:"
 #define ENTERGAME_ACCNAME_LABEL_TEXT3 "Email:"
@@ -71,12 +72,192 @@
 #define ENTERGAME_ACCOUNT_BUTTON_W GUI_UI_BUTTON_86PX_GRAY_UP_W
 #define ENTERGAME_ACCOUNT_BUTTON_H GUI_UI_BUTTON_86PX_GRAY_UP_H
 #define ENTERGAME_ACCOUNT_BUTTON_EVENTID 1002
+#define ENTERGAME_SAVE_TEXT "Save Account"
+#define ENTERGAME_TITLE_LABEL_X 115
+#define ENTERGAME_TITLE_LABEL_Y 4
+#define ENTERGAME_SAVE_X 9
+#define ENTERGAME_SAVE_Y 147
+#define ENTERGAME_SAVE_W 14
+#define ENTERGAME_SAVE_H 14
+#define ENTERGAME_SAVE_LABEL_X 27
+#define ENTERGAME_SAVE_LABEL_Y 149
+#define ENTERGAME_ACCOUNTS_TITLE "My Accounts"
+#define ENTERGAME_ACCOUNTS_LABEL_X 297
+#define ENTERGAME_ACCOUNTS_LABEL_Y 6
+#define ENTERGAME_ACCOUNTS_LIST_X 243
+#define ENTERGAME_ACCOUNTS_LIST_Y 25
+#define ENTERGAME_ACCOUNTS_LIST_W 106
+#define ENTERGAME_ACCOUNTS_LIST_H 99
+#define ENTERGAME_REMOVE_BUTTON_X 277
+#define ENTERGAME_REMOVE_BUTTON_Y 153
+#define ENTERGAME_REMOVE_BUTTON_TEXT "Remove"
+
+struct SavedAccount
+{
+	std::string account;
+	std::string password;
+};
 
 extern Engine g_engine;
 extern Game g_game;
 extern SpriteManager g_spriteManager;
 extern ThingManager g_thingManager;
 extern ProtocolLoginHttp g_protocolLoginHttp;
+
+static std::vector<SavedAccount> g_savedAccounts;
+
+class GUI_EnterGameCheckBox : public GUI_CheckBox
+{
+	public:
+		GUI_EnterGameCheckBox(iRect boxRect, Uint32 internalID) : GUI_CheckBox(boxRect, "", false, internalID) {}
+
+		void render()
+		{
+			auto& renderer = g_engine.getRender();
+			renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_CHECKBOX_UNCHECKED_X, (m_Checked ? GUI_UI_CHECKBOX_CHECKED_Y : GUI_UI_CHECKBOX_UNCHECKED_Y), m_tRect.x1, m_tRect.y1, GUI_UI_CHECKBOX_CHECKED_W, GUI_UI_CHECKBOX_CHECKED_H);
+		}
+};
+
+static std::string getSavedAccountsPath()
+{
+	SDL_snprintf(g_buffer, sizeof(g_buffer), "%s%csaved_accounts.tfc", g_basePath.c_str(), PATH_PLATFORM_SLASH);
+	return std::string(g_buffer);
+}
+
+static std::string encodeSavedPassword(const std::string& text)
+{
+	static const char hex[] = "0123456789ABCDEF";
+	std::string out;
+	out.reserve(text.size() * 2);
+	for(unsigned char ch : text)
+	{
+		Uint8 value = ch ^ 0x5A;
+		out.push_back(hex[value >> 4]);
+		out.push_back(hex[value & 0x0F]);
+	}
+	return out;
+}
+
+static Uint8 decodeHexChar(char ch)
+{
+	if(ch >= '0' && ch <= '9')
+		return SDL_static_cast(Uint8, ch - '0');
+	if(ch >= 'A' && ch <= 'F')
+		return SDL_static_cast(Uint8, ch - 'A' + 10);
+	if(ch >= 'a' && ch <= 'f')
+		return SDL_static_cast(Uint8, ch - 'a' + 10);
+	return 0;
+}
+
+static std::string decodeSavedPassword(const std::string& text)
+{
+	std::string out;
+	out.reserve(text.size() / 2);
+	for(size_t i = 0; i + 1 < text.size(); i += 2)
+	{
+		Uint8 value = SDL_static_cast(Uint8, (decodeHexChar(text[i]) << 4) | decodeHexChar(text[i + 1]));
+		out.push_back(SDL_static_cast(char, value ^ 0x5A));
+	}
+	return out;
+}
+
+static void loadSavedAccounts()
+{
+	g_savedAccounts.clear();
+	const std::string path = getSavedAccountsPath();
+	SDL_RWops* file = SDL_RWFromFile(path.c_str(), "rb");
+	if(!file)
+		return;
+
+	Sint64 size = SDL_RWsize(file);
+	if(size <= 0)
+	{
+		SDL_RWclose(file);
+		return;
+	}
+
+	std::string data;
+	data.resize(SDL_static_cast(size_t, size));
+	SDL_RWread(file, &data[0], 1, SDL_static_cast(size_t, size));
+	SDL_RWclose(file);
+
+	size_t start = 0;
+	while(start < data.size())
+	{
+		size_t end = data.find('\n', start);
+		if(end == std::string::npos)
+			end = data.size();
+
+		std::string line = data.substr(start, end - start);
+		if(!line.empty() && line.back() == '\r')
+			line.pop_back();
+
+		size_t separator = line.find('\t');
+		if(separator != std::string::npos)
+		{
+			SavedAccount entry;
+			entry.account = line.substr(0, separator);
+			entry.password = decodeSavedPassword(line.substr(separator + 1));
+			if(!entry.account.empty())
+				g_savedAccounts.push_back(std::move(entry));
+		}
+		start = end + 1;
+	}
+}
+
+static void saveSavedAccounts()
+{
+	const std::string path = getSavedAccountsPath();
+	SDL_RWops* file = SDL_RWFromFile(path.c_str(), "wb");
+	if(!file)
+		return;
+
+	for(SavedAccount& entry : g_savedAccounts)
+	{
+		std::string line = entry.account;
+		line += '\t';
+		line += encodeSavedPassword(entry.password);
+		line += '\n';
+		SDL_RWwrite(file, line.data(), 1, line.size());
+	}
+	SDL_RWclose(file);
+}
+
+static void upsertSavedAccount(const std::string& account, const std::string& password)
+{
+	if(account.empty())
+		return;
+
+	for(SavedAccount& entry : g_savedAccounts)
+	{
+		if(entry.account == account)
+		{
+			entry.password = password;
+			saveSavedAccounts();
+			return;
+		}
+	}
+
+	SavedAccount entry;
+	entry.account = account;
+	entry.password = password;
+	g_savedAccounts.push_back(std::move(entry));
+	saveSavedAccounts();
+}
+
+static void fillEnterGameCredentials(GUI_Window* window, Sint32 index)
+{
+	if(!window || index < 0 || SDL_static_cast(size_t, index) >= g_savedAccounts.size())
+		return;
+
+	GUI_TextBox* accountBox = SDL_static_cast(GUI_TextBox*, window->getChild(ENTERGAME_ACCNAME_TEXTBOX_EVENTID));
+	if(accountBox)
+		accountBox->setText(g_savedAccounts[SDL_static_cast(size_t, index)].account);
+
+	GUI_TextBox* passwordBox = SDL_static_cast(GUI_TextBox*, window->getChild(ENTERGAME_PASSWORD_TEXTBOX_EVENTID));
+	if(passwordBox)
+		passwordBox->setText(g_savedAccounts[SDL_static_cast(size_t, index)].password);
+}
 
 void enterGame_Events(Uint32 event, Sint32)
 {
@@ -95,19 +276,6 @@ void enterGame_Events(Uint32 event, Sint32)
 			GUI_Window* pWindow = g_engine.getCurrentWindow();
 			if(pWindow && pWindow->getInternalID() == GUI_WINDOW_ENTERGAME)
 			{
-				std::string accountName;
-				std::string accountPassword;
-				bool rememberCredentials = false;
-				GUI_TextBox* pTextBox = SDL_static_cast(GUI_TextBox*, pWindow->getChild(ENTERGAME_ACCNAME_TEXTBOX_EVENTID));
-				if(pTextBox)
-					accountName = pTextBox->getActualText();
-				pTextBox = SDL_static_cast(GUI_TextBox*, pWindow->getChild(ENTERGAME_PASSWORD_TEXTBOX_EVENTID));
-				if(pTextBox)
-					accountPassword = pTextBox->getActualText();
-				GUI_CheckBox* pCheckBox = SDL_static_cast(GUI_CheckBox*, pWindow->getChild(ENTERGAME_REMEMBER_EVENTID));
-				if(pCheckBox)
-					rememberCredentials = pCheckBox->isChecked();
-
 				g_engine.removeWindow(pWindow);
 				if(!g_spriteManager.isSprLoaded())
 				{
@@ -185,9 +353,12 @@ void enterGame_Events(Uint32 event, Sint32)
 					#endif
 				}
 
-				g_engine.setAccountName(accountName);
-				g_engine.setAccountPassword(accountPassword);
-				g_engine.setRememberAccountCredentials(rememberCredentials);
+				GUI_TextBox* pTextBox = SDL_static_cast(GUI_TextBox*, pWindow->getChild(ENTERGAME_ACCNAME_TEXTBOX_EVENTID));
+				if(pTextBox)
+					g_engine.setAccountName(pTextBox->getActualText());
+				pTextBox = SDL_static_cast(GUI_TextBox*, pWindow->getChild(ENTERGAME_PASSWORD_TEXTBOX_EVENTID));
+				if(pTextBox)
+					g_engine.setAccountPassword(pTextBox->getActualText());
 
 				UTIL_messageBox("Connecting", "Your character list is being loaded. Please wait.");
 				#if CLIENT_OVVERIDE_VERSION == 0
@@ -201,6 +372,38 @@ void enterGame_Events(Uint32 event, Sint32)
 			}
 		}
 		break;
+		case ENTERGAME_ACCOUNTS_LIST_EVENTID:
+		{
+			GUI_Window* pWindow = g_engine.getCurrentWindow();
+			if(pWindow && pWindow->getInternalID() == GUI_WINDOW_ENTERGAME)
+			{
+				GUI_ListBox* pListBox = SDL_static_cast(GUI_ListBox*, pWindow->getChild(ENTERGAME_ACCOUNTS_LIST_EVENTID));
+				if(!pListBox)
+					break;
+
+				fillEnterGameCredentials(pWindow, pListBox->getSelect());
+			}
+		}
+		break;
+		case ENTERGAME_REMOVE_EVENTID:
+		{
+			GUI_Window* pWindow = g_engine.getCurrentWindow();
+			if(pWindow && pWindow->getInternalID() == GUI_WINDOW_ENTERGAME)
+			{
+				GUI_ListBox* pListBox = SDL_static_cast(GUI_ListBox*, pWindow->getChild(ENTERGAME_ACCOUNTS_LIST_EVENTID));
+				if(!pListBox)
+					break;
+
+				Sint32 select = pListBox->getSelect();
+				if(select >= 0 && SDL_static_cast(size_t, select) < g_savedAccounts.size())
+				{
+					g_savedAccounts.erase(g_savedAccounts.begin() + select);
+					pListBox->erase(select);
+					saveSavedAccounts();
+				}
+			}
+		}
+		break;
 		default: break;
 	}
 }
@@ -211,7 +414,11 @@ void UTIL_createEnterGame()
 	if(pWindow)
 		return;
 
-	GUI_Window* newWindow = new GUI_Window(iRect(0, 0, ENTERGAME_WIDTH, ENTERGAME_HEIGHT), ENTERGAME_TITLE, GUI_WINDOW_ENTERGAME);
+	loadSavedAccounts();
+	GUI_Window* newWindow = new GUI_Window(iRect(0, 0, ENTERGAME_WIDTH, ENTERGAME_HEIGHT), "", GUI_WINDOW_ENTERGAME);
+	GUI_Label* titleLabel = new GUI_Label(iRect(ENTERGAME_TITLE_LABEL_X, ENTERGAME_TITLE_LABEL_Y, 0, 0), ENTERGAME_TITLE, 0, 143, 143, 143);
+	titleLabel->setAlign(CLIENT_FONT_ALIGN_CENTER);
+	newWindow->addChild(titleLabel);
 	GUI_Label* newLabel = new GUI_Label(iRect(ENTERGAME_ACCNAME_LABEL_X, ENTERGAME_ACCNAME_LABEL_Y, 0, 0), (g_game.hasGameFeature(GAME_FEATURE_ACCOUNT_EMAIL) ? ENTERGAME_ACCNAME_LABEL_TEXT3 : g_game.hasGameFeature(GAME_FEATURE_ACCOUNT_NAME) ? ENTERGAME_ACCNAME_LABEL_TEXT1 : ENTERGAME_ACCNAME_LABEL_TEXT2));
 	newWindow->addChild(newLabel);
 	newLabel = new GUI_Label(iRect(ENTERGAME_PASSWORD_LABEL_X, ENTERGAME_PASSWORD_LABEL_Y, 0, 0), ENTERGAME_PASSWORD_LABEL_TEXT);
@@ -242,15 +449,40 @@ void UTIL_createEnterGame()
 	newButton->setButtonEventCallback(&enterGame_Events, ENTERGAME_ACCOUNT_BUTTON_EVENTID);
 	newButton->startEvents();
 	newWindow->addChild(newButton);
-	newButton = new GUI_Button(iRect(ENTERGAME_WIDTH - 56, ENTERGAME_HEIGHT - 30, GUI_UI_BUTTON_43PX_GRAY_UP_W, GUI_UI_BUTTON_43PX_GRAY_UP_H), "Cancel", CLIENT_GUI_ESCAPE_TRIGGER);
+	newButton = new GUI_Button(iRect(ENTERGAME_FORM_WIDTH - 56, ENTERGAME_HEIGHT - 30, GUI_UI_BUTTON_43PX_GRAY_UP_W, GUI_UI_BUTTON_43PX_GRAY_UP_H), "Cancel", CLIENT_GUI_ESCAPE_TRIGGER);
 	newButton->setButtonEventCallback(&enterGame_Events, ENTERGAME_CANCEL_EVENTID);
 	newButton->startEvents();
 	newWindow->addChild(newButton);
-	newButton = new GUI_Button(iRect(ENTERGAME_WIDTH - 109, ENTERGAME_HEIGHT - 30, GUI_UI_BUTTON_43PX_GRAY_UP_W, GUI_UI_BUTTON_43PX_GRAY_UP_H), "Ok", CLIENT_GUI_ENTER_TRIGGER);
+	newButton = new GUI_Button(iRect(ENTERGAME_FORM_WIDTH - 109, ENTERGAME_HEIGHT - 30, GUI_UI_BUTTON_43PX_GRAY_UP_W, GUI_UI_BUTTON_43PX_GRAY_UP_H), "Ok", CLIENT_GUI_ENTER_TRIGGER);
 	newButton->setButtonEventCallback(&enterGame_Events, ENTERGAME_OK_EVENTID);
 	newButton->startEvents();
 	newWindow->addChild(newButton);
-	GUI_Separator* newSeparator = new GUI_Separator(iRect(13, ENTERGAME_HEIGHT - 40, ENTERGAME_WIDTH - 26, 2));
+	GUI_CheckBox* newCheckBox = new GUI_EnterGameCheckBox(iRect(ENTERGAME_SAVE_X, ENTERGAME_SAVE_Y, ENTERGAME_SAVE_W, ENTERGAME_SAVE_H), ENTERGAME_SAVE_EVENTID);
+	newCheckBox->startEvents();
+	newWindow->addChild(newCheckBox);
+	newLabel = new GUI_Label(iRect(ENTERGAME_SAVE_LABEL_X, ENTERGAME_SAVE_LABEL_Y, 0, 0), ENTERGAME_SAVE_TEXT, 0, 223, 223, 223);
+	newWindow->addChild(newLabel);
+	GUI_Separator* newSeparator = new GUI_Separator(iRect(13, ENTERGAME_HEIGHT - 40, 210, 2));
 	newWindow->addChild(newSeparator);
+	newSeparator = new GUI_Separator(iRect(ENTERGAME_FORM_WIDTH, 0, 2, ENTERGAME_HEIGHT));
+	newWindow->addChild(newSeparator);
+	newLabel = new GUI_Label(iRect(ENTERGAME_ACCOUNTS_LABEL_X, ENTERGAME_ACCOUNTS_LABEL_Y, 0, 0), ENTERGAME_ACCOUNTS_TITLE);
+	newLabel->setAlign(CLIENT_FONT_ALIGN_CENTER);
+	newWindow->addChild(newLabel);
+	GUI_ListBox* newListBox = new GUI_ListBox(iRect(ENTERGAME_ACCOUNTS_LIST_X, ENTERGAME_ACCOUNTS_LIST_Y, ENTERGAME_ACCOUNTS_LIST_W, ENTERGAME_ACCOUNTS_LIST_H), ENTERGAME_ACCOUNTS_LIST_EVENTID);
+	newListBox->setEventCallback(&enterGame_Events, ENTERGAME_ACCOUNTS_LIST_EVENTID);
+	for(SavedAccount& entry : g_savedAccounts)
+		newListBox->add(entry.account);
+	newListBox->startEvents();
+	newWindow->addChild(newListBox);
+	newButton = new GUI_Button(iRect(ENTERGAME_REMOVE_BUTTON_X, ENTERGAME_REMOVE_BUTTON_Y, GUI_UI_BUTTON_43PX_GRAY_UP_W, GUI_UI_BUTTON_43PX_GRAY_UP_H), ENTERGAME_REMOVE_BUTTON_TEXT);
+	newButton->setButtonEventCallback(&enterGame_Events, ENTERGAME_REMOVE_EVENTID);
+	newButton->startEvents();
+	newWindow->addChild(newButton);
+	if(!g_savedAccounts.empty())
+	{
+		newListBox->setSelect(0);
+		fillEnterGameCredentials(newWindow, 0);
+	}
 	g_engine.addWindow(newWindow);
 }
