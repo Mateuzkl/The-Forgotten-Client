@@ -53,6 +53,13 @@
 #include "GUI/itemUI.h"
 #include "GUI/Chat.h"
 
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#endif
+
 extern Engine g_engine;
 extern Map g_map;
 extern ThingManager g_thingManager;
@@ -71,6 +78,109 @@ extern Uint16 g_pictureCounts;
 extern Uint16 g_ping;
 
 GUI_Window* g_mainWindow = NULL;
+
+namespace
+{
+	enum SmartWalkDirectionMask : Uint8
+	{
+		SMART_WALK_NORTH = 1 << 0,
+		SMART_WALK_EAST = 1 << 1,
+		SMART_WALK_SOUTH = 1 << 2,
+		SMART_WALK_WEST = 1 << 3
+	};
+
+	bool engineIsNumLockEnabled()
+	{
+	#ifdef _WIN32
+		return (GetKeyState(VK_NUMLOCK) & 0x0001) != 0;
+	#else
+		return (SDL_GetModState() & KMOD_NUM) != 0;
+	#endif
+	}
+
+	Uint8 engineGetSmartWalkMask(Direction direction)
+	{
+		switch(direction)
+		{
+			case DIRECTION_NORTH: return SMART_WALK_NORTH;
+			case DIRECTION_EAST: return SMART_WALK_EAST;
+			case DIRECTION_SOUTH: return SMART_WALK_SOUTH;
+			case DIRECTION_WEST: return SMART_WALK_WEST;
+			default: return 0;
+		}
+	}
+
+	Direction engineGetSmartWalkDirection(Uint8 directions, Direction fallback)
+	{
+		if((directions & SMART_WALK_NORTH) && (directions & SMART_WALK_WEST))
+			return DIRECTION_NORTHWEST;
+		if((directions & SMART_WALK_NORTH) && (directions & SMART_WALK_EAST))
+			return DIRECTION_NORTHEAST;
+		if((directions & SMART_WALK_SOUTH) && (directions & SMART_WALK_WEST))
+			return DIRECTION_SOUTHWEST;
+		if((directions & SMART_WALK_SOUTH) && (directions & SMART_WALK_EAST))
+			return DIRECTION_SOUTHEAST;
+		if(directions & SMART_WALK_NORTH)
+			return DIRECTION_NORTH;
+		if(directions & SMART_WALK_EAST)
+			return DIRECTION_EAST;
+		if(directions & SMART_WALK_SOUTH)
+			return DIRECTION_SOUTH;
+		if(directions & SMART_WALK_WEST)
+			return DIRECTION_WEST;
+		return fallback;
+	}
+
+	bool engineGetNumpadMovementDirection(SDL_Scancode scancode, Direction& direction)
+	{
+		switch(scancode)
+		{
+			case SDL_SCANCODE_KP_8: direction = DIRECTION_NORTH; return true;
+			case SDL_SCANCODE_KP_4: direction = DIRECTION_WEST; return true;
+			case SDL_SCANCODE_KP_2: direction = DIRECTION_SOUTH; return true;
+			case SDL_SCANCODE_KP_6: direction = DIRECTION_EAST; return true;
+			case SDL_SCANCODE_KP_7: direction = DIRECTION_NORTHWEST; return true;
+			case SDL_SCANCODE_KP_9: direction = DIRECTION_NORTHEAST; return true;
+			case SDL_SCANCODE_KP_1: direction = DIRECTION_SOUTHWEST; return true;
+			case SDL_SCANCODE_KP_3: direction = DIRECTION_SOUTHEAST; return true;
+			default: return false;
+		}
+	}
+
+	bool engineGetNumpadTurnDirection(SDL_Scancode scancode, Direction& direction)
+	{
+		switch(scancode)
+		{
+			case SDL_SCANCODE_KP_8: direction = DIRECTION_NORTH; return true;
+			case SDL_SCANCODE_KP_4: direction = DIRECTION_WEST; return true;
+			case SDL_SCANCODE_KP_2: direction = DIRECTION_SOUTH; return true;
+			case SDL_SCANCODE_KP_6: direction = DIRECTION_EAST; return true;
+			default: return false;
+		}
+	}
+
+	bool engineIsMovementHotkey(ClientHotkeys hotkeyType)
+	{
+		switch(hotkeyType)
+		{
+			case CLIENT_HOTKEY_MOVEMENT_GOEAST:
+			case CLIENT_HOTKEY_MOVEMENT_GONORTH:
+			case CLIENT_HOTKEY_MOVEMENT_GOWEST:
+			case CLIENT_HOTKEY_MOVEMENT_GOSOUTH:
+			case CLIENT_HOTKEY_MOVEMENT_GONORTHWEST:
+			case CLIENT_HOTKEY_MOVEMENT_GONORTHEAST:
+			case CLIENT_HOTKEY_MOVEMENT_GOSOUTHWEST:
+			case CLIENT_HOTKEY_MOVEMENT_GOSOUTHEAST:
+			case CLIENT_HOTKEY_MOVEMENT_TURNEAST:
+			case CLIENT_HOTKEY_MOVEMENT_TURNNORTH:
+			case CLIENT_HOTKEY_MOVEMENT_TURNWEST:
+			case CLIENT_HOTKEY_MOVEMENT_TURNSOUTH:
+				return true;
+			default:
+				return false;
+		}
+	}
+}
 
 Engine::Engine()
 {
@@ -206,6 +316,13 @@ void Engine::loadCFG()
 		m_classicControl = (data == "yes" ? true : false);
 		data = cfg.fetchKey("AutoChaseOff");
 		m_autoChaseOff = (data == "yes" ? true : false);
+		data = cfg.fetchKey("WasdWalking");
+		if(!data.empty())
+			m_wasdWalking = (data == "yes" ? true : false);
+		m_chatInputEnabled = !m_wasdWalking;
+		data = cfg.fetchKey("SmartWalking");
+		if(!data.empty())
+			m_smartWalking = (data == "yes" ? true : false);
 		data = cfg.fetchKey("CreatureInfo");
 		m_showNames = (SDL_static_cast(Uint32, SDL_strtoul(data.c_str(), NULL, 10)) > 0 ? true : false);
 		data = cfg.fetchKey("CreatureMarks");
@@ -545,6 +662,10 @@ void Engine::saveCFG()
 		cfg.insertKey("ClassicControl", std::string(g_buffer, SDL_static_cast(size_t, len)));
 		len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%s", (m_autoChaseOff ? "yes" : "no"));
 		cfg.insertKey("AutoChaseOff", std::string(g_buffer, SDL_static_cast(size_t, len)));
+		len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%s", (m_wasdWalking ? "yes" : "no"));
+		cfg.insertKey("WasdWalking", std::string(g_buffer, SDL_static_cast(size_t, len)));
+		len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%s", (m_smartWalking ? "yes" : "no"));
+		cfg.insertKey("SmartWalking", std::string(g_buffer, SDL_static_cast(size_t, len)));
 		len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%u", (m_showNames ? 2 : 0));
 		cfg.insertKey("CreatureInfo", std::string(g_buffer, SDL_static_cast(size_t, len)));
 		len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%s", (m_showMarks ? "yes" : "no"));
@@ -845,7 +966,7 @@ void Engine::run()
 	initFont(CLIENT_FONT_SMALL, 256, 64, 32, 7, 8, 8, 8);
 
 	UTIL_createMainWindow();
-	resetToDefaultHotkeys(false);
+	resetToDefaultHotkeys(m_wasdWalking);
 }
 
 void Engine::terminate()
@@ -1298,8 +1419,76 @@ void Engine::onKeyDown(SDL_Event& event)
 	}
 
 	HotkeyUsage* hotkey = getHotkey(event.key.keysym.sym, event.key.keysym.mod);
+	auto isNumPadMovementKey = [](SDL_Keycode key) -> bool
+	{
+		switch(key)
+		{
+			case SDLK_KP_1:
+			case SDLK_KP_2:
+			case SDLK_KP_3:
+			case SDLK_KP_4:
+			case SDLK_KP_6:
+			case SDLK_KP_7:
+			case SDLK_KP_8:
+			case SDLK_KP_9:
+				return true;
+			default:
+				return false;
+		}
+	};
+
+	auto isNumPadMovementScanCode = [](SDL_Scancode scancode) -> bool
+	{
+		switch(scancode)
+		{
+			case SDL_SCANCODE_KP_1:
+			case SDL_SCANCODE_KP_2:
+			case SDL_SCANCODE_KP_3:
+			case SDL_SCANCODE_KP_4:
+			case SDL_SCANCODE_KP_6:
+			case SDL_SCANCODE_KP_7:
+			case SDL_SCANCODE_KP_8:
+			case SDL_SCANCODE_KP_9:
+				return true;
+			default:
+				return false;
+		}
+	};
+
+	auto shouldBlockNumPadMovement = [&](ClientHotkeys hotkeyType) -> bool
+	{
+		return engineIsMovementHotkey(hotkeyType) &&
+		       (isNumPadMovementKey(event.key.keysym.sym) ||
+		        isNumPadMovementScanCode(event.key.keysym.scancode)) &&
+		       engineIsNumLockEnabled();
+	};
+
+	auto walkDirection = [&](Direction direction)
+	{
+		Uint8 directionMask = engineGetSmartWalkMask(direction);
+		if(m_smartWalking && directionMask != 0)
+		{
+			m_smartWalkDirections |= directionMask;
+			g_game.checkMovement(engineGetSmartWalkDirection(m_smartWalkDirections, direction));
+			return;
+		}
+
+		if(m_smartWalking && directionMask == 0)
+			m_smartWalkDirections = 0;
+		g_game.checkMovement(direction);
+	};
+
+	auto turnDirection = [&](Direction direction)
+	{
+		m_smartWalkDirections = 0;
+		g_game.sendTurn(direction);
+	};
+
 	if(hotkey)
 	{
+		if(shouldBlockNumPadMovement(hotkey->hotkey))
+			return;
+
 		switch(hotkey->hotkey)
 		{
 			case CLIENT_HOTKEY_DIALOGS_OPENTERMINAL:
@@ -1343,14 +1532,49 @@ void Engine::onKeyDown(SDL_Event& event)
 
 	if(m_ingame)
 	{
+		Uint16 modsNoLocks = event.key.keysym.mod & ~(KMOD_NUM | KMOD_CAPS | KMOD_MODE);
+		if(!engineIsNumLockEnabled())
+		{
+			Direction direction = DIRECTION_NORTH;
+			if(modsNoLocks == KMOD_NONE)
+			{
+				if(engineGetNumpadMovementDirection(event.key.keysym.scancode, direction))
+				{
+					walkDirection(direction);
+					return;
+				}
+			}
+			else if((modsNoLocks & KMOD_CTRL) != 0 && (modsNoLocks & ~KMOD_CTRL) == 0)
+			{
+				if(engineGetNumpadTurnDirection(event.key.keysym.scancode, direction))
+				{
+					turnDirection(direction);
+					return;
+				}
+			}
+		}
+
 		if(event.key.keysym.mod == KMOD_NONE)
 		{
 			if(event.key.keysym.sym == SDLK_RETURN || event.key.keysym.sym == SDLK_KP_ENTER)
+			{
+				if(m_wasdWalking)
+				{
+					if(m_chatInputEnabled)
+					{
+						g_chat.sendMessage();
+						m_chatInputEnabled = false;
+					}
+					else
+						m_chatInputEnabled = true;
+					return;
+				}
 				g_chat.sendMessage();
-			else if(event.key.keysym.sym == SDLK_BACKSPACE || event.key.keysym.sym == SDLK_DELETE || event.key.keysym.sym == SDLK_HOME || event.key.keysym.sym == SDLK_END)
+			}
+			else if((!m_wasdWalking || m_chatInputEnabled) && (event.key.keysym.sym == SDLK_BACKSPACE || event.key.keysym.sym == SDLK_DELETE || event.key.keysym.sym == SDLK_HOME || event.key.keysym.sym == SDLK_END))
 				g_chat.onKeyDown(event);
 		}
-		else if(event.key.keysym.mod == KMOD_SHIFT)
+		else if((!m_wasdWalking || m_chatInputEnabled) && event.key.keysym.mod == KMOD_SHIFT)
 		{
 			if(event.key.keysym.sym == SDLK_UP)
 				g_chat.navigateHistory(-1);
@@ -1359,7 +1583,7 @@ void Engine::onKeyDown(SDL_Event& event)
 			else if(event.key.keysym.sym == SDLK_LEFT || event.key.keysym.sym == SDLK_RIGHT || event.key.keysym.sym == SDLK_HOME || event.key.keysym.sym == SDLK_END)
 				g_chat.onKeyDown(event);
 		}
-		else if(event.key.keysym.mod == KMOD_CTRL)
+		else if((!m_wasdWalking || m_chatInputEnabled) && event.key.keysym.mod == KMOD_CTRL)
 		{
 			if(event.key.keysym.sym == SDLK_a || event.key.keysym.sym == SDLK_x || event.key.keysym.sym == SDLK_c || event.key.keysym.sym == SDLK_v)
 				g_chat.onKeyDown(event);
@@ -1367,20 +1591,23 @@ void Engine::onKeyDown(SDL_Event& event)
 
 		if(hotkey)
 		{
+			if(m_wasdWalking && m_chatInputEnabled && engineIsMovementHotkey(hotkey->hotkey))
+				return;
+
 			switch(hotkey->hotkey)
 			{
-				case CLIENT_HOTKEY_MOVEMENT_GOEAST: g_game.checkMovement(DIRECTION_EAST); break;
-				case CLIENT_HOTKEY_MOVEMENT_GONORTH: g_game.checkMovement(DIRECTION_NORTH); break;
-				case CLIENT_HOTKEY_MOVEMENT_GOWEST: g_game.checkMovement(DIRECTION_WEST); break;
-				case CLIENT_HOTKEY_MOVEMENT_GOSOUTH: g_game.checkMovement(DIRECTION_SOUTH); break;
-				case CLIENT_HOTKEY_MOVEMENT_GONORTHWEST: g_game.checkMovement(DIRECTION_NORTHWEST); break;
-				case CLIENT_HOTKEY_MOVEMENT_GONORTHEAST: g_game.checkMovement(DIRECTION_NORTHEAST); break;
-				case CLIENT_HOTKEY_MOVEMENT_GOSOUTHWEST: g_game.checkMovement(DIRECTION_SOUTHWEST); break;
-				case CLIENT_HOTKEY_MOVEMENT_GOSOUTHEAST: g_game.checkMovement(DIRECTION_SOUTHEAST); break;
-				case CLIENT_HOTKEY_MOVEMENT_TURNEAST: g_game.sendTurn(DIRECTION_EAST); break;
-				case CLIENT_HOTKEY_MOVEMENT_TURNNORTH: g_game.sendTurn(DIRECTION_NORTH); break;
-				case CLIENT_HOTKEY_MOVEMENT_TURNWEST: g_game.sendTurn(DIRECTION_WEST); break;
-				case CLIENT_HOTKEY_MOVEMENT_TURNSOUTH: g_game.sendTurn(DIRECTION_SOUTH); break;
+				case CLIENT_HOTKEY_MOVEMENT_GOEAST: walkDirection(DIRECTION_EAST); break;
+				case CLIENT_HOTKEY_MOVEMENT_GONORTH: walkDirection(DIRECTION_NORTH); break;
+				case CLIENT_HOTKEY_MOVEMENT_GOWEST: walkDirection(DIRECTION_WEST); break;
+				case CLIENT_HOTKEY_MOVEMENT_GOSOUTH: walkDirection(DIRECTION_SOUTH); break;
+				case CLIENT_HOTKEY_MOVEMENT_GONORTHWEST: walkDirection(DIRECTION_NORTHWEST); break;
+				case CLIENT_HOTKEY_MOVEMENT_GONORTHEAST: walkDirection(DIRECTION_NORTHEAST); break;
+				case CLIENT_HOTKEY_MOVEMENT_GOSOUTHWEST: walkDirection(DIRECTION_SOUTHWEST); break;
+				case CLIENT_HOTKEY_MOVEMENT_GOSOUTHEAST: walkDirection(DIRECTION_SOUTHEAST); break;
+				case CLIENT_HOTKEY_MOVEMENT_TURNEAST: turnDirection(DIRECTION_EAST); break;
+				case CLIENT_HOTKEY_MOVEMENT_TURNNORTH: turnDirection(DIRECTION_NORTH); break;
+				case CLIENT_HOTKEY_MOVEMENT_TURNWEST: turnDirection(DIRECTION_WEST); break;
+				case CLIENT_HOTKEY_MOVEMENT_TURNSOUTH: turnDirection(DIRECTION_SOUTH); break;
 				case CLIENT_HOTKEY_MOVEMENT_MOUNT:
 				{
 					if(event.key.repeat == 0 && g_game.hasGameFeature(GAME_FEATURE_MOUNTS))
@@ -1712,19 +1939,50 @@ void Engine::onKeyUp(SDL_Event& event)
 		return;
 	}
 
+	auto releaseDirection = [&](Direction direction)
+	{
+		Uint8 directionMask = engineGetSmartWalkMask(direction);
+		if(m_smartWalking && directionMask != 0)
+		{
+			m_smartWalkDirections &= SDL_static_cast(Uint8, ~directionMask);
+			if(m_smartWalkDirections != 0)
+			{
+				g_game.checkMovement(engineGetSmartWalkDirection(m_smartWalkDirections, direction));
+				return;
+			}
+		}
+		else if(m_smartWalking)
+			m_smartWalkDirections = 0;
+
+		g_game.releaseMovement();
+	};
+
 	if(m_ingame)
 	{
+		Uint16 modsNoLocks = event.key.keysym.mod & ~(KMOD_NUM | KMOD_CAPS | KMOD_MODE);
+		Direction direction = DIRECTION_NORTH;
+		if(engineGetNumpadMovementDirection(event.key.keysym.scancode, direction))
+		{
+			if(engineIsNumLockEnabled())
+				return;
+			if(modsNoLocks == KMOD_NONE)
+			{
+				releaseDirection(direction);
+				return;
+			}
+		}
+
 		if(event.key.keysym.mod == KMOD_NONE)
 		{
-			if(event.key.keysym.sym == SDLK_BACKSPACE || event.key.keysym.sym == SDLK_DELETE || event.key.keysym.sym == SDLK_HOME || event.key.keysym.sym == SDLK_END)
+			if((!m_wasdWalking || m_chatInputEnabled) && (event.key.keysym.sym == SDLK_BACKSPACE || event.key.keysym.sym == SDLK_DELETE || event.key.keysym.sym == SDLK_HOME || event.key.keysym.sym == SDLK_END))
 				g_chat.onKeyUp(event);
 		}
-		else if(event.key.keysym.mod == KMOD_SHIFT)
+		else if((!m_wasdWalking || m_chatInputEnabled) && event.key.keysym.mod == KMOD_SHIFT)
 		{
 			if(event.key.keysym.sym == SDLK_LEFT || event.key.keysym.sym == SDLK_RIGHT || event.key.keysym.sym == SDLK_HOME || event.key.keysym.sym == SDLK_END)
 				g_chat.onKeyUp(event);
 		}
-		else if(event.key.keysym.mod == KMOD_CTRL)
+		else if((!m_wasdWalking || m_chatInputEnabled) && event.key.keysym.mod == KMOD_CTRL)
 		{
 			if(event.key.keysym.sym == SDLK_a || event.key.keysym.sym == SDLK_x || event.key.keysym.sym == SDLK_c || event.key.keysym.sym == SDLK_v)
 				g_chat.onKeyUp(event);
@@ -1733,18 +1991,19 @@ void Engine::onKeyUp(SDL_Event& event)
 		HotkeyUsage* hotkey = getHotkey(event.key.keysym.sym, event.key.keysym.mod);
 		if(hotkey)
 		{
+			if(m_wasdWalking && m_chatInputEnabled && engineIsMovementHotkey(hotkey->hotkey))
+				return;
+
 			switch(hotkey->hotkey)
 			{
-				case CLIENT_HOTKEY_MOVEMENT_GOEAST:
-				case CLIENT_HOTKEY_MOVEMENT_GONORTH:
-				case CLIENT_HOTKEY_MOVEMENT_GOWEST:
-				case CLIENT_HOTKEY_MOVEMENT_GOSOUTH:
-				case CLIENT_HOTKEY_MOVEMENT_GONORTHWEST:
-				case CLIENT_HOTKEY_MOVEMENT_GONORTHEAST:
-				case CLIENT_HOTKEY_MOVEMENT_GOSOUTHWEST:
-				case CLIENT_HOTKEY_MOVEMENT_GOSOUTHEAST:
-					g_game.releaseMovement();
-					break;
+				case CLIENT_HOTKEY_MOVEMENT_GOEAST: releaseDirection(DIRECTION_EAST); break;
+				case CLIENT_HOTKEY_MOVEMENT_GONORTH: releaseDirection(DIRECTION_NORTH); break;
+				case CLIENT_HOTKEY_MOVEMENT_GOWEST: releaseDirection(DIRECTION_WEST); break;
+				case CLIENT_HOTKEY_MOVEMENT_GOSOUTH: releaseDirection(DIRECTION_SOUTH); break;
+				case CLIENT_HOTKEY_MOVEMENT_GONORTHWEST: releaseDirection(DIRECTION_NORTHWEST); break;
+				case CLIENT_HOTKEY_MOVEMENT_GONORTHEAST: releaseDirection(DIRECTION_NORTHEAST); break;
+				case CLIENT_HOTKEY_MOVEMENT_GOSOUTHWEST: releaseDirection(DIRECTION_SOUTHWEST); break;
+				case CLIENT_HOTKEY_MOVEMENT_GOSOUTHEAST: releaseDirection(DIRECTION_SOUTHEAST); break;
 				default: break;
 			}
 			return;
@@ -2733,7 +2992,10 @@ void Engine::onTextInput(const char* textInput)
 	}
 
 	if(m_ingame)
-		g_chat.onTextInput(textInput);
+	{
+		if(!m_wasdWalking || m_chatInputEnabled)
+			g_chat.onTextInput(textInput);
+	}
 	else
 	{
 		if(g_mainWindow)
@@ -2828,6 +3090,7 @@ void Engine::takeScreenshot(void* data1, void* data2)
 
 HotkeyUsage* Engine::getHotkey(SDL_Keycode key, Uint16 mods)
 {
+	mods &= ~(KMOD_NUM | KMOD_CAPS | KMOD_MODE);
 	std::map<Uint16, std::map<SDL_Keycode, size_t>>::iterator mit = m_hotkeyFastAccess.find(mods);
 	if(mit != m_hotkeyFastAccess.end())
 	{
@@ -2979,6 +3242,41 @@ void Engine::beginHotkeyItemSelection(SDL_Keycode key, Uint16 mods)
 
 void Engine::resetToDefaultHotkeys(bool wasd)
 {
+	auto unbindHotkey = [&](SDL_Keycode key, Uint16 mods)
+	{
+		std::map<Uint16, std::map<SDL_Keycode, size_t>>::iterator mit = m_hotkeyFastAccess.find(mods);
+		if(mit != m_hotkeyFastAccess.end())
+		{
+			std::map<SDL_Keycode, size_t>::iterator it = mit->second.find(key);
+			if(it != mit->second.end())
+				mit->second.erase(it);
+		}
+	};
+
+	m_smartWalkDirections = 0;
+	unbindHotkey(SDLK_w, KMOD_NONE);
+	unbindHotkey(SDLK_a, KMOD_NONE);
+	unbindHotkey(SDLK_s, KMOD_NONE);
+	unbindHotkey(SDLK_d, KMOD_NONE);
+	unbindHotkey(SDLK_q, KMOD_NONE);
+	unbindHotkey(SDLK_e, KMOD_NONE);
+	unbindHotkey(SDLK_z, KMOD_NONE);
+	unbindHotkey(SDLK_c, KMOD_NONE);
+	unbindHotkey(SDLK_w, KMOD_CTRL);
+	unbindHotkey(SDLK_a, KMOD_CTRL);
+	unbindHotkey(SDLK_s, KMOD_CTRL);
+	unbindHotkey(SDLK_d, KMOD_CTRL);
+	unbindHotkey(SDLK_RETURN, KMOD_NONE);
+	unbindHotkey(SDLK_KP_ENTER, KMOD_NONE);
+	unbindHotkey(SDLK_UP, KMOD_NONE);
+	unbindHotkey(SDLK_LEFT, KMOD_NONE);
+	unbindHotkey(SDLK_DOWN, KMOD_NONE);
+	unbindHotkey(SDLK_RIGHT, KMOD_NONE);
+	unbindHotkey(SDLK_UP, KMOD_CTRL);
+	unbindHotkey(SDLK_LEFT, KMOD_CTRL);
+	unbindHotkey(SDLK_DOWN, KMOD_CTRL);
+	unbindHotkey(SDLK_RIGHT, KMOD_CTRL);
+
 	if(wasd)
 	{
 		bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_w, KMOD_CTRL, CLIENT_HOTKEY_MOVEMENT_TURNNORTH);
@@ -2989,6 +3287,10 @@ void Engine::resetToDefaultHotkeys(bool wasd)
 		bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_a, KMOD_NONE, CLIENT_HOTKEY_MOVEMENT_GOWEST);
 		bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_s, KMOD_NONE, CLIENT_HOTKEY_MOVEMENT_GOSOUTH);
 		bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_d, KMOD_NONE, CLIENT_HOTKEY_MOVEMENT_GOEAST);
+		bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_q, KMOD_NONE, CLIENT_HOTKEY_MOVEMENT_GONORTHWEST);
+		bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_e, KMOD_NONE, CLIENT_HOTKEY_MOVEMENT_GONORTHEAST);
+		bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_z, KMOD_NONE, CLIENT_HOTKEY_MOVEMENT_GOSOUTHWEST);
+		bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_c, KMOD_NONE, CLIENT_HOTKEY_MOVEMENT_GOSOUTHEAST);
 		bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_RETURN, KMOD_NONE, CLIENT_HOTKEY_CHAT_TOGGLECHAT);
 		bindHotkey(CLIENT_HOTKEY_SECOND_KEY, SDLK_KP_ENTER, KMOD_NONE, CLIENT_HOTKEY_CHAT_TOGGLECHAT);
 	}

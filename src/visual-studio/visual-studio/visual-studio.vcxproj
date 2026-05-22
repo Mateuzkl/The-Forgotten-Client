@@ -350,7 +350,7 @@
       <FixedBaseAddress>true</FixedBaseAddress>
     </Link>
     <PostBuildEvent>
-      <Command>copy /Y "$(ProjectDir)..\lib32\zlib1.dll" "$(OutDir)zlib1.dll"
+      <Command>if not exist "$(OutDir)zlib1.dll" if exist "$(ProjectDir)..\lib32\zlib1.dll" copy /Y "$(ProjectDir)..\lib32\zlib1.dll" "$(OutDir)zlib1.dll"
 if not exist "$(OutDir)data" mkdir "$(OutDir)data"
 if not exist "$(OutDir)data\features.lua" copy "$(ProjectDir)..\..\..\data\features.lua" "$(OutDir)data\features.lua"</Command>
     </PostBuildEvent>
@@ -406,7 +406,7 @@ if not exist "$(OutDir)data\features.lua" copy "$(ProjectDir)..\..\..\data\featu
       <FixedBaseAddress>true</FixedBaseAddress>
     </Link>
     <PostBuildEvent>
-      <Command>copy /Y "$(ProjectDir)..\lib32\zlib1.dll" "$(OutDir)zlib1.dll"
+      <Command>if not exist "$(OutDir)zlib1.dll" if exist "$(ProjectDir)..\lib32\zlib1.dll" copy /Y "$(ProjectDir)..\lib32\zlib1.dll" "$(OutDir)zlib1.dll"
 if not exist "$(OutDir)data" mkdir "$(OutDir)data"
 if not exist "$(OutDir)data\features.lua" copy "$(ProjectDir)..\..\..\data\features.lua" "$(OutDir)data\features.lua"</Command>
     </PostBuildEvent>
