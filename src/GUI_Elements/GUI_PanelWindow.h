@@ -34,6 +34,7 @@ enum GUIPanelWindowID
 	GUI_PANEL_WINDOW_BUTTONS, // Partially done - need to add options settings
 	GUI_PANEL_WINDOW_SKILLS, // Done
 	GUI_PANEL_WINDOW_BATTLE, // Done - need to add configuration
+	GUI_PANEL_WINDOW_BOSSES, // Custom boss tracker
 	GUI_PANEL_WINDOW_TRADE, // Done
 	GUI_PANEL_WINDOW_VIP, // Done
 	GUI_PANEL_WINDOW_SHOP, // Done
@@ -52,6 +53,7 @@ enum GUIPanelWindowID
 	GUI_PANEL_WINDOW_ANALYTICS_DROP, // TODO
 	GUI_PANEL_WINDOW_ANALYTICS_QUEST, // TODO
 	GUI_PANEL_WINDOW_DEPOT_SEARCH, // TODO
+	GUI_PANEL_WINDOW_TASK_TRACKER, // Custom tasks tracker
 
 	//Reserved ids for containers
 	GUI_PANEL_WINDOW_CONTAINERS_START = 64, // Done

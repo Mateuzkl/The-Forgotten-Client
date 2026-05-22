@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27004.2009
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36623.8 d17.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "visual-studio", "visual-studio\visual-studio.vcxproj", "{AB677555-3CC9-4C21-B3A7-D45A9B0561C8}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tibiastub", "..\..\tibiastub\tibiastub.vcxproj", "{3D7B5A2C-9F1E-4D8B-A1F7-9B8E2C5D6E7A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,14 @@ Global
 		{AB677555-3CC9-4C21-B3A7-D45A9B0561C8}.Release|x64.Build.0 = Release|x64
 		{AB677555-3CC9-4C21-B3A7-D45A9B0561C8}.Release|x86.ActiveCfg = Release|Win32
 		{AB677555-3CC9-4C21-B3A7-D45A9B0561C8}.Release|x86.Build.0 = Release|Win32
+		{3D7B5A2C-9F1E-4D8B-A1F7-9B8E2C5D6E7A}.Debug|x64.ActiveCfg = Debug|Win32
+		{3D7B5A2C-9F1E-4D8B-A1F7-9B8E2C5D6E7A}.Debug|x64.Build.0 = Debug|Win32
+		{3D7B5A2C-9F1E-4D8B-A1F7-9B8E2C5D6E7A}.Debug|x86.ActiveCfg = Debug|Win32
+		{3D7B5A2C-9F1E-4D8B-A1F7-9B8E2C5D6E7A}.Debug|x86.Build.0 = Debug|Win32
+		{3D7B5A2C-9F1E-4D8B-A1F7-9B8E2C5D6E7A}.Release|x64.ActiveCfg = Release|Win32
+		{3D7B5A2C-9F1E-4D8B-A1F7-9B8E2C5D6E7A}.Release|x64.Build.0 = Release|Win32
+		{3D7B5A2C-9F1E-4D8B-A1F7-9B8E2C5D6E7A}.Release|x86.ActiveCfg = Release|Win32
+		{3D7B5A2C-9F1E-4D8B-A1F7-9B8E2C5D6E7A}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

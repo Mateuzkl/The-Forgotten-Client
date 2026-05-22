@@ -927,6 +927,7 @@ class ProtocolGame : public Protocol
 		void sendBlessingsDialog();
 		void sendClientCheck(std::vector<Uint8>& data);
 		void sendTeleport(const Position& position);
+		void sendExtendedOpcode(Uint8 opcode, const std::string& payload);
 
 	private:
 		MessageMode translateMessageModeFromServer(Uint8 mode);

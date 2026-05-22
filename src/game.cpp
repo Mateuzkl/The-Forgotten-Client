@@ -27,6 +27,7 @@
 #include "protocolgame.h"
 #include "automap.h"
 #include "container.h"
+#include "elfbot_compat.h"
 
 #include "GUI/itemUI.h"
 #include "GUI/Chat.h"
@@ -94,6 +95,8 @@ void Game::clientChangeVersion(Uint32 clientVersion, Uint32 fileVersion)
 {
 	m_gameFeatures.reset();
 	enableGameFeature(GAME_FEATURE_UPDATE_TILE);
+	const bool isClassic860 = (clientVersion <= 860 && fileVersion <= 860);
+	const bool isExtended860 = (clientVersion <= 860 && fileVersion == 860);
 	if(clientVersion >= 770)
 	{
 		enableGameFeature(GAME_FEATURE_XTEA);
@@ -135,9 +138,10 @@ void Game::clientChangeVersion(Uint32 clientVersion, Uint32 fileVersion)
 		enableGameFeature(GAME_FEATURE_ATTACK_SEQUENCE);
 	if(clientVersion >= 862)
 		enableGameFeature(GAME_FEATURE_DEATH_PENALTY);
+	if(clientVersion >= 860)
+		enableGameFeature(GAME_FEATURE_MOUNTS);
 	if(clientVersion >= 870)
 	{
-		enableGameFeature(GAME_FEATURE_MOUNTS);
 		enableGameFeature(GAME_FEATURE_DOUBLE_EXPERIENCE);
 		enableGameFeature(GAME_FEATURE_SPELL_LIST);
 	}
@@ -160,7 +164,7 @@ void Game::clientChangeVersion(Uint32 clientVersion, Uint32 fileVersion)
 		enableGameFeature(GAME_FEATURE_PURSE_SLOT);
 	if(clientVersion >= 960)
 		enableGameFeature(GAME_FEATURE_OFFLINE_TRAINING);
-	if(fileVersion >= 960)
+	if(isExtended860 || (!isClassic860 && fileVersion >= 960))
 		enableGameFeature(GAME_FEATURE_EXTENDED_SPRITES);
 	if(clientVersion >= 961)
 		enableGameFeature(GAME_FEATURE_LOOKATCREATURE);
@@ -199,7 +203,7 @@ void Game::clientChangeVersion(Uint32 clientVersion, Uint32 fileVersion)
 	}
 	if(clientVersion >= 1038)
 		enableGameFeature(GAME_FEATURE_PREMIUM_EXPIRATION);
-	if(fileVersion >= 1050)
+	if(!isClassic860 && fileVersion >= 1050)
 		enableGameFeature(GAME_FEATURE_ENHANCED_ANIMATIONS);
 	if(clientVersion >= 1053)
 		enableGameFeature(GAME_FEATURE_UNJUSTIFIED_POINTS);
@@ -207,7 +211,7 @@ void Game::clientChangeVersion(Uint32 clientVersion, Uint32 fileVersion)
 		enableGameFeature(GAME_FEATURE_EXPERIENCE_BONUS);
 	if(clientVersion >= 1055)
 		enableGameFeature(GAME_FEATURE_DEATH_TYPE);
-	if(fileVersion >= 1057)
+	if(!isClassic860 && fileVersion >= 1057)
 		enableGameFeature(GAME_FEATURE_FRAMEGROUPS);
 	if(clientVersion >= 1061)
 		enableGameFeature(GAME_FEATURE_RENDER_INFORMATION);
@@ -236,7 +240,7 @@ void Game::clientChangeVersion(Uint32 clientVersion, Uint32 fileVersion)
 		enableGameFeature(GAME_FEATURE_DETAILED_EXPERIENCE_BONUS);
 		enableGameFeature(GAME_FEATURE_STORE_HIGHLIGHTS2);
 	}
-	if(fileVersion >= 1100)
+	if(!isClassic860 && fileVersion >= 1100)
 		enableGameFeature(GAME_FEATURE_NEWFILES_STRUCTURE);
 	if(clientVersion >= 1102)
 	{
@@ -402,6 +406,8 @@ void Game::processEditHouseWindow(Uint8 doorId, Uint32 windowId, const std::stri
 
 void Game::processTextMessage(MessageMode mode, const std::string& text, Uint32 channelId)
 {
+	ElfbotCompat::recordTextMessage(text.c_str(), "", mode == MessageLook);
+
 	switch(mode)
 	{
 		case MessageChannelManagement:
@@ -577,7 +583,7 @@ void Game::processCancelTarget(Uint32 sequence)
 	}
 }
 
-void Game::processSpellDelay(Uint8 spellId, Uint32 delay)
+void Game::processSpellDelay(Uint16 spellId, Uint32 delay)
 {
 	(void)spellId;
 	(void)delay;
@@ -941,6 +947,16 @@ void Game::sendPingBack()
 		ProtocolGame* game = GET_SAFE_PROTOCOLGAME;
 		if(game && game->canPerformAction())
 			game->sendPingBack();
+	}
+}
+
+void Game::sendExtendedOpcode(Uint8 opcode, const std::string& payload)
+{
+	if(g_engine.isIngame())
+	{
+		ProtocolGame* game = GET_SAFE_PROTOCOLGAME;
+		if(game && game->canPerformAction())
+			game->sendExtendedOpcode(opcode, payload);
 	}
 }
 

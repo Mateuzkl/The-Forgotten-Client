@@ -51,6 +51,9 @@
     <ClCompile Include="..\..\connection.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\elfbot_compat.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\engine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -339,6 +342,15 @@
     <ClCompile Include="..\..\GUI\BattleWindow.cpp">
       <Filter>Source Files\GUI</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\GUI\BossWindow.cpp">
+      <Filter>Source Files\GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\GUI\GameStore.cpp">
+      <Filter>Source Files\GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\GUI\TasksWindow.cpp">
+      <Filter>Source Files\GUI</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\GUI\Minimap.cpp">
       <Filter>Source Files\GUI</Filter>
     </ClCompile>
@@ -387,6 +399,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\defines.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\elfbot_compat.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\engine.h">
@@ -635,6 +650,15 @@
     <ClInclude Include="..\..\GUI\BattleWindow.h">
       <Filter>Header Files\GUI</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\GUI\BossWindow.h">
+      <Filter>Header Files\GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\GUI\GameStore.h">
+      <Filter>Header Files\GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\GUI\TasksWindow.h">
+      <Filter>Header Files\GUI</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\GUI\Chat.h">
       <Filter>Header Files\GUI</Filter>
     </ClInclude>
@@ -686,5 +710,10 @@
     <ClInclude Include="..\..\GUI\ServerBrowser.h">
       <Filter>Header Files\GUI</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\..\elfbot_version.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

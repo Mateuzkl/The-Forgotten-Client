@@ -132,6 +132,25 @@ void UTIL_flashBattleWindow();
 void UTIL_togglePartyWindow();
 void UTIL_refreshPartyWindow();
 
+//Boss widget
+bool UTIL_handleExtendedOpcode(Uint8 opcode, const std::string& payload);
+void UTIL_resetBossEntries();
+void UTIL_recreateBossWindow(class GUI_Container* container);
+void UTIL_toggleBossWindow();
+
+//Tasks widget
+bool UTIL_handleTaskExtendedOpcode(Uint8 opcode, const std::string& payload);
+void UTIL_resetTaskEntries();
+void UTIL_recreateTaskTrackerWindow(class GUI_Container* container);
+void UTIL_toggleTaskTrackerWindow();
+
+//Game store window
+bool UTIL_handleGameStoreExtendedOpcode(Uint8 opcode, const std::string& payload);
+void UTIL_createGameStoreWindow();
+void UTIL_toggleGameStore();
+void UTIL_resetGameStore();
+void gameStore_Events(Uint32 event, Sint32 status);
+
 //VIP widget
 void UTIL_toggleVipWindow();
 void UTIL_createVipPopupMenu(Sint32 x, Sint32 y, VipAction& action);

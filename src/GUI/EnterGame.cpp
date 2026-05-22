@@ -23,6 +23,7 @@
 #include "../engine.h"
 #include "../GUI_Elements/GUI_Window.h"
 #include "../GUI_Elements/GUI_Button.h"
+#include "../GUI_Elements/GUI_CheckBox.h"
 #include "../GUI_Elements/GUI_Separator.h"
 #include "../GUI_Elements/GUI_TextBox.h"
 #include "../GUI_Elements/GUI_Label.h"
@@ -33,9 +34,10 @@
 
 #define ENTERGAME_TITLE "Enter Game"
 #define ENTERGAME_WIDTH 236
-#define ENTERGAME_HEIGHT 176
+#define ENTERGAME_HEIGHT 200
 #define ENTERGAME_CANCEL_EVENTID 1000
 #define ENTERGAME_OK_EVENTID 1001
+#define ENTERGAME_REMEMBER_EVENTID 1003
 #define ENTERGAME_ACCNAME_LABEL_TEXT1 "Account Name:"
 #define ENTERGAME_ACCNAME_LABEL_TEXT2 "Account Number:"
 #define ENTERGAME_ACCNAME_LABEL_TEXT3 "Email:"
@@ -56,11 +58,16 @@
 #define ENTERGAME_PASSWORD_TEXTBOX_EVENTID 3001
 #define ENTERGAME_ACCOUNT_LABEL_TEXT "If you don't have\nan account yet:"
 #define ENTERGAME_ACCOUNT_LABEL_X 18
-#define ENTERGAME_ACCOUNT_LABEL_Y 90
+#define ENTERGAME_REMEMBER_TEXT "Save account and password"
+#define ENTERGAME_REMEMBER_X 18
+#define ENTERGAME_REMEMBER_Y 84
+#define ENTERGAME_REMEMBER_W 200
+#define ENTERGAME_REMEMBER_H 22
+#define ENTERGAME_ACCOUNT_LABEL_Y 114
 #define ENTERGAME_ACCOUNT_BUTTON_TEXT "Create Account"
 #define ENTERGAME_ACCOUNT_BUTTON_LINK "https://secure.tibia.com/account/?subtopic=createaccount"
 #define ENTERGAME_ACCOUNT_BUTTON_X 132
-#define ENTERGAME_ACCOUNT_BUTTON_Y 94
+#define ENTERGAME_ACCOUNT_BUTTON_Y 118
 #define ENTERGAME_ACCOUNT_BUTTON_W GUI_UI_BUTTON_86PX_GRAY_UP_W
 #define ENTERGAME_ACCOUNT_BUTTON_H GUI_UI_BUTTON_86PX_GRAY_UP_H
 #define ENTERGAME_ACCOUNT_BUTTON_EVENTID 1002
@@ -88,6 +95,19 @@ void enterGame_Events(Uint32 event, Sint32)
 			GUI_Window* pWindow = g_engine.getCurrentWindow();
 			if(pWindow && pWindow->getInternalID() == GUI_WINDOW_ENTERGAME)
 			{
+				std::string accountName;
+				std::string accountPassword;
+				bool rememberCredentials = false;
+				GUI_TextBox* pTextBox = SDL_static_cast(GUI_TextBox*, pWindow->getChild(ENTERGAME_ACCNAME_TEXTBOX_EVENTID));
+				if(pTextBox)
+					accountName = pTextBox->getActualText();
+				pTextBox = SDL_static_cast(GUI_TextBox*, pWindow->getChild(ENTERGAME_PASSWORD_TEXTBOX_EVENTID));
+				if(pTextBox)
+					accountPassword = pTextBox->getActualText();
+				GUI_CheckBox* pCheckBox = SDL_static_cast(GUI_CheckBox*, pWindow->getChild(ENTERGAME_REMEMBER_EVENTID));
+				if(pCheckBox)
+					rememberCredentials = pCheckBox->isChecked();
+
 				g_engine.removeWindow(pWindow);
 				if(!g_spriteManager.isSprLoaded())
 				{
@@ -165,12 +185,9 @@ void enterGame_Events(Uint32 event, Sint32)
 					#endif
 				}
 
-				GUI_TextBox* pTextBox = SDL_static_cast(GUI_TextBox*, pWindow->getChild(ENTERGAME_ACCNAME_TEXTBOX_EVENTID));
-				if(pTextBox)
-					g_engine.setAccountName(pTextBox->getActualText());
-				pTextBox = SDL_static_cast(GUI_TextBox*, pWindow->getChild(ENTERGAME_PASSWORD_TEXTBOX_EVENTID));
-				if(pTextBox)
-					g_engine.setAccountPassword(pTextBox->getActualText());
+				g_engine.setAccountName(accountName);
+				g_engine.setAccountPassword(accountPassword);
+				g_engine.setRememberAccountCredentials(rememberCredentials);
 
 				UTIL_messageBox("Connecting", "Your character list is being loaded. Please wait.");
 				#if CLIENT_OVVERIDE_VERSION == 0
@@ -201,7 +218,7 @@ void UTIL_createEnterGame()
 	newWindow->addChild(newLabel);
 	newLabel = new GUI_Label(iRect(ENTERGAME_ACCOUNT_LABEL_X, ENTERGAME_ACCOUNT_LABEL_Y, 0, 0), ENTERGAME_ACCOUNT_LABEL_TEXT);
 	newWindow->addChild(newLabel);
-	GUI_TextBox* newTextBox = new GUI_TextBox(iRect(ENTERGAME_ACCNAME_TEXTBOX_X, ENTERGAME_ACCNAME_TEXTBOX_Y, ENTERGAME_ACCNAME_TEXTBOX_W, ENTERGAME_ACCNAME_TEXTBOX_H), "", ENTERGAME_ACCNAME_TEXTBOX_EVENTID);
+	GUI_TextBox* newTextBox = new GUI_TextBox(iRect(ENTERGAME_ACCNAME_TEXTBOX_X, ENTERGAME_ACCNAME_TEXTBOX_Y, ENTERGAME_ACCNAME_TEXTBOX_W, ENTERGAME_ACCNAME_TEXTBOX_H), (g_engine.getRememberAccountCredentials() ? g_engine.getAccountName() : ""), ENTERGAME_ACCNAME_TEXTBOX_EVENTID);
 	if(g_game.hasGameFeature(GAME_FEATURE_ACCOUNT_EMAIL))
 		newTextBox->setMaxLength(80);
 	else if(g_game.hasGameFeature(GAME_FEATURE_ACCOUNT_NAME))
@@ -213,11 +230,14 @@ void UTIL_createEnterGame()
 	}
 	newTextBox->startEvents();
 	newWindow->addChild(newTextBox);
-	newTextBox = new GUI_TextBox(iRect(ENTERGAME_PASSWORD_TEXTBOX_X, ENTERGAME_PASSWORD_TEXTBOX_Y, ENTERGAME_PASSWORD_TEXTBOX_W, ENTERGAME_PASSWORD_TEXTBOX_H), "", ENTERGAME_PASSWORD_TEXTBOX_EVENTID);
+	newTextBox = new GUI_TextBox(iRect(ENTERGAME_PASSWORD_TEXTBOX_X, ENTERGAME_PASSWORD_TEXTBOX_Y, ENTERGAME_PASSWORD_TEXTBOX_W, ENTERGAME_PASSWORD_TEXTBOX_H), (g_engine.getRememberAccountCredentials() ? g_engine.getAccountPassword() : ""), ENTERGAME_PASSWORD_TEXTBOX_EVENTID);
 	newTextBox->setMaxLength(30);
 	newTextBox->setHideCharacter('*');
 	newTextBox->startEvents();
 	newWindow->addChild(newTextBox);
+	GUI_CheckBox* newCheckBox = new GUI_CheckBox(iRect(ENTERGAME_REMEMBER_X, ENTERGAME_REMEMBER_Y, ENTERGAME_REMEMBER_W, ENTERGAME_REMEMBER_H), ENTERGAME_REMEMBER_TEXT, g_engine.getRememberAccountCredentials(), ENTERGAME_REMEMBER_EVENTID);
+	newCheckBox->startEvents();
+	newWindow->addChild(newCheckBox);
 	GUI_Button* newButton = new GUI_Button(iRect(ENTERGAME_ACCOUNT_BUTTON_X, ENTERGAME_ACCOUNT_BUTTON_Y, ENTERGAME_ACCOUNT_BUTTON_W, ENTERGAME_ACCOUNT_BUTTON_H), ENTERGAME_ACCOUNT_BUTTON_TEXT);
 	newButton->setButtonEventCallback(&enterGame_Events, ENTERGAME_ACCOUNT_BUTTON_EVENTID);
 	newButton->startEvents();

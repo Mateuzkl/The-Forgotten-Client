@@ -40,6 +40,15 @@ void GUI_TextBox::setTextEventCallback(void (*eventHandlerFunction)(Uint32,Sint3
 	m_evtParam = mEvent;
 }
 
+void GUI_TextBox::setHideCharacter(char character)
+{
+	m_hideCharacter = character;
+	if(m_hideCharacter == '\0')
+		m_sVisibleText.assign(m_sText);
+	else
+		m_sVisibleText.assign(m_sText.length(), m_hideCharacter);
+}
+
 void GUI_TextBox::selectAll()
 {
 	setSelection(0, SDL_static_cast(Uint32, m_sText.length()));
