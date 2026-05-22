@@ -292,6 +292,8 @@ class Engine
 
 		SDL_INLINE void setClassicControl(bool classicControl) {m_classicControl = classicControl;}
 		SDL_INLINE void setAutoChaseOff(bool chaseOff) {m_autoChaseOff = chaseOff;}
+		SDL_INLINE void setWasdWalking(bool wasdWalking) {if(m_wasdWalking != wasdWalking) {m_wasdWalking = wasdWalking; m_chatInputEnabled = !m_wasdWalking; resetToDefaultHotkeys(m_wasdWalking);}}
+		SDL_INLINE void setSmartWalking(bool smartWalking) {m_smartWalking = smartWalking; if(!m_smartWalking) m_smartWalkDirections = 0;}
 		SDL_INLINE void setShowNames(bool showNames) {m_showNames = showNames;}
 		SDL_INLINE void setShowMarks(bool showMarks) {m_showMarks = showMarks;}
 		SDL_INLINE void setShowPvPFrames(bool showPvPFrames) {m_showPvPFrames = showPvPFrames;}
@@ -300,6 +302,8 @@ class Engine
 		SDL_INLINE void setShowCooldown(bool showCooldown) {m_showCooldown = showCooldown;}
 		SDL_INLINE bool hasClassicControl() {return m_classicControl;}
 		SDL_INLINE bool hasAutoChaseOff() {return m_autoChaseOff;}
+		SDL_INLINE bool hasWasdWalking() {return m_wasdWalking;}
+		SDL_INLINE bool hasSmartWalking() {return m_smartWalking;}
 		SDL_INLINE bool hasShowNames() {return m_showNames;}
 		SDL_INLINE bool hasShowMarks() {return m_showMarks;}
 		SDL_INLINE bool hasShowPvPFrames() {return m_showPvPFrames;}
@@ -482,6 +486,9 @@ class Engine
 
 		bool m_classicControl = true;
 		bool m_autoChaseOff = true;
+		bool m_wasdWalking = false;
+		bool m_smartWalking = false;
+		bool m_chatInputEnabled = true;
 		bool m_showNames = true;
 		bool m_showMarks = true;
 		bool m_showPvPFrames = true;
@@ -502,6 +509,7 @@ class Engine
 		bool m_showMagLevelBar = true;
 		bool m_showTrainingBar = true;
 		bool m_showSkillsBar[Skills_LastSkill];
+		Uint8 m_smartWalkDirections = 0;
 
 		Uint8 m_buySortMethod = Shop_Sort_Name;
 		Uint8 m_sellSortMethod = Shop_Sort_Name;
