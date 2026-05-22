@@ -1238,6 +1238,48 @@ bool Bot::deleteProfile(const std::string& profileName)
 	return removed;
 }
 
+bool Bot::exportWaypoints(const std::string& profileName)
+{
+	std::string profilePath = botProfilePath(profileName, ".wpts");
+	std::ofstream file(profilePath.c_str(), std::ios::out | std::ios::trunc);
+	if(!file.is_open())
+		return false;
+
+	const std::vector<CaveBotWaypoint>& waypoints = m_cavebot.getWaypoints();
+	for(std::vector<CaveBotWaypoint>::const_iterator it = waypoints.begin(), end = waypoints.end(); it != end; ++it)
+	{
+		file << "waypoint " << SDL_static_cast(Uint32, it->type) << " "
+			<< SDL_static_cast(Uint32, it->position.x) << " "
+			<< SDL_static_cast(Uint32, it->position.y) << " "
+			<< SDL_static_cast(Uint32, it->position.z) << "\n";
+	}
+	return true;
+}
+
+bool Bot::importWaypoints(const std::string& profileName)
+{
+	std::ifstream file(botProfilePath(profileName, ".wpts").c_str());
+	if(!file.is_open())
+		return false;
+
+	m_cavebot.clearWaypoints();
+	std::string line;
+	while(std::getline(file, line))
+	{
+		std::istringstream stream(line);
+		std::string key;
+		stream >> key;
+		if(key == "waypoint")
+		{
+			Sint32 type = 0, x = 0, y = 0, z = 0;
+			stream >> type >> x >> y >> z;
+			m_cavebot.addWaypoint(Position(SDL_static_cast(Uint16, x), SDL_static_cast(Uint16, y), SDL_static_cast(Uint8, z)),
+				SDL_static_cast(CaveBotWaypointType, type));
+		}
+	}
+	return true;
+}
+
 std::string Bot::getStatusText() const
 {
 	if(!m_enabled)

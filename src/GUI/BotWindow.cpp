@@ -64,6 +64,8 @@
 #define BOT_WINDOW_EVENT_CAVE_ENABLE 5112
 #define BOT_WINDOW_EVENT_CAVE_SMART_WALK 5113
 #define BOT_WINDOW_EVENT_CAVE_AVOID_PLAYERS 5114
+#define BOT_WINDOW_EVENT_IMPORT_WP 5115
+#define BOT_WINDOW_EVENT_EXPORT_WP 5116
 #define BOT_WINDOW_EVENT_TARGET_ENABLE 5200
 #define BOT_WINDOW_EVENT_ADD_TARGET 5201
 #define BOT_WINDOW_EVENT_DELETE_TARGET 5202
@@ -215,11 +217,22 @@ class GUI_BotPercentBar : public GUI_Element
 		void render()
 		{
 			auto& renderer = g_engine.getRender();
-			renderer->fillRectangle(m_tRect.x1, m_tRect.y1, m_tRect.x2, m_tRect.y2, 32, 32, 32, 255);
+			// Dark background for contrast
+			renderer->fillRectangle(m_tRect.x1, m_tRect.y1, m_tRect.x2, m_tRect.y2, 16, 16, 20, 255);
 			Sint32 width = SDL_static_cast(Sint32, m_tRect.x2 * m_percent) / 100;
 			if(width > 0)
+			{
+				// Main bar fill
 				renderer->fillRectangle(m_tRect.x1, m_tRect.y1, width, m_tRect.y2, m_red, m_green, m_blue, 255);
-			renderer->drawRectangle(m_tRect.x1, m_tRect.y1, m_tRect.x2, m_tRect.y2, 1, 0, 0, 0, 255);
+				// Subtle highlight on top half for depth
+				Uint8 hlR = SDL_static_cast(Uint8, UTIL_min<Uint16>(SDL_static_cast(Uint16, m_red) + 40, 255));
+				Uint8 hlG = SDL_static_cast(Uint8, UTIL_min<Uint16>(SDL_static_cast(Uint16, m_green) + 40, 255));
+				Uint8 hlB = SDL_static_cast(Uint8, UTIL_min<Uint16>(SDL_static_cast(Uint16, m_blue) + 40, 255));
+				Sint32 hlHeight = UTIL_max<Sint32>(m_tRect.y2 / 3, 1);
+				renderer->fillRectangle(m_tRect.x1, m_tRect.y1, width, hlHeight, hlR, hlG, hlB, 80);
+			}
+			// Softer border (dark gray instead of pure black)
+			renderer->drawRectangle(m_tRect.x1, m_tRect.y1, m_tRect.x2, m_tRect.y2, 1, 22, 22, 28, 255);
 		}
 
 	protected:
@@ -242,7 +255,7 @@ class GUI_BotPlayerPreview : public GUI_Element
 		{
 			auto& renderer = g_engine.getRender();
 			renderer->beginGameScene();
-			renderer->fillRectangle(0, 0, 128, 128, 48, 48, 48, 255);
+			renderer->fillRectangle(0, 0, 128, 128, 28, 28, 34, 255);
 
 			Creature* player = g_map.getLocalCreature();
 			if(player)
@@ -692,8 +705,12 @@ static GUI_Icon* addIconButton(GUI_Window* pWindow, Sint32 x, Sint32 y, Sint32 w
 
 static void addStatusBox(GUI_Window* pWindow, Sint32 x, Sint32 y, Sint32 w, const std::string& text, Uint32 id, Uint8 red, Uint8 green, Uint8 blue)
 {
+	// Subtle dark background fill for better contrast
+	GUI_BotPercentBar* bg = new GUI_BotPercentBar(iRect(x + 1, y + 1, w - 2, 30), 38, 38, 44, 0);
+	bg->setPercent(100);
+	pWindow->addChild(bg);
 	pWindow->addChild(new GUI_Grouper(iRect(x, y, w, 32)));
-	GUI_DynamicLabel* label = addDynamicSmallLabel(pWindow, x + 6, y + 10, w - 12, text, id, red, green, blue);
+	GUI_DynamicLabel* label = addDynamicSmallLabel(pWindow, x + (w / 2), y + 12, w - 12, text, id, red, green, blue);
 	label->setAlign(CLIENT_FONT_ALIGN_CENTER);
 }
 
@@ -706,7 +723,7 @@ static void addPlayerStatRow(GUI_Window* pWindow, Sint32 x, Sint32 y, const std:
 
 static GUI_BotPercentBar* addPercentBar(GUI_Window* pWindow, Sint32 x, Sint32 y, Sint32 w, Uint8 percent, Uint8 red, Uint8 green, Uint8 blue, Uint32 id)
 {
-	std::unique_ptr<GUI_BotPercentBar> bar(new GUI_BotPercentBar(iRect(x, y, w, 4), red, green, blue, id));
+	std::unique_ptr<GUI_BotPercentBar> bar(new GUI_BotPercentBar(iRect(x, y, w, 8), red, green, blue, id));
 	bar->setPercent(percent);
 	GUI_BotPercentBar* rawBar = bar.get();
 	pWindow->addChild(bar.release());
@@ -737,6 +754,111 @@ static char getWaypointTypeLetter(CaveBotWaypointType type)
 	}
 	return 'W';
 }
+
+extern Uint32 g_frameTime;
+
+class GUI_WaypointListBox : public GUI_ListBox
+{
+	public:
+		GUI_WaypointListBox(iRect boxRect, Uint32 internalID = 0) : GUI_ListBox(boxRect, internalID)
+		{
+			// m_maxDisplay is now set correctly by our overridden setRect
+		}
+
+		void setRect(iRect& NewRect) override
+		{
+			m_tRect = NewRect;
+			// Use 20 as the item height instead of 12!
+			m_maxDisplay = (m_tRect.y2 - 18) / 20;
+			m_scrollBar.setRect(iRect(m_tRect.x1 + m_tRect.x2 - 14, m_tRect.y1 + 1, 13, m_tRect.y2 - 2));
+			m_scrollBar.setScrollSize(SDL_static_cast(Sint32, m_listBox.size()) - m_maxDisplay);
+		}
+
+		void onLMouseDown(Sint32 x, Sint32 y) override
+		{
+			iRect rect = iRect(m_tRect.x1 + 2, m_tRect.y1 + 2, m_tRect.x2 - 16, m_tRect.y2 - 4);
+			if(rect.isPointInside(x, y))
+			{
+				Sint32 count = m_scrollBar.getScrollPos();
+				std::vector<std::string>::iterator it = m_listBox.begin();
+				std::advance(it, count);
+
+				Sint32 posY = m_tRect.y1 + 2;
+				Sint32 endY = m_tRect.y1 + m_tRect.y2 - 16;
+				while(it != m_listBox.end())
+				{
+					if(posY > endY)
+						break;
+
+					rect = iRect(m_tRect.x1 + 2, posY, m_tRect.x2 - 16, 20);
+					if(rect.isPointInside(x, y))
+					{
+						if(g_frameTime < m_lastClick && m_select == count)
+							m_doubleClicked = true;
+
+						m_select = count;
+						m_lastClick = g_frameTime + 500;
+						if(m_eventHandlerFunction)
+							UTIL_SafeEventHandler(m_eventHandlerFunction, m_evtParam, m_select);
+						break;
+					}
+
+					posY += 20;
+					++count;
+					++it;
+				}
+			}
+			m_scrollBar.onLMouseDown(x, y);
+		}
+
+		void render() override
+		{
+			auto& renderer = g_engine.getRender();
+			renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_ICON_HORIZONTAL_LINE_DARK_X, GUI_UI_ICON_HORIZONTAL_LINE_DARK_Y, GUI_UI_ICON_HORIZONTAL_LINE_DARK_W, GUI_UI_ICON_HORIZONTAL_LINE_DARK_H, m_tRect.x1, m_tRect.y1, m_tRect.x2, 1);
+			
+			// Fill dark background
+			renderer->fillRectangle(m_tRect.x1 + 1, m_tRect.y1 + 1, m_tRect.x2 - 1, m_tRect.y2 - 1, 24, 24, 24, 255);
+			renderer->setClipRect(m_tRect.x1 + 2, m_tRect.y1 + 2, m_tRect.x2 - 16, m_tRect.y2 - 4);
+
+			Sint32 count = m_scrollBar.getScrollPos();
+			std::vector<std::string>::iterator it = m_listBox.begin();
+			std::advance(it, count);
+
+			Sint32 posY = m_tRect.y1 + 2;
+			Sint32 endY = m_tRect.y1 + m_tRect.y2 - 16;
+			
+			size_t currentWalking = g_bot.getCurrentWaypointIndex();
+
+			while(it != m_listBox.end())
+			{
+				if(posY > endY)
+					break;
+
+				bool isSelected = (count == m_select);
+				bool isWalking = (SDL_static_cast(size_t, count) == currentWalking);
+
+				if (isSelected) {
+					renderer->fillRectangle(m_tRect.x1 + 2, posY, m_tRect.x2 - 16, 20, 96, 96, 102, 255);
+				} else if (isWalking) {
+					renderer->fillRectangle(m_tRect.x1 + 2, posY, m_tRect.x2 - 16, 20, 60, 60, 64, 255);
+				}
+
+				// Draw flag
+				renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_MINIMAP_MARK_FLAG_X, GUI_UI_ICON_MINIMAP_MARK_FLAG_Y, m_tRect.x1 + 6, posY + 4, GUI_UI_ICON_MINIMAP_MARK_FLAG_W, GUI_UI_ICON_MINIMAP_MARK_FLAG_H);
+
+				Uint8 r = 180, g = 180, b = 180;
+				if(isSelected || isWalking) { r = 255; g = 255; b = 255; }
+				
+				g_engine.drawFont(CLIENT_FONT_NONOUTLINED, m_tRect.x1 + 20, posY + 5, (*it), r, g, b, CLIENT_FONT_ALIGN_LEFT);
+
+				posY += 20;
+				++count;
+				++it;
+			}
+			renderer->disableClipRect();
+			m_scrollBar.render();
+		}
+};
 
 static void addBotTabs(GUI_Window* pWindow)
 {
@@ -777,29 +899,36 @@ static void addPlayerPanel(GUI_Window* pWindow)
 
 	pWindow->addChild(new GUI_BotPlayerPreview(iRect(622, 88, 90, 110)));
 
-	addDynamicSmallLabel(pWindow, 728, 88, 112, g_game.getPlayerName(), BOT_WINDOW_PLAYER_NAME_LABEL, 90, 255, 90);
+	addDynamicSmallLabel(pWindow, 728, 88, 112, g_game.getPlayerName(), BOT_WINDOW_PLAYER_NAME_LABEL, 100, 255, 100);
 	addPlayerStatRow(pWindow, 728, 110, "Level:", botNumberText(g_game.getPlayerLevel()), BOT_WINDOW_PLAYER_LEVEL_LABEL);
 	addPlayerStatRow(pWindow, 728, 128, "Vocation:", botPlayerVocationText(), BOT_WINDOW_PLAYER_VOCATION_LABEL);
-	addPlayerStatRow(pWindow, 728, 150, "Health:", botPlayerHealthText(), BOT_WINDOW_PLAYER_HEALTH_LABEL);
-	addPercentBar(pWindow, 802, 164, 38, g_game.getPlayerHealthPercent(), 205, 70, 70, BOT_WINDOW_PLAYER_HEALTH_BAR);
-	addPlayerStatRow(pWindow, 728, 174, "Mana:", botPlayerManaText(), BOT_WINDOW_PLAYER_MANA_LABEL);
-	addPercentBar(pWindow, 802, 188, 38, g_game.getPlayerManaPercent(), 70, 90, 205, BOT_WINDOW_PLAYER_MANA_BAR);
-	addPlayerStatRow(pWindow, 728, 205, "Capacity:", botPlayerCapacityText(), BOT_WINDOW_PLAYER_CAPACITY_LABEL);
-	addPlayerStatRow(pWindow, 728, 223, "Speed:", botNumberText(g_game.getPlayerBaseSpeed()), BOT_WINDOW_PLAYER_SPEED_LABEL);
+	addPlayerStatRow(pWindow, 728, 150, "Health:", botPlayerHealthText(), BOT_WINDOW_PLAYER_HEALTH_LABEL, 225, 100, 100);
+	addPercentBar(pWindow, 728, 164, 112, g_game.getPlayerHealthPercent(), 190, 50, 50, BOT_WINDOW_PLAYER_HEALTH_BAR);
+	addPlayerStatRow(pWindow, 728, 180, "Mana:", botPlayerManaText(), BOT_WINDOW_PLAYER_MANA_LABEL, 100, 140, 225);
+	addPercentBar(pWindow, 728, 194, 112, g_game.getPlayerManaPercent(), 50, 70, 190, BOT_WINDOW_PLAYER_MANA_BAR);
+	addPlayerStatRow(pWindow, 728, 212, "Capacity:", botPlayerCapacityText(), BOT_WINDOW_PLAYER_CAPACITY_LABEL);
+	addPlayerStatRow(pWindow, 728, 230, "Speed:", botNumberText(g_game.getPlayerBaseSpeed()), BOT_WINDOW_PLAYER_SPEED_LABEL);
 	SDL_snprintf(g_buffer, sizeof(g_buffer), "%u ms", SDL_static_cast(Uint32, g_ping));
-	addPlayerStatRow(pWindow, 728, 241, "Ping:", g_buffer, BOT_WINDOW_PLAYER_PING_LABEL, 90, 255, 90);
-	addPlayerStatRow(pWindow, 728, 259, "Position:", botFormatPosition(botPlayerPosition()), BOT_WINDOW_PLAYER_POSITION_LABEL, 100, 225, 255);
+	addPlayerStatRow(pWindow, 728, 248, "Ping:", g_buffer, BOT_WINDOW_PLAYER_PING_LABEL, 90, 255, 90);
 
-	addInventorySlot(pWindow, 670, 278, GUI_UI_INVENTORY_NECKLACE_X, GUI_UI_INVENTORY_NECKLACE_Y, SLOT_NECKLACE);
-	addInventorySlot(pWindow, 714, 278, GUI_UI_INVENTORY_HEAD_X, GUI_UI_INVENTORY_HEAD_Y, SLOT_HEAD);
-	addInventorySlot(pWindow, 758, 278, GUI_UI_INVENTORY_BACKPACK_X, GUI_UI_INVENTORY_BACKPACK_Y, SLOT_BACKPACK);
-	addInventorySlot(pWindow, 650, 328, GUI_UI_INVENTORY_LEFT_X, GUI_UI_INVENTORY_LEFT_Y, SLOT_LEFT);
-	addInventorySlot(pWindow, 714, 328, GUI_UI_INVENTORY_ARMOR_X, GUI_UI_INVENTORY_ARMOR_Y, SLOT_ARMOR);
-	addInventorySlot(pWindow, 778, 328, GUI_UI_INVENTORY_RIGHT_X, GUI_UI_INVENTORY_RIGHT_Y, SLOT_RIGHT);
-	addInventorySlot(pWindow, 670, 378, GUI_UI_INVENTORY_RING_X, GUI_UI_INVENTORY_RING_Y, SLOT_RING);
-	addInventorySlot(pWindow, 714, 378, GUI_UI_INVENTORY_LEGS_X, GUI_UI_INVENTORY_LEGS_Y, SLOT_LEGS);
-	addInventorySlot(pWindow, 758, 378, GUI_UI_INVENTORY_AMMO_X, GUI_UI_INVENTORY_AMMO_Y, SLOT_AMMO);
-	addInventorySlot(pWindow, 714, 410, GUI_UI_INVENTORY_FEET_X, GUI_UI_INVENTORY_FEET_Y, SLOT_FEET);
+	Sint32 slotX1 = 666;
+	Sint32 slotX2 = 710;
+	Sint32 slotX3 = 754;
+	Sint32 slotY1 = 268;
+	Sint32 slotY2 = 310;
+	Sint32 slotY3 = 352;
+	Sint32 slotY4 = 394;
+
+	addInventorySlot(pWindow, slotX1, slotY1, GUI_UI_INVENTORY_NECKLACE_X, GUI_UI_INVENTORY_NECKLACE_Y, SLOT_NECKLACE);
+	addInventorySlot(pWindow, slotX2, slotY1, GUI_UI_INVENTORY_HEAD_X, GUI_UI_INVENTORY_HEAD_Y, SLOT_HEAD);
+	addInventorySlot(pWindow, slotX3, slotY1, GUI_UI_INVENTORY_BACKPACK_X, GUI_UI_INVENTORY_BACKPACK_Y, SLOT_BACKPACK);
+	addInventorySlot(pWindow, slotX1, slotY2, GUI_UI_INVENTORY_LEFT_X, GUI_UI_INVENTORY_LEFT_Y, SLOT_LEFT);
+	addInventorySlot(pWindow, slotX2, slotY2, GUI_UI_INVENTORY_ARMOR_X, GUI_UI_INVENTORY_ARMOR_Y, SLOT_ARMOR);
+	addInventorySlot(pWindow, slotX3, slotY2, GUI_UI_INVENTORY_RIGHT_X, GUI_UI_INVENTORY_RIGHT_Y, SLOT_RIGHT);
+	addInventorySlot(pWindow, slotX1, slotY3, GUI_UI_INVENTORY_RING_X, GUI_UI_INVENTORY_RING_Y, SLOT_RING);
+	addInventorySlot(pWindow, slotX2, slotY3, GUI_UI_INVENTORY_LEGS_X, GUI_UI_INVENTORY_LEGS_Y, SLOT_LEGS);
+	addInventorySlot(pWindow, slotX3, slotY3, GUI_UI_INVENTORY_AMMO_X, GUI_UI_INVENTORY_AMMO_Y, SLOT_AMMO);
+	addInventorySlot(pWindow, slotX2, slotY4, GUI_UI_INVENTORY_FEET_X, GUI_UI_INVENTORY_FEET_Y, SLOT_FEET);
 }
 
 static void addWindowShell(GUI_Window* pWindow)
@@ -814,20 +943,20 @@ static void addWindowShell(GUI_Window* pWindow)
 
 	Position pos = botPlayerPosition();
 	addStatusBox(pWindow, 18, 338, 90, g_bot.isEnabled() ? "Bot: ON" : "Bot: OFF", BOT_WINDOW_STATUS_BOT_LABEL,
-		g_bot.isEnabled() ? 110 : 230, g_bot.isEnabled() ? 230 : 90, g_bot.isEnabled() ? 110 : 90);
+		g_bot.isEnabled() ? 80 : 230, g_bot.isEnabled() ? 240 : 90, g_bot.isEnabled() ? 80 : 90);
 	addStatusBox(pWindow, 116, 338, 132, g_bot.hasActiveTarget() ? "Target: found" : "Target: no monster", BOT_WINDOW_STATUS_TARGET_LABEL,
-		g_bot.hasActiveTarget() ? 110 : 205, g_bot.hasActiveTarget() ? 230 : 190, g_bot.hasActiveTarget() ? 110 : 120);
+		g_bot.hasActiveTarget() ? 80 : 200, g_bot.hasActiveTarget() ? 240 : 185, g_bot.hasActiveTarget() ? 80 : 120);
 	addStatusBox(pWindow, 256, 338, 110, (g_bot.isEnabled() && g_bot.isCaveEnabled() && g_bot.getWaypointCount() > 0) ? "Cave: active" : "Cave: idle", BOT_WINDOW_STATUS_CAVE_LABEL,
-		(g_bot.isEnabled() && g_bot.isCaveEnabled() && g_bot.getWaypointCount() > 0) ? 110 : 205,
-		(g_bot.isEnabled() && g_bot.isCaveEnabled() && g_bot.getWaypointCount() > 0) ? 230 : 190,
-		(g_bot.isEnabled() && g_bot.isCaveEnabled() && g_bot.getWaypointCount() > 0) ? 110 : 120);
+		(g_bot.isEnabled() && g_bot.isCaveEnabled() && g_bot.getWaypointCount() > 0) ? 80 : 200,
+		(g_bot.isEnabled() && g_bot.isCaveEnabled() && g_bot.getWaypointCount() > 0) ? 240 : 185,
+		(g_bot.isEnabled() && g_bot.isCaveEnabled() && g_bot.getWaypointCount() > 0) ? 80 : 120);
 	SDL_snprintf(g_buffer, sizeof(g_buffer), "Ping: %u ms", SDL_static_cast(Uint32, g_ping));
 	addStatusBox(pWindow, 374, 338, 104, g_buffer, BOT_WINDOW_STATUS_PING_LABEL,
-		g_ping <= 80 ? 110 : (g_ping <= 180 ? 230 : 230),
-		g_ping <= 80 ? 230 : (g_ping <= 180 ? 205 : 90),
-		g_ping <= 80 ? 110 : 90);
+		g_ping <= 80 ? 80 : (g_ping <= 180 ? 230 : 240),
+		g_ping <= 80 ? 240 : (g_ping <= 180 ? 200 : 80),
+		g_ping <= 80 ? 80 : 80);
 	SDL_snprintf(g_buffer, sizeof(g_buffer), "Pos: %u %u %u", SDL_static_cast(Uint32, pos.x), SDL_static_cast(Uint32, pos.y), SDL_static_cast(Uint32, pos.z));
-	addStatusBox(pWindow, 486, 338, 118, g_buffer, BOT_WINDOW_STATUS_POS_LABEL, 120, 230, 255);
+	addStatusBox(pWindow, 486, 338, 118, g_buffer, BOT_WINDOW_STATUS_POS_LABEL, 100, 210, 255);
 
 	addSmallLabel(pWindow, 18, 392, "Profile:");
 	addTextBox(pWindow, 72, 390, 146, s_botProfileName, BOT_WINDOW_PROFILE_TEXT, false, 32);
@@ -859,8 +988,9 @@ static void addCaveTab(GUI_Window* pWindow)
 	addSmallLabel(pWindow, 28, 298, "Position:");
 	addDynamicSmallLabel(pWindow, 134, 298, 68, botFormatPosition(botPlayerPosition()), BOT_WINDOW_INFO_POSITION_LABEL, 225, 225, 225);
 
-	addSmallLabel(pWindow, 230, 76, "Waypoints");
-	GUI_ListBox* listBox = new GUI_ListBox(iRect(230, 98, 205, 180), BOT_WINDOW_WAYPOINT_LIST);
+	pWindow->addChild(new GUI_Grouper(iRect(218, 86, 226, 238)));
+	addSmallLabel(pWindow, 224, 76, "Waypoints");
+	GUI_WaypointListBox* listBox = new GUI_WaypointListBox(iRect(224, 98, 214, 198), BOT_WINDOW_WAYPOINT_LIST);
 	const std::vector<CaveBotWaypoint>& waypoints = g_bot.getWaypoints();
 	for(size_t i = 0, end = waypoints.size(); i < end; ++i)
 	{
@@ -878,8 +1008,10 @@ static void addCaveTab(GUI_Window* pWindow)
 	listBox->startEvents();
 	pWindow->addChild(listBox);
 
-	addButton(pWindow, 230, 294, GUI_UI_BUTTON_75PX_GRAY_UP_W, "Delete", BOT_WINDOW_EVENT_DELETE_WP);
-	addButton(pWindow, 315, 294, GUI_UI_BUTTON_75PX_GRAY_UP_W, "Clear", BOT_WINDOW_EVENT_CLEAR_WP);
+	addButton(pWindow, 224, 300, GUI_UI_BUTTON_48PX_GRAY_UP_W, "Delete", BOT_WINDOW_EVENT_DELETE_WP);
+	addButton(pWindow, 279, 300, GUI_UI_BUTTON_48PX_GRAY_UP_W, "Clear", BOT_WINDOW_EVENT_CLEAR_WP);
+	addButton(pWindow, 334, 300, GUI_UI_BUTTON_48PX_GRAY_UP_W, "Import", BOT_WINDOW_EVENT_IMPORT_WP);
+	addButton(pWindow, 389, 300, GUI_UI_BUTTON_48PX_GRAY_UP_W, "Export", BOT_WINDOW_EVENT_EXPORT_WP);
 
 	pWindow->addChild(new GUI_Grouper(iRect(450, 98, 140, 180)));
 	addSmallLabel(pWindow, 458, 76, "Add Current Position");
@@ -1065,14 +1197,14 @@ void UTIL_updateBotPanel()
 	if(botLabel)
 	{
 		botLabel->setName(g_bot.isEnabled() ? "Bot: ON" : "Bot: OFF");
-		botLabel->setColor(g_bot.isEnabled() ? 110 : 230, g_bot.isEnabled() ? 230 : 90, g_bot.isEnabled() ? 110 : 90);
+		botLabel->setColor(g_bot.isEnabled() ? 80 : 230, g_bot.isEnabled() ? 240 : 90, g_bot.isEnabled() ? 80 : 90);
 	}
 
 	GUI_DynamicLabel* targetLabel = SDL_static_cast(GUI_DynamicLabel*, pWindow->getChild(BOT_WINDOW_STATUS_TARGET_LABEL));
 	if(targetLabel)
 	{
 		targetLabel->setName(g_bot.hasActiveTarget() ? "Target: found" : "Target: no monster");
-		targetLabel->setColor(g_bot.hasActiveTarget() ? 110 : 205, g_bot.hasActiveTarget() ? 230 : 190, g_bot.hasActiveTarget() ? 110 : 120);
+		targetLabel->setColor(g_bot.hasActiveTarget() ? 80 : 200, g_bot.hasActiveTarget() ? 240 : 185, g_bot.hasActiveTarget() ? 80 : 120);
 	}
 
 	bool caveActive = g_bot.isEnabled() && g_bot.isCaveEnabled() && g_bot.getWaypointCount() > 0;
@@ -1080,7 +1212,7 @@ void UTIL_updateBotPanel()
 	if(caveLabel)
 	{
 		caveLabel->setName(caveActive ? "Cave: active" : "Cave: idle");
-		caveLabel->setColor(caveActive ? 110 : 205, caveActive ? 230 : 190, caveActive ? 110 : 120);
+		caveLabel->setColor(caveActive ? 80 : 200, caveActive ? 240 : 185, caveActive ? 80 : 120);
 	}
 
 	GUI_DynamicLabel* pingLabel = SDL_static_cast(GUI_DynamicLabel*, pWindow->getChild(BOT_WINDOW_STATUS_PING_LABEL));
@@ -1088,9 +1220,9 @@ void UTIL_updateBotPanel()
 	{
 		SDL_snprintf(g_buffer, sizeof(g_buffer), "Ping: %u ms", SDL_static_cast(Uint32, g_ping));
 		pingLabel->setName(g_buffer);
-		pingLabel->setColor(g_ping <= 80 ? 110 : (g_ping <= 180 ? 230 : 230),
-			g_ping <= 80 ? 230 : (g_ping <= 180 ? 205 : 90),
-			g_ping <= 80 ? 110 : 90);
+		pingLabel->setColor(g_ping <= 80 ? 80 : (g_ping <= 180 ? 230 : 240),
+			g_ping <= 80 ? 240 : (g_ping <= 180 ? 200 : 80),
+			g_ping <= 80 ? 80 : 80);
 	}
 
 	GUI_DynamicLabel* posLabel = SDL_static_cast(GUI_DynamicLabel*, pWindow->getChild(BOT_WINDOW_STATUS_POS_LABEL));
@@ -1159,9 +1291,9 @@ void UTIL_updateBotPanel()
 	{
 		SDL_snprintf(g_buffer, sizeof(g_buffer), "%u ms", SDL_static_cast(Uint32, g_ping));
 		playerLabel->setName(g_buffer);
-		playerLabel->setColor(g_ping <= 80 ? 90 : (g_ping <= 180 ? 230 : 230),
-			g_ping <= 80 ? 255 : (g_ping <= 180 ? 205 : 90),
-			g_ping <= 80 ? 90 : 90);
+		playerLabel->setColor(g_ping <= 80 ? 80 : (g_ping <= 180 ? 230 : 240),
+			g_ping <= 80 ? 255 : (g_ping <= 180 ? 200 : 80),
+			g_ping <= 80 ? 80 : 80);
 	}
 
 	playerLabel = SDL_static_cast(GUI_DynamicLabel*, pWindow->getChild(BOT_WINDOW_PLAYER_POSITION_LABEL));
@@ -1225,6 +1357,15 @@ void bot_Events(Uint32 event, Sint32 status)
 		case BOT_WINDOW_EVENT_ADD_SHOVEL: g_bot.addCurrentWaypoint(CAVEBOT_WAYPOINT_SHOVEL); refreshBotWindow(); return;
 		case BOT_WINDOW_EVENT_ADD_LURE: g_bot.addCurrentWaypoint(CAVEBOT_WAYPOINT_LURE); refreshBotWindow(); return;
 		case BOT_WINDOW_EVENT_ADD_ACTION: g_bot.addCurrentWaypoint(CAVEBOT_WAYPOINT_ACTION); refreshBotWindow(); return;
+		case BOT_WINDOW_EVENT_IMPORT_WP:
+			s_botProfileName = botReadText(BOT_WINDOW_PROFILE_TEXT);
+			if(g_bot.importWaypoints(s_botProfileName))
+				refreshBotWindow();
+			return;
+		case BOT_WINDOW_EVENT_EXPORT_WP:
+			s_botProfileName = botReadText(BOT_WINDOW_PROFILE_TEXT);
+			g_bot.exportWaypoints(s_botProfileName);
+			return;
 		case BOT_WINDOW_EVENT_DELETE_WP:
 		{
 			Sint32 selected = botReadSelected(BOT_WINDOW_WAYPOINT_LIST);
@@ -1344,7 +1485,7 @@ static void populateBotPanel(GUI_PanelWindow* pPanel)
 	pPanel->setCachedHeight(panelHeight);
 	pPanel->setSize(GAME_PANEL_FIXED_WIDTH - 4, panelHeight);
 
-	GUI_Label* label = new GUI_Label(iRect(8, 4, 160, 12), "Native Bot", 0, 255, 220, 120);
+	GUI_Label* label = new GUI_Label(iRect(8, 4, 160, 12), "Native Bot", 0, 255, 200, 80);
 	label->setFont(CLIENT_FONT_SMALL);
 	pPanel->addChild(label);
 

@@ -146,6 +146,10 @@ class Bot
 		bool saveProfile(const std::string& profileName);
 		bool loadProfile(const std::string& profileName);
 		bool deleteProfile(const std::string& profileName);
+
+		bool exportWaypoints(const std::string& profileName);
+		bool importWaypoints(const std::string& profileName);
+
 		std::string getStatusText() const;
 
 	private:
