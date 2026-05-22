@@ -77,7 +77,7 @@ void UTIL_createReadWriteWindow(Uint8 doorId, Uint32 windowId, const std::string
 void UTIL_createChannels(std::vector<ChannelDetail>& channels);
 
 //Outfit window
-void UTIL_createOutfitWindow(Uint16 lookType, Uint8 lookHead, Uint8 lookBody, Uint8 lookLegs, Uint8 lookFeet, Uint8 lookAddons, Uint16 lookMount, std::vector<OutfitDetail>& outfits, std::vector<MountDetail>& mounts);
+void UTIL_createOutfitWindow(Uint16 lookType, Uint8 lookHead, Uint8 lookBody, Uint8 lookLegs, Uint8 lookFeet, Uint8 lookAddons, Uint16 lookMount, const std::vector<OutfitDetail>& outfits, const std::vector<MountDetail>& mounts);
 
 //Item Move window
 void UTIL_createItemMove();

@@ -29,7 +29,13 @@ class ThingType;
 class GUI_Outfit_View : public GUI_Element
 {
 	public:
-		GUI_Outfit_View(iRect boxRect, Uint32 internalID = 0);
+		enum PreviewMode
+		{
+			PreviewMode_Outfit,
+			PreviewMode_Mount
+		};
+
+		GUI_Outfit_View(iRect boxRect, Uint32 internalID = 0, PreviewMode mode = PreviewMode_Outfit);
 
 		// non-copyable
 		GUI_Outfit_View(const GUI_Outfit_View&) = delete;
@@ -54,9 +60,11 @@ class GUI_Outfit_View : public GUI_Element
 		void render();
 
 	protected:
-		ThingType* m_ground;
-		ThingType* m_outfit;
-		ThingType* m_mount;
+		void renderPanel();
+		void renderCreature(ThingType* thingType, Uint8 animation, Uint8 addonPattern, Uint8 zPattern, Uint32 outfitColor);
+
+		ThingType* m_outfit = nullptr;
+		ThingType* m_mount = nullptr;
 		Animation m_outfitAnimation[ThingFrameGroup_Last];
 		Animation m_mountAnimation[ThingFrameGroup_Last];
 		Uint32 m_walkStartTime = 0;
@@ -68,6 +76,7 @@ class GUI_Outfit_View : public GUI_Element
 		bool m_showOutfit = true;
 		bool m_showMount = true;
 		bool m_walking = false;
+		PreviewMode m_mode = PreviewMode_Outfit;
 };
 
 class GUI_Outfit_Colors : public GUI_Element
@@ -93,6 +102,22 @@ class GUI_Outfit_Colors : public GUI_Element
 		Sint32 m_selected = 0;
 		Sint32 m_hoverColor[2] = {-1, -1};
 		bool m_Pressed = false;
+};
+
+class GUI_Outfit_HelpText : public GUI_Element
+{
+	public:
+		GUI_Outfit_HelpText(iRect boxRect, Uint32 internalID = 0);
+
+		// non-copyable
+		GUI_Outfit_HelpText(const GUI_Outfit_HelpText&) = delete;
+		GUI_Outfit_HelpText& operator=(const GUI_Outfit_HelpText&) = delete;
+
+		// non-moveable
+		GUI_Outfit_HelpText(GUI_Outfit_HelpText&&) = delete;
+		GUI_Outfit_HelpText& operator=(GUI_Outfit_HelpText&&) = delete;
+
+		void render();
 };
 
 #endif /* __FILE_GUI_OUTFITS_h_ */

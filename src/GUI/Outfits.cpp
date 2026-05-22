@@ -32,133 +32,119 @@
 #include "../game.h"
 #include "Outfits.h"
 
+#include <algorithm>
+#include <memory>
+#include <utility>
+
 #define OUTFITS_TITLE "Select Outfit"
-#define OUTFITS_WIDTH 450
-#define OUTFITS_HEIGHT 391
+#define OUTFITS_WIDTH 505
+#define OUTFITS_HEIGHT 360
 #define OUTFITS_CANCEL_EVENTID 1000
 #define OUTFITS_OK_EVENTID 1001
-#define OUTFITS_LABEL_PREVIEW_TITLE "Preview:"
-#define OUTFITS_LABEL_PREVIEW_X 63
-#define OUTFITS_LABEL_PREVIEW_Y 32
-#define OUTFITS_LABEL_FILTER_TITLE "Filter:"
-#define OUTFITS_LABEL_FILTER_X 71
-#define OUTFITS_LABEL_FILTER_Y 164
-#define OUTFITS_LABEL_CONFIGURE_TITLE "Configure:"
-#define OUTFITS_LABEL_CONFIGURE_X 57
-#define OUTFITS_LABEL_CONFIGURE_Y 252
-#define OUTFITS_LABEL_OUTFIT_X 304
-#define OUTFITS_LABEL_OUTFIT_Y 185
+#define OUTFITS_RANDOMIZE_EVENTID 1022
+#define OUTFITS_LABEL_OUTFIT_X 90
+#define OUTFITS_LABEL_OUTFIT_Y 180
 #define OUTFITS_LABEL_OUTFIT_EVENTID 1002
-#define OUTFITS_LABEL_MOUNT_X 304
-#define OUTFITS_LABEL_MOUNT_Y 210
+#define OUTFITS_LABEL_MOUNT_X 415
+#define OUTFITS_LABEL_MOUNT_Y 300
 #define OUTFITS_LABEL_MOUNT_EVENTID 1003
-#define OUTFITS_GROUPER_OUTFIT_NAME_X 199
-#define OUTFITS_GROUPER_OUTFIT_NAME_Y 179
-#define OUTFITS_GROUPER_OUTFIT_NAME_W 210
+#define OUTFITS_GROUPER_OUTFIT_NAME_X 44
+#define OUTFITS_GROUPER_OUTFIT_NAME_Y 175
+#define OUTFITS_GROUPER_OUTFIT_NAME_W 92
 #define OUTFITS_GROUPER_OUTFIT_NAME_H 20
-#define OUTFITS_GROUPER_MOUNT_NAME_X 199
-#define OUTFITS_GROUPER_MOUNT_NAME_Y 204
-#define OUTFITS_GROUPER_MOUNT_NAME_W 210
+#define OUTFITS_GROUPER_MOUNT_NAME_X 369
+#define OUTFITS_GROUPER_MOUNT_NAME_Y 295
+#define OUTFITS_GROUPER_MOUNT_NAME_W 92
 #define OUTFITS_GROUPER_MOUNT_NAME_H 20
-#define OUTFITS_CHECKBOX_MOVEMENT_TEXT "Movement"
-#define OUTFITS_CHECKBOX_MOVEMENT_X 16
-#define OUTFITS_CHECKBOX_MOVEMENT_Y 47
-#define OUTFITS_CHECKBOX_MOVEMENT_W 148
-#define OUTFITS_CHECKBOX_MOVEMENT_H 22
-#define OUTFITS_CHECKBOX_MOVEMENT_EVENTID 1004
-#define OUTFITS_CHECKBOX_OUTFIT_TEXT "Show Outfit"
-#define OUTFITS_CHECKBOX_OUTFIT_X 16
-#define OUTFITS_CHECKBOX_OUTFIT_Y 74
-#define OUTFITS_CHECKBOX_OUTFIT_W 148
-#define OUTFITS_CHECKBOX_OUTFIT_H 22
-#define OUTFITS_CHECKBOX_OUTFIT_EVENTID 1005
-#define OUTFITS_CHECKBOX_FLOOR_TEXT "Show Floor"
-#define OUTFITS_CHECKBOX_FLOOR_X 16
-#define OUTFITS_CHECKBOX_FLOOR_Y 101
-#define OUTFITS_CHECKBOX_FLOOR_W 148
-#define OUTFITS_CHECKBOX_FLOOR_H 22
-#define OUTFITS_CHECKBOX_FLOOR_EVENTID 1006
-#define OUTFITS_CHECKBOX_OUTFITS_TEXT "Only my Outfits"
-#define OUTFITS_CHECKBOX_OUTFITS_X 16
-#define OUTFITS_CHECKBOX_OUTFITS_Y 179
-#define OUTFITS_CHECKBOX_OUTFITS_W 148
-#define OUTFITS_CHECKBOX_OUTFITS_H 22
-#define OUTFITS_CHECKBOX_OUTFITS_EVENTID 1007
-#define OUTFITS_CHECKBOX_MOUNTS_TEXT "Only my Mounts"
-#define OUTFITS_CHECKBOX_MOUNTS_X 16
-#define OUTFITS_CHECKBOX_MOUNTS_Y 206
-#define OUTFITS_CHECKBOX_MOUNTS_W 148
-#define OUTFITS_CHECKBOX_MOUNTS_H 22
-#define OUTFITS_CHECKBOX_MOUNTS_EVENTID 1008
+#define OUTFITS_RANDOMIZE_X 44
+#define OUTFITS_RANDOMIZE_Y 200
+#define OUTFITS_RANDOMIZE_W GUI_UI_BUTTON_86PX_GRAY_UP_W
+#define OUTFITS_RANDOMIZE_H GUI_UI_BUTTON_86PX_GRAY_UP_H
 #define OUTFITS_CHECKBOX_ADDON1_TEXT "Addon 1"
-#define OUTFITS_CHECKBOX_ADDON1_X 16
-#define OUTFITS_CHECKBOX_ADDON1_Y 267
-#define OUTFITS_CHECKBOX_ADDON1_W 148
+#define OUTFITS_CHECKBOX_ADDON1_X 190
+#define OUTFITS_CHECKBOX_ADDON1_Y 150
+#define OUTFITS_CHECKBOX_ADDON1_W 145
 #define OUTFITS_CHECKBOX_ADDON1_H 22
 #define OUTFITS_CHECKBOX_ADDON1_EVENTID 1009
 #define OUTFITS_CHECKBOX_ADDON2_TEXT "Addon 2"
-#define OUTFITS_CHECKBOX_ADDON2_X 16
-#define OUTFITS_CHECKBOX_ADDON2_Y 294
-#define OUTFITS_CHECKBOX_ADDON2_W 148
+#define OUTFITS_CHECKBOX_ADDON2_X 190
+#define OUTFITS_CHECKBOX_ADDON2_Y 177
+#define OUTFITS_CHECKBOX_ADDON2_W 145
 #define OUTFITS_CHECKBOX_ADDON2_H 22
 #define OUTFITS_CHECKBOX_ADDON2_EVENTID 1010
-#define OUTFITS_CHECKBOX_MOUNT_TEXT "Mount"
-#define OUTFITS_CHECKBOX_MOUNT_X 16
-#define OUTFITS_CHECKBOX_MOUNT_Y 321
-#define OUTFITS_CHECKBOX_MOUNT_W 148
-#define OUTFITS_CHECKBOX_MOUNT_H 22
-#define OUTFITS_CHECKBOX_MOUNT_EVENTID 1011
-#define OUTFITS_GROUPER_OUTFIT_X 174
-#define OUTFITS_GROUPER_OUTFIT_Y 29
-#define OUTFITS_GROUPER_OUTFIT_W 260
-#define OUTFITS_GROUPER_OUTFIT_H 145
-#define OUTFITS_GROUPER_OUTFIT_NAME_X 199
-#define OUTFITS_GROUPER_OUTFIT_NAME_Y 179
-#define OUTFITS_GROUPER_OUTFIT_NAME_W 210
-#define OUTFITS_GROUPER_OUTFIT_NAME_H 20
-#define OUTFITS_GROUPER_MOUNT_NAME_X 199
-#define OUTFITS_GROUPER_MOUNT_NAME_Y 204
-#define OUTFITS_GROUPER_MOUNT_NAME_W 210
-#define OUTFITS_GROUPER_MOUNT_NAME_H 20
-#define OUTFITS_ICON_PREV_OUTFIT_X 174
-#define OUTFITS_ICON_PREV_OUTFIT_Y 179
+#define OUTFITS_CHECKBOX_ADDON3_TEXT "Addon 3"
+#define OUTFITS_CHECKBOX_ADDON3_X 190
+#define OUTFITS_CHECKBOX_ADDON3_Y 204
+#define OUTFITS_CHECKBOX_ADDON3_W 145
+#define OUTFITS_CHECKBOX_ADDON3_H 22
+#define OUTFITS_CHECKBOX_ADDON3_EVENTID 1011
+#define OUTFITS_ICON_PREV_OUTFIT_X 20
+#define OUTFITS_ICON_PREV_OUTFIT_Y 175
 #define OUTFITS_ICON_PREV_OUTFIT_W GUI_UI_ICON_ARROW_LEFT_UP_W
 #define OUTFITS_ICON_PREV_OUTFIT_H GUI_UI_ICON_ARROW_LEFT_UP_H
 #define OUTFITS_ICON_PREV_OUTFIT_EVENTID 1012
-#define OUTFITS_ICON_PREV_MOUNT_X 174
-#define OUTFITS_ICON_PREV_MOUNT_Y 204
+#define OUTFITS_ICON_PREV_MOUNT_X 345
+#define OUTFITS_ICON_PREV_MOUNT_Y 295
 #define OUTFITS_ICON_PREV_MOUNT_W GUI_UI_ICON_ARROW_LEFT_UP_W
 #define OUTFITS_ICON_PREV_MOUNT_H GUI_UI_ICON_ARROW_LEFT_UP_H
 #define OUTFITS_ICON_PREV_MOUNT_EVENTID 1013
-#define OUTFITS_ICON_PREV_DIRECTION_X 176
-#define OUTFITS_ICON_PREV_DIRECTION_Y 152
-#define OUTFITS_ICON_PREV_DIRECTION_W GUI_UI_ICON_ROTATE_LEFT_UP_W
-#define OUTFITS_ICON_PREV_DIRECTION_H GUI_UI_ICON_ROTATE_LEFT_UP_H
-#define OUTFITS_ICON_PREV_DIRECTION_EVENTID 1014
-#define OUTFITS_ICON_NEXT_OUTFIT_X 414
-#define OUTFITS_ICON_NEXT_OUTFIT_Y 179
+#define OUTFITS_ICON_PREV_OUTFIT_DIRECTION_X 20
+#define OUTFITS_ICON_PREV_OUTFIT_DIRECTION_Y 30
+#define OUTFITS_ICON_PREV_OUTFIT_DIRECTION_W GUI_UI_ICON_ROTATE_LEFT_UP_W
+#define OUTFITS_ICON_PREV_OUTFIT_DIRECTION_H GUI_UI_ICON_ROTATE_LEFT_UP_H
+#define OUTFITS_ICON_PREV_OUTFIT_DIRECTION_EVENTID 1014
+#define OUTFITS_ICON_NEXT_OUTFIT_X 140
+#define OUTFITS_ICON_NEXT_OUTFIT_Y 175
 #define OUTFITS_ICON_NEXT_OUTFIT_W GUI_UI_ICON_ARROW_RIGHT_UP_W
 #define OUTFITS_ICON_NEXT_OUTFIT_H GUI_UI_ICON_ARROW_RIGHT_UP_H
 #define OUTFITS_ICON_NEXT_OUTFIT_EVENTID 1015
-#define OUTFITS_ICON_NEXT_MOUNT_X 414
-#define OUTFITS_ICON_NEXT_MOUNT_Y 204
+#define OUTFITS_ICON_NEXT_MOUNT_X 465
+#define OUTFITS_ICON_NEXT_MOUNT_Y 295
 #define OUTFITS_ICON_NEXT_MOUNT_W GUI_UI_ICON_ARROW_RIGHT_UP_W
 #define OUTFITS_ICON_NEXT_MOUNT_H GUI_UI_ICON_ARROW_RIGHT_UP_H
 #define OUTFITS_ICON_NEXT_MOUNT_EVENTID 1016
-#define OUTFITS_ICON_NEXT_DIRECTION_X 412
-#define OUTFITS_ICON_NEXT_DIRECTION_Y 152
-#define OUTFITS_ICON_NEXT_DIRECTION_W GUI_UI_ICON_ROTATE_RIGHT_UP_W
-#define OUTFITS_ICON_NEXT_DIRECTION_H GUI_UI_ICON_ROTATE_RIGHT_UP_H
-#define OUTFITS_ICON_NEXT_DIRECTION_EVENTID 1017
-#define OUTFITS_OUTFIT_VIEW_X 175
+#define OUTFITS_ICON_NEXT_OUTFIT_DIRECTION_X 140
+#define OUTFITS_ICON_NEXT_OUTFIT_DIRECTION_Y 30
+#define OUTFITS_ICON_NEXT_OUTFIT_DIRECTION_W GUI_UI_ICON_ROTATE_RIGHT_UP_W
+#define OUTFITS_ICON_NEXT_OUTFIT_DIRECTION_H GUI_UI_ICON_ROTATE_RIGHT_UP_H
+#define OUTFITS_ICON_NEXT_OUTFIT_DIRECTION_EVENTID 1017
+#define OUTFITS_OUTFIT_VIEW_X 20
 #define OUTFITS_OUTFIT_VIEW_Y 30
-#define OUTFITS_OUTFIT_VIEW_W 258
-#define OUTFITS_OUTFIT_VIEW_H 143
+#define OUTFITS_OUTFIT_VIEW_W 140
+#define OUTFITS_OUTFIT_VIEW_H 140
 #define OUTFITS_OUTFIT_VIEW_EVENTID 1018
-#define OUTFITS_OUTFIT_COLORS_X 177
-#define OUTFITS_OUTFIT_COLORS_Y 229
-#define OUTFITS_OUTFIT_COLORS_W 254
-#define OUTFITS_OUTFIT_COLORS_H 114
+#define OUTFITS_MOUNT_VIEW_X 345
+#define OUTFITS_MOUNT_VIEW_Y 150
+#define OUTFITS_MOUNT_VIEW_W 140
+#define OUTFITS_MOUNT_VIEW_H 140
+#define OUTFITS_MOUNT_VIEW_EVENTID 1019
+#define OUTFITS_ICON_PREV_MOUNT_DIRECTION_X 345
+#define OUTFITS_ICON_PREV_MOUNT_DIRECTION_Y 150
+#define OUTFITS_ICON_PREV_MOUNT_DIRECTION_W GUI_UI_ICON_ROTATE_LEFT_UP_W
+#define OUTFITS_ICON_PREV_MOUNT_DIRECTION_H GUI_UI_ICON_ROTATE_LEFT_UP_H
+#define OUTFITS_ICON_PREV_MOUNT_DIRECTION_EVENTID 1020
+#define OUTFITS_ICON_NEXT_MOUNT_DIRECTION_X 465
+#define OUTFITS_ICON_NEXT_MOUNT_DIRECTION_Y 150
+#define OUTFITS_ICON_NEXT_MOUNT_DIRECTION_W GUI_UI_ICON_ROTATE_RIGHT_UP_W
+#define OUTFITS_ICON_NEXT_MOUNT_DIRECTION_H GUI_UI_ICON_ROTATE_RIGHT_UP_H
+#define OUTFITS_ICON_NEXT_MOUNT_DIRECTION_EVENTID 1021
+#define OUTFITS_OUTFIT_COLORS_X 190
+#define OUTFITS_OUTFIT_COLORS_Y 35
+#define OUTFITS_OUTFIT_COLORS_W 312
+#define OUTFITS_OUTFIT_COLORS_H 91
+#define OUTFITS_HELP_TEXT_X 20
+#define OUTFITS_HELP_TEXT_Y 230
+#define OUTFITS_HELP_TEXT_W 310
+#define OUTFITS_HELP_TEXT_H 78
+#define OUTFITS_COLOR_MODE_W 60
+#define OUTFITS_COLOR_MODE_H 20
+#define OUTFITS_COLOR_MODE_GAP 5
+#define OUTFITS_COLOR_GRID_X 65
+#define OUTFITS_COLOR_GRID_CELL 13
+#define OUTFITS_COLOR_GRID_W 247
+#define OUTFITS_COLOR_GRID_H 91
+#define OUTFITS_PREVIEW_RENDER_SIZE 128
+#define OUTFITS_PREVIEW_SPRITE_SCALE 56
 
 extern Engine g_engine;
 extern Game g_game;
@@ -172,280 +158,251 @@ Uint16 g_outfitMount;
 Uint8 g_outfitColors[4];
 Uint8 g_outfitAddons;
 
+namespace
+{
+	GUI_Window* getOutfitWindow()
+	{
+		GUI_Window* pWindow = g_engine.getCurrentWindow();
+		if(pWindow && pWindow->getInternalID() == GUI_WINDOW_OUTFITS)
+			return pWindow;
+
+		return g_engine.getWindow(GUI_WINDOW_OUTFITS);
+	}
+
+	template<typename T, typename... Args>
+	T* addWindowChild(GUI_Window& window, Args&&... args)
+	{
+		std::unique_ptr<T> child = std::make_unique<T>(std::forward<Args>(args)...);
+		T* rawChild = child.get();
+		window.addChild(child.release());
+		return rawChild;
+	}
+
+	void clearOutfitState()
+	{
+		g_outfits.clear();
+		g_mounts.clear();
+		g_outfits.shrink_to_fit();
+		g_mounts.shrink_to_fit();
+	}
+
+	GUI_Outfit_View* getOutfitView(GUI_Window* pWindow, Uint32 internalID)
+	{
+		if(!pWindow)
+			return nullptr;
+
+		return SDL_static_cast(GUI_Outfit_View*, pWindow->getChild(internalID));
+	}
+
+	void refreshOutfitViews(GUI_Window* pWindow)
+	{
+		if(GUI_Outfit_View* outfitView = getOutfitView(pWindow, OUTFITS_OUTFIT_VIEW_EVENTID))
+			outfitView->refresh();
+
+		if(GUI_Outfit_View* mountView = getOutfitView(pWindow, OUTFITS_MOUNT_VIEW_EVENTID))
+			mountView->refresh();
+	}
+
+	void setCenteredLabel(GUI_Window* pWindow, Uint32 internalID, const std::string& text)
+	{
+		if(!pWindow)
+			return;
+
+		if(GUI_Label* label = SDL_static_cast(GUI_Label*, pWindow->getChild(internalID)))
+			label->setName(text);
+	}
+
+	void configureAddonCheckBox(GUI_CheckBox* checkBox, Uint8 bit, bool enabled)
+	{
+		if(!checkBox)
+			return;
+
+		if(enabled)
+		{
+			checkBox->setColor(180, 180, 180);
+			checkBox->startEvents();
+		}
+		else
+		{
+			g_outfitAddons &= ~bit;
+			checkBox->setColor(112, 112, 112);
+			checkBox->stopEvents();
+		}
+
+		const bool shouldCheck = ((g_outfitAddons & bit) != 0);
+		if(checkBox->isChecked() != shouldCheck)
+			checkBox->setChecked(shouldCheck);
+	}
+
+	void configureAddonBoxes(GUI_Window* pWindow, Uint8 allowedAddons)
+	{
+		if(!pWindow)
+			return;
+
+		g_outfitAddons &= allowedAddons;
+		configureAddonCheckBox(SDL_static_cast(GUI_CheckBox*, pWindow->getChild(OUTFITS_CHECKBOX_ADDON1_EVENTID)), 1, ((allowedAddons & 1) != 0));
+		configureAddonCheckBox(SDL_static_cast(GUI_CheckBox*, pWindow->getChild(OUTFITS_CHECKBOX_ADDON2_EVENTID)), 2, ((allowedAddons & 2) != 0));
+
+		if(GUI_CheckBox* addon3 = SDL_static_cast(GUI_CheckBox*, pWindow->getChild(OUTFITS_CHECKBOX_ADDON3_EVENTID)))
+		{
+			addon3->setColor(112, 112, 112);
+			addon3->stopEvents();
+		}
+	}
+
+	void cycleOutfit(GUI_Window* pWindow, Sint32 step)
+	{
+		if(!pWindow || g_outfits.empty())
+			return;
+
+		auto it = std::find_if(g_outfits.begin(), g_outfits.end(), [](const OutfitDetail& outfit) {
+			return outfit.outfitID == g_outfitLookType;
+		});
+		if(it == g_outfits.end())
+			it = g_outfits.begin();
+		else if(step < 0)
+		{
+			if(it == g_outfits.begin())
+				it = g_outfits.end();
+			--it;
+		}
+		else
+		{
+			++it;
+			if(it == g_outfits.end())
+				it = g_outfits.begin();
+		}
+
+		g_outfitLookType = (*it).outfitID;
+		g_outfitAddons = (*it).outfitAddons;
+		setCenteredLabel(pWindow, OUTFITS_LABEL_OUTFIT_EVENTID, (*it).outfitName);
+		configureAddonBoxes(pWindow, (*it).outfitAddons);
+		refreshOutfitViews(pWindow);
+	}
+
+	void cycleMount(GUI_Window* pWindow, Sint32 step)
+	{
+		if(!pWindow || g_mounts.empty())
+			return;
+
+		Sint32 currentIndex = 0;
+		for(size_t i = 0, end = g_mounts.size(); i < end; ++i)
+		{
+			if(g_mounts[i].mountID == g_outfitMount)
+			{
+				currentIndex = SDL_static_cast(Sint32, i + 1);
+				break;
+			}
+		}
+
+		const Sint32 mountCount = SDL_static_cast(Sint32, g_mounts.size());
+		Sint32 nextIndex = currentIndex + step;
+		if(nextIndex < 0)
+			nextIndex = mountCount;
+		else if(nextIndex > mountCount)
+			nextIndex = 0;
+
+		if(nextIndex == 0)
+		{
+			g_outfitMount = 0;
+			setCenteredLabel(pWindow, OUTFITS_LABEL_MOUNT_EVENTID, "No Mount");
+		}
+		else
+		{
+			const MountDetail& mount = g_mounts[SDL_static_cast(size_t, nextIndex - 1)];
+			g_outfitMount = mount.mountID;
+			setCenteredLabel(pWindow, OUTFITS_LABEL_MOUNT_EVENTID, mount.mountName);
+		}
+
+		refreshOutfitViews(pWindow);
+	}
+}
+
 void outfits_Events(Uint32 event, Sint32 status)
 {
 	switch(event)
 	{
 		case OUTFITS_CANCEL_EVENTID:
 		{
-			GUI_Window* pWindow = g_engine.getCurrentWindow();
+			GUI_Window* pWindow = getOutfitWindow();
 			if(pWindow && pWindow->getInternalID() == GUI_WINDOW_OUTFITS)
 			{
 				g_engine.removeWindow(pWindow);
-				g_outfits.clear();
-				g_mounts.clear();
-				g_outfits.shrink_to_fit();
-				g_mounts.shrink_to_fit();
+				clearOutfitState();
 			}
 		}
 		break;
 		case OUTFITS_OK_EVENTID:
 		{
-			GUI_Window* pWindow = g_engine.getCurrentWindow();
+			GUI_Window* pWindow = getOutfitWindow();
 			if(pWindow && pWindow->getInternalID() == GUI_WINDOW_OUTFITS)
 			{
 				g_game.sendSetOutfit(g_outfitLookType, g_outfitColors[0], g_outfitColors[1], g_outfitColors[2], g_outfitColors[3], g_outfitAddons, g_outfitMount);
 				g_engine.removeWindow(pWindow);
-				g_outfits.clear();
-				g_mounts.clear();
-				g_outfits.shrink_to_fit();
-				g_mounts.shrink_to_fit();
+				clearOutfitState();
 			}
 		}
 		break;
-		case OUTFITS_CHECKBOX_MOVEMENT_EVENTID:
+		case OUTFITS_RANDOMIZE_EVENTID:
 		{
-			GUI_Window* pWindow = g_engine.getCurrentWindow();
+			GUI_Window* pWindow = getOutfitWindow();
 			if(pWindow && pWindow->getInternalID() == GUI_WINDOW_OUTFITS)
 			{
-				GUI_Outfit_View* pOutfitView = SDL_static_cast(GUI_Outfit_View*, pWindow->getChild(OUTFITS_OUTFIT_VIEW_EVENTID));
-				if(pOutfitView)
-				{
-					if(status == 1)
-						pOutfitView->startMovement();
-					else
-						pOutfitView->stopMovement();
-				}
-			}
-		}
-		break;
-		case OUTFITS_CHECKBOX_OUTFIT_EVENTID:
-		{
-			GUI_Window* pWindow = g_engine.getCurrentWindow();
-			if(pWindow && pWindow->getInternalID() == GUI_WINDOW_OUTFITS)
-			{
-				GUI_Outfit_View* pOutfitView = SDL_static_cast(GUI_Outfit_View*, pWindow->getChild(OUTFITS_OUTFIT_VIEW_EVENTID));
-				if(pOutfitView)
-					pOutfitView->refresh();
+				for(Uint8& color : g_outfitColors)
+					color = SDL_static_cast(Uint8, UTIL_random(0, 132));
+				refreshOutfitViews(pWindow);
 			}
 		}
 		break;
 		case OUTFITS_CHECKBOX_ADDON1_EVENTID:
 		{
-			GUI_Window* pWindow = g_engine.getCurrentWindow();
+			GUI_Window* pWindow = getOutfitWindow();
 			if(pWindow && pWindow->getInternalID() == GUI_WINDOW_OUTFITS)
 			{
 				if(status == 1)
 					g_outfitAddons |= 1;
 				else
 					g_outfitAddons &= ~1;
+				refreshOutfitViews(pWindow);
 			}
 		}
 		break;
 		case OUTFITS_CHECKBOX_ADDON2_EVENTID:
 		{
-			GUI_Window* pWindow = g_engine.getCurrentWindow();
+			GUI_Window* pWindow = getOutfitWindow();
 			if(pWindow && pWindow->getInternalID() == GUI_WINDOW_OUTFITS)
 			{
 				if(status == 1)
 					g_outfitAddons |= 2;
 				else
 					g_outfitAddons &= ~2;
-			}
-		}
-		break;
-		case OUTFITS_CHECKBOX_MOUNT_EVENTID:
-		{
-			GUI_Window* pWindow = g_engine.getCurrentWindow();
-			if(pWindow && pWindow->getInternalID() == GUI_WINDOW_OUTFITS)
-			{
-				GUI_Outfit_View* pOutfitView = SDL_static_cast(GUI_Outfit_View*, pWindow->getChild(OUTFITS_OUTFIT_VIEW_EVENTID));
-				if(pOutfitView)
-					pOutfitView->refresh();
+				refreshOutfitViews(pWindow);
 			}
 		}
 		break;
 		case OUTFITS_ICON_PREV_OUTFIT_EVENTID:
 		{
-			GUI_Window* pWindow = g_engine.getCurrentWindow();
-			if(pWindow && pWindow->getInternalID() == GUI_WINDOW_OUTFITS && g_outfits.size() > 1)
-			{
-				std::vector<OutfitDetail>::iterator it = g_outfits.begin();
-				for(std::vector<OutfitDetail>::iterator end = g_outfits.end(); it != end; ++it)
-				{
-					if((*it).outfitID == g_outfitLookType)
-						break;
-				}
-				if(it == g_outfits.begin())
-					it = g_outfits.end();
-				--it;
-				g_outfitLookType = (*it).outfitID;
-
-				GUI_Outfit_View* pOutfitView = SDL_static_cast(GUI_Outfit_View*, pWindow->getChild(OUTFITS_OUTFIT_VIEW_EVENTID));
-				if(pOutfitView)
-					pOutfitView->refresh();
-
-				GUI_Label* pLabel = SDL_static_cast(GUI_Label*, pWindow->getChild(OUTFITS_LABEL_OUTFIT_EVENTID));
-				if(pLabel)
-					pLabel->setName((*it).outfitName);
-
-				GUI_CheckBox* pCheckBox1 = SDL_static_cast(GUI_CheckBox*, pWindow->getChild(OUTFITS_CHECKBOX_ADDON1_EVENTID));
-				GUI_CheckBox* pCheckBox2 = SDL_static_cast(GUI_CheckBox*, pWindow->getChild(OUTFITS_CHECKBOX_ADDON2_EVENTID));
-				if(pCheckBox1 && pCheckBox2)
-				{
-					Uint8 outfitAddons = (*it).outfitAddons;
-					if(outfitAddons & 1)//First addon
-					{
-						if(pCheckBox1->isChecked())
-							g_outfitAddons |= 1;
-						else
-							g_outfitAddons &= ~1;
-						pCheckBox1->setColor(180, 180, 180);
-						pCheckBox1->startEvents();
-					}
-					else
-					{
-						g_outfitAddons &= ~1;
-						pCheckBox1->setColor(112, 112, 112);
-						pCheckBox1->stopEvents();
-					}
-					if(outfitAddons & 2)//Second addon
-					{
-						if(pCheckBox2->isChecked())
-							g_outfitAddons |= 2;
-						else
-							g_outfitAddons &= ~2;
-						pCheckBox2->setColor(180, 180, 180);
-						pCheckBox2->startEvents();
-					}
-					else
-					{
-						g_outfitAddons &= ~2;
-						pCheckBox2->setColor(112, 112, 112);
-						pCheckBox2->stopEvents();
-					}
-				}
-			}
+			cycleOutfit(getOutfitWindow(), -1);
 		}
 		break;
 		case OUTFITS_ICON_NEXT_OUTFIT_EVENTID:
 		{
-			GUI_Window* pWindow = g_engine.getCurrentWindow();
-			if(pWindow && pWindow->getInternalID() == GUI_WINDOW_OUTFITS && g_outfits.size() > 1)
-			{
-				std::vector<OutfitDetail>::iterator it = g_outfits.begin();
-				for(std::vector<OutfitDetail>::iterator end = g_outfits.end(); it != end; ++it)
-				{
-					if((*it).outfitID == g_outfitLookType)
-						break;
-				}
-				++it;
-				if(it == g_outfits.end())
-					it = g_outfits.begin();
-				g_outfitLookType = (*it).outfitID;
-
-				GUI_Outfit_View* pOutfitView = SDL_static_cast(GUI_Outfit_View*, pWindow->getChild(OUTFITS_OUTFIT_VIEW_EVENTID));
-				if(pOutfitView)
-					pOutfitView->refresh();
-
-				GUI_Label* pLabel = SDL_static_cast(GUI_Label*, pWindow->getChild(OUTFITS_LABEL_OUTFIT_EVENTID));
-				if(pLabel)
-					pLabel->setName((*it).outfitName);
-
-				GUI_CheckBox* pCheckBox1 = SDL_static_cast(GUI_CheckBox*, pWindow->getChild(OUTFITS_CHECKBOX_ADDON1_EVENTID));
-				GUI_CheckBox* pCheckBox2 = SDL_static_cast(GUI_CheckBox*, pWindow->getChild(OUTFITS_CHECKBOX_ADDON2_EVENTID));
-				if(pCheckBox1 && pCheckBox2)
-				{
-					Uint8 outfitAddons = (*it).outfitAddons;
-					if(outfitAddons & 1)//First addon
-					{
-						if(pCheckBox1->isChecked())
-							g_outfitAddons |= 1;
-						else
-							g_outfitAddons &= ~1;
-						pCheckBox1->setColor(180, 180, 180);
-						pCheckBox1->startEvents();
-					}
-					else
-					{
-						g_outfitAddons &= ~1;
-						pCheckBox1->setColor(112, 112, 112);
-						pCheckBox1->stopEvents();
-					}
-					if(outfitAddons & 2)//Second addon
-					{
-						if(pCheckBox2->isChecked())
-							g_outfitAddons |= 2;
-						else
-							g_outfitAddons &= ~2;
-						pCheckBox2->setColor(180, 180, 180);
-						pCheckBox2->startEvents();
-					}
-					else
-					{
-						g_outfitAddons &= ~2;
-						pCheckBox2->setColor(112, 112, 112);
-						pCheckBox2->stopEvents();
-					}
-				}
-			}
+			cycleOutfit(getOutfitWindow(), 1);
 		}
 		break;
 		case OUTFITS_ICON_PREV_MOUNT_EVENTID:
 		{
-			GUI_Window* pWindow = g_engine.getCurrentWindow();
-			if(pWindow && pWindow->getInternalID() == GUI_WINDOW_OUTFITS && g_mounts.size() > 1)
-			{
-				std::vector<MountDetail>::iterator it = g_mounts.begin();
-				for(std::vector<MountDetail>::iterator end = g_mounts.end(); it != end; ++it)
-				{
-					if((*it).mountID == g_outfitMount)
-						break;
-				}
-				if(it == g_mounts.begin())
-					it = g_mounts.end();
-				--it;
-				g_outfitMount = (*it).mountID;
-
-				GUI_Outfit_View* pOutfitView = SDL_static_cast(GUI_Outfit_View*, pWindow->getChild(OUTFITS_OUTFIT_VIEW_EVENTID));
-				if(pOutfitView)
-					pOutfitView->refresh();
-
-				GUI_Label* pLabel = SDL_static_cast(GUI_Label*, pWindow->getChild(OUTFITS_LABEL_MOUNT_EVENTID));
-				if(pLabel)
-					pLabel->setName((*it).mountName);
-			}
+			cycleMount(getOutfitWindow(), -1);
 		}
 		break;
 		case OUTFITS_ICON_NEXT_MOUNT_EVENTID:
 		{
-			GUI_Window* pWindow = g_engine.getCurrentWindow();
-			if(pWindow && pWindow->getInternalID() == GUI_WINDOW_OUTFITS && g_mounts.size() > 1)
-			{
-				std::vector<MountDetail>::iterator it = g_mounts.begin();
-				for(std::vector<MountDetail>::iterator end = g_mounts.end(); it != end; ++it)
-				{
-					if((*it).mountID == g_outfitMount)
-						break;
-				}
-				++it;
-				if(it == g_mounts.end())
-					it = g_mounts.begin();
-				g_outfitMount = (*it).mountID;
-
-				GUI_Outfit_View* pOutfitView = SDL_static_cast(GUI_Outfit_View*, pWindow->getChild(OUTFITS_OUTFIT_VIEW_EVENTID));
-				if(pOutfitView)
-					pOutfitView->refresh();
-
-				GUI_Label* pLabel = SDL_static_cast(GUI_Label*, pWindow->getChild(OUTFITS_LABEL_MOUNT_EVENTID));
-				if(pLabel)
-					pLabel->setName((*it).mountName);
-			}
+			cycleMount(getOutfitWindow(), 1);
 		}
 		break;
-		case OUTFITS_ICON_PREV_DIRECTION_EVENTID:
+		case OUTFITS_ICON_PREV_OUTFIT_DIRECTION_EVENTID:
 		{
-			GUI_Window* pWindow = g_engine.getCurrentWindow();
+			GUI_Window* pWindow = getOutfitWindow();
 			if(pWindow && pWindow->getInternalID() == GUI_WINDOW_OUTFITS)
 			{
 				GUI_Outfit_View* pOutfitView = SDL_static_cast(GUI_Outfit_View*, pWindow->getChild(OUTFITS_OUTFIT_VIEW_EVENTID));
@@ -454,9 +411,9 @@ void outfits_Events(Uint32 event, Sint32 status)
 			}
 		}
 		break;
-		case OUTFITS_ICON_NEXT_DIRECTION_EVENTID:
+		case OUTFITS_ICON_NEXT_OUTFIT_DIRECTION_EVENTID:
 		{
-			GUI_Window* pWindow = g_engine.getCurrentWindow();
+			GUI_Window* pWindow = getOutfitWindow();
 			if(pWindow && pWindow->getInternalID() == GUI_WINDOW_OUTFITS)
 			{
 				GUI_Outfit_View* pOutfitView = SDL_static_cast(GUI_Outfit_View*, pWindow->getChild(OUTFITS_OUTFIT_VIEW_EVENTID));
@@ -465,21 +422,49 @@ void outfits_Events(Uint32 event, Sint32 status)
 			}
 		}
 		break;
+		case OUTFITS_ICON_PREV_MOUNT_DIRECTION_EVENTID:
+		{
+			GUI_Window* pWindow = getOutfitWindow();
+			if(pWindow && pWindow->getInternalID() == GUI_WINDOW_OUTFITS)
+			{
+				GUI_Outfit_View* pMountView = SDL_static_cast(GUI_Outfit_View*, pWindow->getChild(OUTFITS_MOUNT_VIEW_EVENTID));
+				if(pMountView)
+					pMountView->previousDirection();
+			}
+		}
+		break;
+		case OUTFITS_ICON_NEXT_MOUNT_DIRECTION_EVENTID:
+		{
+			GUI_Window* pWindow = getOutfitWindow();
+			if(pWindow && pWindow->getInternalID() == GUI_WINDOW_OUTFITS)
+			{
+				GUI_Outfit_View* pMountView = SDL_static_cast(GUI_Outfit_View*, pWindow->getChild(OUTFITS_MOUNT_VIEW_EVENTID));
+				if(pMountView)
+					pMountView->nextDirection();
+			}
+		}
+		break;
 		default: break;
 	}
 }
 
-void UTIL_createOutfitWindow(Uint16 lookType, Uint8 lookHead, Uint8 lookBody, Uint8 lookLegs, Uint8 lookFeet, Uint8 lookAddons, Uint16 lookMount, std::vector<OutfitDetail>& outfits, std::vector<MountDetail>& mounts)
+void UTIL_createOutfitWindow(Uint16 lookType, Uint8 lookHead, Uint8 lookBody, Uint8 lookLegs, Uint8 lookFeet, Uint8 lookAddons, Uint16 lookMount, const std::vector<OutfitDetail>& outfits, const std::vector<MountDetail>& mounts)
 {
 	GUI_Window* pWindow = g_engine.getWindow(GUI_WINDOW_OUTFITS);
 	if(pWindow)
 		g_engine.removeWindow(pWindow);
 
+	const bool mountsEnabled = g_game.hasGameFeature(GAME_FEATURE_MOUNTS);
+	std::vector<OutfitDetail> windowOutfits = outfits;
+	std::vector<MountDetail> windowMounts = (mountsEnabled ? mounts : std::vector<MountDetail>());
+	if(!mountsEnabled)
+		lookMount = 0;
+
 	if(lookType == 0)
 	{
-		if(outfits.empty())
+		if(windowOutfits.empty())
 			return;
-		lookType = (*outfits.begin()).outfitID;
+		lookType = (*windowOutfits.begin()).outfitID;
 	}
 
 	std::string outfitName = "Your Character";
@@ -487,9 +472,8 @@ void UTIL_createOutfitWindow(Uint16 lookType, Uint8 lookHead, Uint8 lookBody, Ui
 	Uint8 outfitAddons = 0;
 	bool foundOutfit = false;
 	bool foundMount = false;
-	for(std::vector<OutfitDetail>::iterator it = outfits.begin(), end = outfits.end(); it != end; ++it)
+	for(const OutfitDetail& outfit : windowOutfits)
 	{
-		OutfitDetail& outfit = (*it);
 		if(outfit.outfitID == lookType)
 		{
 			outfitName = outfit.outfitName;
@@ -501,9 +485,8 @@ void UTIL_createOutfitWindow(Uint16 lookType, Uint8 lookHead, Uint8 lookBody, Ui
 
 	if(lookMount != 0)
 	{
-		for(std::vector<MountDetail>::iterator it = mounts.begin(), end = mounts.end(); it != end; ++it)
+		for(const MountDetail& mount : windowMounts)
 		{
-			MountDetail& mount = (*it);
 			if(mount.mountID == lookMount)
 			{
 				mountName = mount.mountName;
@@ -517,7 +500,7 @@ void UTIL_createOutfitWindow(Uint16 lookType, Uint8 lookHead, Uint8 lookBody, Ui
 			MountDetail newMount;
 			newMount.mountID = lookMount;
 			newMount.mountName = "Your Mount";
-			mounts.push_back(newMount);
+			windowMounts.push_back(newMount);
 			mountName = "Your Mount";
 			foundMount = true;
 		}
@@ -529,139 +512,112 @@ void UTIL_createOutfitWindow(Uint16 lookType, Uint8 lookHead, Uint8 lookBody, Ui
 		newOutfit.outfitID = lookType;
 		newOutfit.outfitName = "Your Character";
 		newOutfit.outfitAddons = 0;
-		outfits.push_back(newOutfit);
+		windowOutfits.push_back(newOutfit);
 	}
 
-	g_outfits = std::move(outfits);
-	g_mounts = std::move(mounts);
+	g_outfits = std::move(windowOutfits);
+	g_mounts = std::move(windowMounts);
 	g_outfitLookType = lookType;
 	g_outfitMount = lookMount;
 	g_outfitColors[0] = lookHead;
 	g_outfitColors[1] = lookBody;
 	g_outfitColors[2] = lookLegs;
 	g_outfitColors[3] = lookFeet;
-	g_outfitAddons = lookAddons;
+	g_outfitAddons = (lookAddons & outfitAddons);
 
-	GUI_Window* newWindow = new GUI_Window(iRect(0, 0, OUTFITS_WIDTH, OUTFITS_HEIGHT), OUTFITS_TITLE, GUI_WINDOW_OUTFITS);
-	GUI_Outfit_View* newView = new GUI_Outfit_View(iRect(OUTFITS_OUTFIT_VIEW_X, OUTFITS_OUTFIT_VIEW_Y, OUTFITS_OUTFIT_VIEW_W, OUTFITS_OUTFIT_VIEW_H), OUTFITS_OUTFIT_VIEW_EVENTID);
-	newWindow->addChild(newView);
-	GUI_Outfit_Colors* newColors = new GUI_Outfit_Colors(iRect(OUTFITS_OUTFIT_COLORS_X, OUTFITS_OUTFIT_COLORS_Y, OUTFITS_OUTFIT_COLORS_W, OUTFITS_OUTFIT_COLORS_H));
+	std::unique_ptr<GUI_Window> newWindow = std::make_unique<GUI_Window>(iRect(0, 0, OUTFITS_WIDTH, OUTFITS_HEIGHT), OUTFITS_TITLE, GUI_WINDOW_OUTFITS);
+
+	addWindowChild<GUI_Outfit_View>(*newWindow, iRect(OUTFITS_OUTFIT_VIEW_X, OUTFITS_OUTFIT_VIEW_Y, OUTFITS_OUTFIT_VIEW_W, OUTFITS_OUTFIT_VIEW_H), OUTFITS_OUTFIT_VIEW_EVENTID, GUI_Outfit_View::PreviewMode_Outfit);
+	if(mountsEnabled)
+		addWindowChild<GUI_Outfit_View>(*newWindow, iRect(OUTFITS_MOUNT_VIEW_X, OUTFITS_MOUNT_VIEW_Y, OUTFITS_MOUNT_VIEW_W, OUTFITS_MOUNT_VIEW_H), OUTFITS_MOUNT_VIEW_EVENTID, GUI_Outfit_View::PreviewMode_Mount);
+
+	GUI_Outfit_Colors* newColors = addWindowChild<GUI_Outfit_Colors>(*newWindow, iRect(OUTFITS_OUTFIT_COLORS_X, OUTFITS_OUTFIT_COLORS_Y, OUTFITS_OUTFIT_COLORS_W, OUTFITS_OUTFIT_COLORS_H));
 	newColors->startEvents();
-	newWindow->addChild(newColors);
-	GUI_Icon* newIcon = new GUI_Icon(iRect(OUTFITS_ICON_PREV_OUTFIT_X, OUTFITS_ICON_PREV_OUTFIT_Y, OUTFITS_ICON_PREV_OUTFIT_W, OUTFITS_ICON_PREV_OUTFIT_H), GUI_UI_IMAGE, GUI_UI_ICON_ARROW_LEFT_UP_X, GUI_UI_ICON_ARROW_LEFT_UP_Y, GUI_UI_ICON_ARROW_LEFT_DOWN_X, GUI_UI_ICON_ARROW_LEFT_DOWN_Y);
+
+	GUI_Icon* newIcon = addWindowChild<GUI_Icon>(*newWindow, iRect(OUTFITS_ICON_PREV_OUTFIT_X, OUTFITS_ICON_PREV_OUTFIT_Y, OUTFITS_ICON_PREV_OUTFIT_W, OUTFITS_ICON_PREV_OUTFIT_H), GUI_UI_IMAGE, GUI_UI_ICON_ARROW_LEFT_UP_X, GUI_UI_ICON_ARROW_LEFT_UP_Y, GUI_UI_ICON_ARROW_LEFT_DOWN_X, GUI_UI_ICON_ARROW_LEFT_DOWN_Y);
 	newIcon->setButtonEventCallback(&outfits_Events, OUTFITS_ICON_PREV_OUTFIT_EVENTID);
 	newIcon->startEvents();
-	newWindow->addChild(newIcon);
-	newIcon = new GUI_Icon(iRect(OUTFITS_ICON_PREV_MOUNT_X, OUTFITS_ICON_PREV_MOUNT_Y, OUTFITS_ICON_PREV_MOUNT_W, OUTFITS_ICON_PREV_MOUNT_H), GUI_UI_IMAGE, GUI_UI_ICON_ARROW_LEFT_UP_X, GUI_UI_ICON_ARROW_LEFT_UP_Y, GUI_UI_ICON_ARROW_LEFT_DOWN_X, GUI_UI_ICON_ARROW_LEFT_DOWN_Y);
-	newIcon->setButtonEventCallback(&outfits_Events, OUTFITS_ICON_PREV_MOUNT_EVENTID);
-	newIcon->startEvents();
-	newWindow->addChild(newIcon);
-	newIcon = new GUI_Icon(iRect(OUTFITS_ICON_PREV_DIRECTION_X, OUTFITS_ICON_PREV_DIRECTION_Y, OUTFITS_ICON_PREV_DIRECTION_W, OUTFITS_ICON_PREV_DIRECTION_H), GUI_UI_IMAGE, GUI_UI_ICON_ROTATE_LEFT_UP_X, GUI_UI_ICON_ROTATE_LEFT_UP_Y, GUI_UI_ICON_ROTATE_LEFT_DOWN_X, GUI_UI_ICON_ROTATE_LEFT_DOWN_Y);
-	newIcon->setButtonEventCallback(&outfits_Events, OUTFITS_ICON_PREV_DIRECTION_EVENTID);
-	newIcon->startEvents();
-	newWindow->addChild(newIcon);
-	newIcon = new GUI_Icon(iRect(OUTFITS_ICON_NEXT_OUTFIT_X, OUTFITS_ICON_NEXT_OUTFIT_Y, OUTFITS_ICON_NEXT_OUTFIT_W, OUTFITS_ICON_NEXT_OUTFIT_H), GUI_UI_IMAGE, GUI_UI_ICON_ARROW_RIGHT_UP_X, GUI_UI_ICON_ARROW_RIGHT_UP_Y, GUI_UI_ICON_ARROW_RIGHT_DOWN_X, GUI_UI_ICON_ARROW_RIGHT_DOWN_Y);
+
+	newIcon = addWindowChild<GUI_Icon>(*newWindow, iRect(OUTFITS_ICON_NEXT_OUTFIT_X, OUTFITS_ICON_NEXT_OUTFIT_Y, OUTFITS_ICON_NEXT_OUTFIT_W, OUTFITS_ICON_NEXT_OUTFIT_H), GUI_UI_IMAGE, GUI_UI_ICON_ARROW_RIGHT_UP_X, GUI_UI_ICON_ARROW_RIGHT_UP_Y, GUI_UI_ICON_ARROW_RIGHT_DOWN_X, GUI_UI_ICON_ARROW_RIGHT_DOWN_Y);
 	newIcon->setButtonEventCallback(&outfits_Events, OUTFITS_ICON_NEXT_OUTFIT_EVENTID);
 	newIcon->startEvents();
-	newWindow->addChild(newIcon);
-	newIcon = new GUI_Icon(iRect(OUTFITS_ICON_NEXT_MOUNT_X, OUTFITS_ICON_NEXT_MOUNT_Y, OUTFITS_ICON_NEXT_MOUNT_W, OUTFITS_ICON_NEXT_MOUNT_H), GUI_UI_IMAGE, GUI_UI_ICON_ARROW_RIGHT_UP_X, GUI_UI_ICON_ARROW_RIGHT_UP_Y, GUI_UI_ICON_ARROW_RIGHT_DOWN_X, GUI_UI_ICON_ARROW_RIGHT_DOWN_Y);
-	newIcon->setButtonEventCallback(&outfits_Events, OUTFITS_ICON_NEXT_MOUNT_EVENTID);
+
+	if(mountsEnabled)
+	{
+		newIcon = addWindowChild<GUI_Icon>(*newWindow, iRect(OUTFITS_ICON_PREV_MOUNT_X, OUTFITS_ICON_PREV_MOUNT_Y, OUTFITS_ICON_PREV_MOUNT_W, OUTFITS_ICON_PREV_MOUNT_H), GUI_UI_IMAGE, GUI_UI_ICON_ARROW_LEFT_UP_X, GUI_UI_ICON_ARROW_LEFT_UP_Y, GUI_UI_ICON_ARROW_LEFT_DOWN_X, GUI_UI_ICON_ARROW_LEFT_DOWN_Y);
+		newIcon->setButtonEventCallback(&outfits_Events, OUTFITS_ICON_PREV_MOUNT_EVENTID);
+		newIcon->startEvents();
+
+		newIcon = addWindowChild<GUI_Icon>(*newWindow, iRect(OUTFITS_ICON_NEXT_MOUNT_X, OUTFITS_ICON_NEXT_MOUNT_Y, OUTFITS_ICON_NEXT_MOUNT_W, OUTFITS_ICON_NEXT_MOUNT_H), GUI_UI_IMAGE, GUI_UI_ICON_ARROW_RIGHT_UP_X, GUI_UI_ICON_ARROW_RIGHT_UP_Y, GUI_UI_ICON_ARROW_RIGHT_DOWN_X, GUI_UI_ICON_ARROW_RIGHT_DOWN_Y);
+		newIcon->setButtonEventCallback(&outfits_Events, OUTFITS_ICON_NEXT_MOUNT_EVENTID);
+		newIcon->startEvents();
+	}
+
+	newIcon = addWindowChild<GUI_Icon>(*newWindow, iRect(OUTFITS_ICON_PREV_OUTFIT_DIRECTION_X, OUTFITS_ICON_PREV_OUTFIT_DIRECTION_Y, OUTFITS_ICON_PREV_OUTFIT_DIRECTION_W, OUTFITS_ICON_PREV_OUTFIT_DIRECTION_H), GUI_UI_IMAGE, GUI_UI_ICON_ROTATE_LEFT_UP_X, GUI_UI_ICON_ROTATE_LEFT_UP_Y, GUI_UI_ICON_ROTATE_LEFT_DOWN_X, GUI_UI_ICON_ROTATE_LEFT_DOWN_Y);
+	newIcon->setButtonEventCallback(&outfits_Events, OUTFITS_ICON_PREV_OUTFIT_DIRECTION_EVENTID);
 	newIcon->startEvents();
-	newWindow->addChild(newIcon);
-	newIcon = new GUI_Icon(iRect(OUTFITS_ICON_NEXT_DIRECTION_X, OUTFITS_ICON_NEXT_DIRECTION_Y, OUTFITS_ICON_NEXT_DIRECTION_W, OUTFITS_ICON_NEXT_DIRECTION_H), GUI_UI_IMAGE, GUI_UI_ICON_ROTATE_RIGHT_UP_X, GUI_UI_ICON_ROTATE_RIGHT_UP_Y, GUI_UI_ICON_ROTATE_RIGHT_DOWN_X, GUI_UI_ICON_ROTATE_RIGHT_DOWN_Y);
-	newIcon->setButtonEventCallback(&outfits_Events, OUTFITS_ICON_NEXT_DIRECTION_EVENTID);
+
+	newIcon = addWindowChild<GUI_Icon>(*newWindow, iRect(OUTFITS_ICON_NEXT_OUTFIT_DIRECTION_X, OUTFITS_ICON_NEXT_OUTFIT_DIRECTION_Y, OUTFITS_ICON_NEXT_OUTFIT_DIRECTION_W, OUTFITS_ICON_NEXT_OUTFIT_DIRECTION_H), GUI_UI_IMAGE, GUI_UI_ICON_ROTATE_RIGHT_UP_X, GUI_UI_ICON_ROTATE_RIGHT_UP_Y, GUI_UI_ICON_ROTATE_RIGHT_DOWN_X, GUI_UI_ICON_ROTATE_RIGHT_DOWN_Y);
+	newIcon->setButtonEventCallback(&outfits_Events, OUTFITS_ICON_NEXT_OUTFIT_DIRECTION_EVENTID);
 	newIcon->startEvents();
-	newWindow->addChild(newIcon);
-	GUI_Grouper* newGrouper = new GUI_Grouper(iRect(OUTFITS_GROUPER_OUTFIT_X, OUTFITS_GROUPER_OUTFIT_Y, OUTFITS_GROUPER_OUTFIT_W, OUTFITS_GROUPER_OUTFIT_H));
-	newWindow->addChild(newGrouper);
-	newGrouper = new GUI_Grouper(iRect(OUTFITS_GROUPER_OUTFIT_NAME_X, OUTFITS_GROUPER_OUTFIT_NAME_Y, OUTFITS_GROUPER_OUTFIT_NAME_W, OUTFITS_GROUPER_OUTFIT_NAME_H));
-	newWindow->addChild(newGrouper);
-	newGrouper = new GUI_Grouper(iRect(OUTFITS_GROUPER_MOUNT_NAME_X, OUTFITS_GROUPER_MOUNT_NAME_Y, OUTFITS_GROUPER_MOUNT_NAME_W, OUTFITS_GROUPER_MOUNT_NAME_H));
-	newWindow->addChild(newGrouper);
-	GUI_CheckBox* newCheckBox = new GUI_CheckBox(iRect(OUTFITS_CHECKBOX_MOVEMENT_X, OUTFITS_CHECKBOX_MOVEMENT_Y, OUTFITS_CHECKBOX_MOVEMENT_W, OUTFITS_CHECKBOX_MOVEMENT_H), OUTFITS_CHECKBOX_MOVEMENT_TEXT, false, OUTFITS_CHECKBOX_MOVEMENT_EVENTID);
-	newCheckBox->setBoxEventCallback(&outfits_Events, OUTFITS_CHECKBOX_MOVEMENT_EVENTID);
-	newCheckBox->startEvents();
-	newWindow->addChild(newCheckBox);
-	newCheckBox = new GUI_CheckBox(iRect(OUTFITS_CHECKBOX_OUTFIT_X, OUTFITS_CHECKBOX_OUTFIT_Y, OUTFITS_CHECKBOX_OUTFIT_W, OUTFITS_CHECKBOX_OUTFIT_H), OUTFITS_CHECKBOX_OUTFIT_TEXT, true, OUTFITS_CHECKBOX_OUTFIT_EVENTID, 112, 112, 112);
-	newCheckBox->setBoxEventCallback(&outfits_Events, OUTFITS_CHECKBOX_OUTFIT_EVENTID);
-	newCheckBox->stopEvents();
-	newWindow->addChild(newCheckBox);
-	newCheckBox = new GUI_CheckBox(iRect(OUTFITS_CHECKBOX_FLOOR_X, OUTFITS_CHECKBOX_FLOOR_Y, OUTFITS_CHECKBOX_FLOOR_W, OUTFITS_CHECKBOX_FLOOR_H), OUTFITS_CHECKBOX_FLOOR_TEXT, true, OUTFITS_CHECKBOX_FLOOR_EVENTID, 112, 112, 112);
-	newCheckBox->setBoxEventCallback(&outfits_Events, OUTFITS_CHECKBOX_FLOOR_EVENTID);
-	newCheckBox->stopEvents();
-	newWindow->addChild(newCheckBox);
-	newCheckBox = new GUI_CheckBox(iRect(OUTFITS_CHECKBOX_OUTFITS_X, OUTFITS_CHECKBOX_OUTFITS_Y, OUTFITS_CHECKBOX_OUTFITS_W, OUTFITS_CHECKBOX_OUTFITS_H), OUTFITS_CHECKBOX_OUTFITS_TEXT, true, OUTFITS_CHECKBOX_OUTFITS_EVENTID, 112, 112, 112);
-	newCheckBox->setBoxEventCallback(&outfits_Events, OUTFITS_CHECKBOX_OUTFITS_EVENTID);
-	newCheckBox->stopEvents();
-	newWindow->addChild(newCheckBox);
-	newCheckBox = new GUI_CheckBox(iRect(OUTFITS_CHECKBOX_MOUNTS_X, OUTFITS_CHECKBOX_MOUNTS_Y, OUTFITS_CHECKBOX_MOUNTS_W, OUTFITS_CHECKBOX_MOUNTS_H), OUTFITS_CHECKBOX_MOUNTS_TEXT, true, OUTFITS_CHECKBOX_MOUNTS_EVENTID, 112, 112, 112);
-	newCheckBox->setBoxEventCallback(&outfits_Events, OUTFITS_CHECKBOX_MOUNTS_EVENTID);
-	newCheckBox->stopEvents();
-	newWindow->addChild(newCheckBox);
-	newCheckBox = new GUI_CheckBox(iRect(OUTFITS_CHECKBOX_ADDON1_X, OUTFITS_CHECKBOX_ADDON1_Y, OUTFITS_CHECKBOX_ADDON1_W, OUTFITS_CHECKBOX_ADDON1_H), OUTFITS_CHECKBOX_ADDON1_TEXT, (g_outfitAddons & 1), OUTFITS_CHECKBOX_ADDON1_EVENTID);
+
+	if(mountsEnabled)
+	{
+		newIcon = addWindowChild<GUI_Icon>(*newWindow, iRect(OUTFITS_ICON_PREV_MOUNT_DIRECTION_X, OUTFITS_ICON_PREV_MOUNT_DIRECTION_Y, OUTFITS_ICON_PREV_MOUNT_DIRECTION_W, OUTFITS_ICON_PREV_MOUNT_DIRECTION_H), GUI_UI_IMAGE, GUI_UI_ICON_ROTATE_LEFT_UP_X, GUI_UI_ICON_ROTATE_LEFT_UP_Y, GUI_UI_ICON_ROTATE_LEFT_DOWN_X, GUI_UI_ICON_ROTATE_LEFT_DOWN_Y);
+		newIcon->setButtonEventCallback(&outfits_Events, OUTFITS_ICON_PREV_MOUNT_DIRECTION_EVENTID);
+		newIcon->startEvents();
+
+		newIcon = addWindowChild<GUI_Icon>(*newWindow, iRect(OUTFITS_ICON_NEXT_MOUNT_DIRECTION_X, OUTFITS_ICON_NEXT_MOUNT_DIRECTION_Y, OUTFITS_ICON_NEXT_MOUNT_DIRECTION_W, OUTFITS_ICON_NEXT_MOUNT_DIRECTION_H), GUI_UI_IMAGE, GUI_UI_ICON_ROTATE_RIGHT_UP_X, GUI_UI_ICON_ROTATE_RIGHT_UP_Y, GUI_UI_ICON_ROTATE_RIGHT_DOWN_X, GUI_UI_ICON_ROTATE_RIGHT_DOWN_Y);
+		newIcon->setButtonEventCallback(&outfits_Events, OUTFITS_ICON_NEXT_MOUNT_DIRECTION_EVENTID);
+		newIcon->startEvents();
+	}
+
+	addWindowChild<GUI_Grouper>(*newWindow, iRect(OUTFITS_GROUPER_OUTFIT_NAME_X, OUTFITS_GROUPER_OUTFIT_NAME_Y, OUTFITS_GROUPER_OUTFIT_NAME_W, OUTFITS_GROUPER_OUTFIT_NAME_H));
+	if(mountsEnabled)
+		addWindowChild<GUI_Grouper>(*newWindow, iRect(OUTFITS_GROUPER_MOUNT_NAME_X, OUTFITS_GROUPER_MOUNT_NAME_Y, OUTFITS_GROUPER_MOUNT_NAME_W, OUTFITS_GROUPER_MOUNT_NAME_H));
+
+	GUI_CheckBox* newCheckBox = addWindowChild<GUI_CheckBox>(*newWindow, iRect(OUTFITS_CHECKBOX_ADDON1_X, OUTFITS_CHECKBOX_ADDON1_Y, OUTFITS_CHECKBOX_ADDON1_W, OUTFITS_CHECKBOX_ADDON1_H), OUTFITS_CHECKBOX_ADDON1_TEXT, ((g_outfitAddons & 1) != 0), OUTFITS_CHECKBOX_ADDON1_EVENTID);
 	newCheckBox->setBoxEventCallback(&outfits_Events, OUTFITS_CHECKBOX_ADDON1_EVENTID);
-	if(outfitAddons & 1)//First addon
-		newCheckBox->startEvents();
-	else
-	{
-		g_outfitAddons &= ~1;
-		newCheckBox->setColor(112, 112, 112);
-		newCheckBox->stopEvents();
-	}
-	newWindow->addChild(newCheckBox);
-	newCheckBox = new GUI_CheckBox(iRect(OUTFITS_CHECKBOX_ADDON2_X, OUTFITS_CHECKBOX_ADDON2_Y, OUTFITS_CHECKBOX_ADDON2_W, OUTFITS_CHECKBOX_ADDON2_H), OUTFITS_CHECKBOX_ADDON2_TEXT, (g_outfitAddons & 2), OUTFITS_CHECKBOX_ADDON2_EVENTID);
+
+	newCheckBox = addWindowChild<GUI_CheckBox>(*newWindow, iRect(OUTFITS_CHECKBOX_ADDON2_X, OUTFITS_CHECKBOX_ADDON2_Y, OUTFITS_CHECKBOX_ADDON2_W, OUTFITS_CHECKBOX_ADDON2_H), OUTFITS_CHECKBOX_ADDON2_TEXT, ((g_outfitAddons & 2) != 0), OUTFITS_CHECKBOX_ADDON2_EVENTID);
 	newCheckBox->setBoxEventCallback(&outfits_Events, OUTFITS_CHECKBOX_ADDON2_EVENTID);
-	if(outfitAddons & 2)//Second addon
-		newCheckBox->startEvents();
-	else
-	{
-		g_outfitAddons &= ~2;
-		newCheckBox->setColor(112, 112, 112);
-		newCheckBox->stopEvents();
-	}
-	newWindow->addChild(newCheckBox);
-	newCheckBox = new GUI_CheckBox(iRect(OUTFITS_CHECKBOX_MOUNT_X, OUTFITS_CHECKBOX_MOUNT_Y, OUTFITS_CHECKBOX_MOUNT_W, OUTFITS_CHECKBOX_MOUNT_H), OUTFITS_CHECKBOX_MOUNT_TEXT, true, OUTFITS_CHECKBOX_MOUNT_EVENTID);
-	newCheckBox->setBoxEventCallback(&outfits_Events, OUTFITS_CHECKBOX_MOUNT_EVENTID);
-	if(!mounts.empty())
-		newCheckBox->startEvents();
-	else
-	{
-		newCheckBox->setColor(112, 112, 112);
-		newCheckBox->stopEvents();
-	}
-	newWindow->addChild(newCheckBox);
-	GUI_Label* newLabel = new GUI_Label(iRect(OUTFITS_LABEL_PREVIEW_X, OUTFITS_LABEL_PREVIEW_Y, 0, 0), OUTFITS_LABEL_PREVIEW_TITLE);
-	newWindow->addChild(newLabel);
-	newLabel = new GUI_Label(iRect(OUTFITS_LABEL_FILTER_X, OUTFITS_LABEL_FILTER_Y, 0, 0), OUTFITS_LABEL_FILTER_TITLE);
-	newWindow->addChild(newLabel);
-	newLabel = new GUI_Label(iRect(OUTFITS_LABEL_CONFIGURE_X, OUTFITS_LABEL_CONFIGURE_Y, 0, 0), OUTFITS_LABEL_CONFIGURE_TITLE);
-	newWindow->addChild(newLabel);
-	newLabel = new GUI_Label(iRect(OUTFITS_LABEL_OUTFIT_X, OUTFITS_LABEL_OUTFIT_Y, 0, 0), outfitName, OUTFITS_LABEL_OUTFIT_EVENTID);
+
+	newCheckBox = addWindowChild<GUI_CheckBox>(*newWindow, iRect(OUTFITS_CHECKBOX_ADDON3_X, OUTFITS_CHECKBOX_ADDON3_Y, OUTFITS_CHECKBOX_ADDON3_W, OUTFITS_CHECKBOX_ADDON3_H), OUTFITS_CHECKBOX_ADDON3_TEXT, false, OUTFITS_CHECKBOX_ADDON3_EVENTID, SDL_static_cast(Uint8, 112), SDL_static_cast(Uint8, 112), SDL_static_cast(Uint8, 112));
+	newCheckBox->stopEvents();
+
+	GUI_Label* newLabel = addWindowChild<GUI_Label>(*newWindow, iRect(OUTFITS_LABEL_OUTFIT_X, OUTFITS_LABEL_OUTFIT_Y, 0, 0), outfitName, OUTFITS_LABEL_OUTFIT_EVENTID);
 	newLabel->setAlign(CLIENT_FONT_ALIGN_CENTER);
-	newWindow->addChild(newLabel);
-	newLabel = new GUI_Label(iRect(OUTFITS_LABEL_MOUNT_X, OUTFITS_LABEL_MOUNT_Y, 0, 0), mountName, OUTFITS_LABEL_MOUNT_EVENTID);
-	newLabel->setAlign(CLIENT_FONT_ALIGN_CENTER);
-	newWindow->addChild(newLabel);
-	GUI_Button* newButton = new GUI_Button(iRect(OUTFITS_WIDTH - 56, OUTFITS_HEIGHT - 30, GUI_UI_BUTTON_43PX_GRAY_UP_W, GUI_UI_BUTTON_43PX_GRAY_UP_H), "Cancel", CLIENT_GUI_ESCAPE_TRIGGER);
+	if(mountsEnabled)
+	{
+		newLabel = addWindowChild<GUI_Label>(*newWindow, iRect(OUTFITS_LABEL_MOUNT_X, OUTFITS_LABEL_MOUNT_Y, 0, 0), mountName, OUTFITS_LABEL_MOUNT_EVENTID);
+		newLabel->setAlign(CLIENT_FONT_ALIGN_CENTER);
+	}
+
+	GUI_Button* newButton = addWindowChild<GUI_Button>(*newWindow, iRect(OUTFITS_RANDOMIZE_X, OUTFITS_RANDOMIZE_Y, OUTFITS_RANDOMIZE_W, OUTFITS_RANDOMIZE_H), "Randomize Colors");
+	newButton->setButtonEventCallback(&outfits_Events, OUTFITS_RANDOMIZE_EVENTID);
+	newButton->startEvents();
+
+	newButton = addWindowChild<GUI_Button>(*newWindow, iRect(OUTFITS_WIDTH - 56, OUTFITS_HEIGHT - 30, GUI_UI_BUTTON_43PX_GRAY_UP_W, GUI_UI_BUTTON_43PX_GRAY_UP_H), "Cancel", CLIENT_GUI_ESCAPE_TRIGGER);
 	newButton->setButtonEventCallback(&outfits_Events, OUTFITS_CANCEL_EVENTID);
 	newButton->startEvents();
-	newWindow->addChild(newButton);
-	newButton = new GUI_Button(iRect(OUTFITS_WIDTH - 109, OUTFITS_HEIGHT - 30, GUI_UI_BUTTON_43PX_GRAY_UP_W, GUI_UI_BUTTON_43PX_GRAY_UP_H), "Ok", CLIENT_GUI_ENTER_TRIGGER);
+
+	newButton = addWindowChild<GUI_Button>(*newWindow, iRect(OUTFITS_WIDTH - 109, OUTFITS_HEIGHT - 30, GUI_UI_BUTTON_43PX_GRAY_UP_W, GUI_UI_BUTTON_43PX_GRAY_UP_H), "Ok", CLIENT_GUI_ENTER_TRIGGER);
 	newButton->setButtonEventCallback(&outfits_Events, OUTFITS_OK_EVENTID);
 	newButton->startEvents();
-	newWindow->addChild(newButton);
-	GUI_Separator* newSeparator = new GUI_Separator(iRect(13, OUTFITS_HEIGHT - 40, OUTFITS_WIDTH - 26, 2));
-	newWindow->addChild(newSeparator);
-	g_engine.addWindow(newWindow);
+
+	addWindowChild<GUI_Outfit_HelpText>(*newWindow, iRect(OUTFITS_HELP_TEXT_X, OUTFITS_HELP_TEXT_Y, OUTFITS_HELP_TEXT_W, OUTFITS_HELP_TEXT_H));
+	addWindowChild<GUI_Separator>(*newWindow, iRect(13, OUTFITS_HEIGHT - 40, OUTFITS_WIDTH - 26, 2));
+
+	configureAddonBoxes(newWindow.get(), outfitAddons);
+	g_engine.addWindow(newWindow.release());
 }
 
-GUI_Outfit_View::GUI_Outfit_View(iRect boxRect, Uint32 internalID) : m_currentFrame(ThingFrameGroup_Idle)
+GUI_Outfit_View::GUI_Outfit_View(iRect boxRect, Uint32 internalID, PreviewMode mode) : m_currentFrame(ThingFrameGroup_Idle), m_mode(mode)
 {
 	setRect(boxRect);
 	m_internalID = internalID;
-	m_ground = g_thingManager.getThingType(ThingCategory_Item, 429);
 	m_outfit = g_thingManager.getThingType(ThingCategory_Creature, g_outfitLookType);
-	m_mount = (g_outfitMount == 0 ? NULL : g_thingManager.getThingType(ThingCategory_Creature, g_outfitMount));
+	m_mount = (g_outfitMount == 0 ? nullptr : g_thingManager.getThingType(ThingCategory_Creature, g_outfitMount));
 	resetAnimation();
 }
 
@@ -684,19 +640,9 @@ void GUI_Outfit_View::nextDirection()
 void GUI_Outfit_View::refresh()
 {
 	m_outfit = g_thingManager.getThingType(ThingCategory_Creature, g_outfitLookType);
-	m_mount = (g_outfitMount == 0 ? NULL : g_thingManager.getThingType(ThingCategory_Creature, g_outfitMount));
-
-	GUI_Window* pWindow = g_engine.getWindow(GUI_WINDOW_OUTFITS);
-	if(pWindow)
-	{
-		GUI_CheckBox* pCheckBox = SDL_static_cast(GUI_CheckBox*, pWindow->getChild(OUTFITS_CHECKBOX_OUTFIT_EVENTID));
-		if(pCheckBox)
-			m_showOutfit = pCheckBox->isChecked();
-
-		pCheckBox = SDL_static_cast(GUI_CheckBox*, pWindow->getChild(OUTFITS_CHECKBOX_MOUNT_EVENTID));
-		if(pCheckBox)
-			m_showMount = pCheckBox->isChecked();
-	}
+	m_mount = (g_outfitMount == 0 ? nullptr : g_thingManager.getThingType(ThingCategory_Creature, g_outfitMount));
+	m_showOutfit = (m_mode == PreviewMode_Outfit);
+	m_showMount = (m_mode == PreviewMode_Mount);
 
 	resetAnimation();
 }
@@ -825,6 +771,56 @@ Sint32 GUI_Outfit_View::getOffsetY()
 	}
 }
 
+void GUI_Outfit_View::renderPanel()
+{
+	auto& renderer = g_engine.getRender();
+	renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_ICON_HORIZONTAL_LINE_DARK_X, GUI_UI_ICON_HORIZONTAL_LINE_DARK_Y, GUI_UI_ICON_HORIZONTAL_LINE_DARK_W, GUI_UI_ICON_HORIZONTAL_LINE_DARK_H, m_tRect.x1, m_tRect.y1, m_tRect.x2, 1);
+	renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_ICON_VERTICAL_LINE_DARK_X, GUI_UI_ICON_VERTICAL_LINE_DARK_Y, GUI_UI_ICON_VERTICAL_LINE_DARK_W, GUI_UI_ICON_VERTICAL_LINE_DARK_H, m_tRect.x1, m_tRect.y1 + 1, 1, m_tRect.y2 - 1);
+	renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_ICON_HORIZONTAL_LINE_BRIGHT_X, GUI_UI_ICON_HORIZONTAL_LINE_BRIGHT_Y, GUI_UI_ICON_HORIZONTAL_LINE_BRIGHT_W, GUI_UI_ICON_HORIZONTAL_LINE_BRIGHT_H, m_tRect.x1 + 1, m_tRect.y1 + m_tRect.y2 - 1, m_tRect.x2 - 1, 1);
+	renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_ICON_VERTICAL_LINE_BRIGHT_X, GUI_UI_ICON_VERTICAL_LINE_BRIGHT_Y, GUI_UI_ICON_VERTICAL_LINE_BRIGHT_W, GUI_UI_ICON_VERTICAL_LINE_BRIGHT_H, m_tRect.x1 + m_tRect.x2 - 1, m_tRect.y1 + 1, 1, m_tRect.y2 - 2);
+}
+
+void GUI_Outfit_View::renderCreature(ThingType* thingType, Uint8 animation, Uint8 addonPattern, Uint8 zPattern, Uint32 outfitColor)
+{
+	if(!thingType)
+		return;
+
+	ThingFrameGroup frameGroup = SDL_static_cast(ThingFrameGroup, m_currentFrame);
+	if(addonPattern >= thingType->m_frameGroup[m_currentFrame].m_patternY)
+		return;
+
+	auto& renderer = g_engine.getRender();
+	const Sint32 spriteScale = OUTFITS_PREVIEW_SPRITE_SCALE;
+	const Sint32 scaleOffset = (spriteScale - 32) / 2;
+	const Sint32 displacementX = thingType->m_displacement[0] * spriteScale / 32;
+	const Sint32 displacementY = thingType->m_displacement[1] * spriteScale / 32;
+	Sint32 posYc = 80 - displacementY - scaleOffset;
+	for(Uint8 cy = 0; cy < thingType->m_frameGroup[m_currentFrame].m_height; ++cy)
+	{
+		Sint32 posXc = 64 - displacementX - scaleOffset;
+		for(Uint8 cx = 0; cx < thingType->m_frameGroup[m_currentFrame].m_width; ++cx)
+		{
+			Uint32 sprite = thingType->getSprite(frameGroup, cx, cy, 0, m_direction, addonPattern, zPattern, animation);
+			if(sprite != 0)
+			{
+				if(thingType->m_frameGroup[m_currentFrame].m_layers > 1)
+				{
+					Uint32 spriteMask = thingType->getSprite(frameGroup, cx, cy, 1, m_direction, addonPattern, zPattern, animation);
+					if(spriteMask != 0)
+						renderer->drawSpriteMask(sprite, spriteMask, posXc, posYc, spriteScale, spriteScale, 0, 0, 32, 32, outfitColor);
+					else
+						renderer->drawSprite(sprite, posXc, posYc, spriteScale, spriteScale, 0, 0, 32, 32);
+				}
+				else
+					renderer->drawSprite(sprite, posXc, posYc, spriteScale, spriteScale, 0, 0, 32, 32);
+			}
+
+			posXc -= spriteScale;
+		}
+		posYc -= spriteScale;
+	}
+}
+
 void GUI_Outfit_View::render()
 {
 	Uint32 outfitColor = (g_outfitColors[3] << 24) | (g_outfitColors[2] << 16) | (g_outfitColors[1] << 8) | (g_outfitColors[0]);
@@ -832,146 +828,25 @@ void GUI_Outfit_View::render()
 
 	auto& renderer = g_engine.getRender();
 	renderer->beginGameScene();
-	Sint32 startX = -getOffsetX();
-	Sint32 startY = -getOffsetY();
-	Sint32 posXc;
-	Sint32 posYc = -32 + startY;
-	for(Uint8 y = 0; y < 5; ++y)
-	{
-		posXc = -32 + startX;
-		for(Uint8 x = 0; x < 7; ++x)
-		{
-			Uint8 pDiff = SDL_static_cast(Uint8, (m_walkedPixels / 32));
-			Uint8 xPattern = UTIL_safeMod<Uint8>((m_direction == DIRECTION_EAST ? (x + pDiff) : m_direction == DIRECTION_WEST ? (x - pDiff) : x), m_ground->m_frameGroup[ThingFrameGroup_Default].m_patternX);
-			Uint8 yPattern = UTIL_safeMod<Uint8>((m_direction == DIRECTION_SOUTH ? (y + pDiff) : m_direction == DIRECTION_NORTH ? (y - pDiff) : y), m_ground->m_frameGroup[ThingFrameGroup_Default].m_patternY);
-			Uint32 sprite = m_ground->getSprite(ThingFrameGroup_Default, 0, 0, 0, xPattern, yPattern, 0, 0);
-			if(sprite != 0)
-				renderer->drawSprite(sprite, posXc, posYc);
+	renderer->fillRectangle(0, 0, OUTFITS_PREVIEW_RENDER_SIZE, OUTFITS_PREVIEW_RENDER_SIZE, 64, 64, 64, 255);
 
-			posXc += 32;
-		}
-		posYc += 32;
-	}
-
-	Uint8 zPattern = 0;
-	startX = 64;
-	startY = 32;
-	if(m_mount && m_showMount)
+	if(m_mode == PreviewMode_Mount)
 	{
-		startX -= m_mount->m_displacement[0];
-		startY -= m_mount->m_displacement[1];
+		if(m_mount && m_showMount)
+			renderCreature(m_mount, m_mountAnim, 0, 0, outfitColor);
 	}
 	else if(m_outfit && m_showOutfit)
 	{
-		startX -= m_outfit->m_displacement[0];
-		startY -= m_outfit->m_displacement[1];
+		renderCreature(m_outfit, m_outfitAnim, 0, 0, outfitColor);
+		if(g_outfitAddons & 1)
+			renderCreature(m_outfit, m_outfitAnim, 1, 0, outfitColor);
+		if(g_outfitAddons & 2)
+			renderCreature(m_outfit, m_outfitAnim, 2, 0, outfitColor);
 	}
 
-	if(m_mount && m_showMount)
-	{
-		posYc = startY;
-		for(Uint8 cy = 0; cy < m_mount->m_frameGroup[m_currentFrame].m_height; ++cy)
-		{
-			posXc = startX;
-			for(Uint8 cx = 0; cx < m_mount->m_frameGroup[m_currentFrame].m_width; ++cx)
-			{
-				Uint32 sprite = m_mount->getSprite(SDL_static_cast(ThingFrameGroup, m_currentFrame), cx, cy, 0, m_direction, 0, 0, m_mountAnim);
-				if(sprite != 0)
-					renderer->drawSprite(sprite, posXc, posYc);
-
-				posXc -= 32;
-			}
-			posYc -= 32;
-		}
-		if(m_outfit)
-			zPattern = UTIL_min<Uint8>(1, m_outfit->m_frameGroup[m_currentFrame].m_patternZ - 1);
-	}
-	if(m_outfit && m_showOutfit)
-	{
-		if(m_outfit->m_frameGroup[m_currentFrame].m_layers > 1)
-		{
-			posYc = startY;
-			for(Uint8 cy = 0; cy < m_outfit->m_frameGroup[m_currentFrame].m_height; ++cy)
-			{
-				posXc = startX;
-				for(Uint8 cx = 0; cx < m_outfit->m_frameGroup[m_currentFrame].m_width; ++cx)
-				{
-					Uint32 sprite = m_outfit->getSprite(SDL_static_cast(ThingFrameGroup, m_currentFrame), cx, cy, 0, m_direction, 0, zPattern, m_outfitAnim);
-					Uint32 spriteMask = m_outfit->getSprite(SDL_static_cast(ThingFrameGroup, m_currentFrame), cx, cy, 1, m_direction, 0, zPattern, m_outfitAnim);
-					if(sprite != 0)
-					{
-						if(spriteMask != 0)
-							renderer->drawSpriteMask(sprite, spriteMask, posXc, posYc, outfitColor);
-						else
-							renderer->drawSprite(sprite, posXc, posYc);
-					}
-					if(m_outfit->m_frameGroup[m_currentFrame].m_patternY > 1)
-					{
-						if(g_outfitAddons & 1)//First addon
-						{
-							sprite = m_outfit->getSprite(SDL_static_cast(ThingFrameGroup, m_currentFrame), cx, cy, 0, m_direction, 1, zPattern, m_outfitAnim);
-							spriteMask = m_outfit->getSprite(SDL_static_cast(ThingFrameGroup, m_currentFrame), cx, cy, 1, m_direction, 1, zPattern, m_outfitAnim);
-							if(sprite != 0)
-							{
-								if(spriteMask != 0)
-									renderer->drawSpriteMask(sprite, spriteMask, posXc, posYc, outfitColor);
-								else
-									renderer->drawSprite(sprite, posXc, posYc);
-							}
-						}
-						if(g_outfitAddons & 2)//Second addon
-						{
-							sprite = m_outfit->getSprite(SDL_static_cast(ThingFrameGroup, m_currentFrame), cx, cy, 0, m_direction, 2, zPattern, m_outfitAnim);
-							spriteMask = m_outfit->getSprite(SDL_static_cast(ThingFrameGroup, m_currentFrame), cx, cy, 1, m_direction, 2, zPattern, m_outfitAnim);
-							if(sprite != 0)
-							{
-								if(spriteMask != 0)
-									renderer->drawSpriteMask(sprite, spriteMask, posXc, posYc, outfitColor);
-								else
-									renderer->drawSprite(sprite, posXc, posYc);
-							}
-						}
-					}
-					posXc -= 32;
-				}
-				posYc -= 32;
-			}
-		}
-		else
-		{
-			posYc = startY;
-			for(Uint8 cy = 0; cy < m_outfit->m_frameGroup[m_currentFrame].m_height; ++cy)
-			{
-				posXc = startX;
-				for(Uint8 cx = 0; cx < m_outfit->m_frameGroup[m_currentFrame].m_width; ++cx)
-				{
-					Uint32 sprite = m_outfit->getSprite(SDL_static_cast(ThingFrameGroup, m_currentFrame), cx, cy, 0, m_direction, 0, zPattern, m_outfitAnim);
-					if(sprite != 0)
-						renderer->drawSprite(sprite, posXc, posYc);
-
-					if(m_outfit->m_frameGroup[m_currentFrame].m_patternY > 1)
-					{
-						if(g_outfitAddons & 1)//First addon
-						{
-							sprite = m_outfit->getSprite(SDL_static_cast(ThingFrameGroup, m_currentFrame), cx, cy, 0, m_direction, 1, zPattern, m_outfitAnim);
-							if(sprite != 0)
-								renderer->drawSprite(sprite, posXc, posYc);
-						}
-						if(g_outfitAddons & 2)//Second addon
-						{
-							sprite = m_outfit->getSprite(SDL_static_cast(ThingFrameGroup, m_currentFrame), cx, cy, 0, m_direction, 2, zPattern, m_outfitAnim);
-							if(sprite != 0)
-								renderer->drawSprite(sprite, posXc, posYc);
-						}
-					}
-					posXc -= 32;
-				}
-				posYc -= 32;
-			}
-		}
-	}
 	renderer->endGameScene();
-	renderer->drawGameScene(16, 0, 128, 72, m_tRect.x1, m_tRect.y1, m_tRect.x2, m_tRect.y2);
+	renderer->drawGameScene(0, 0, OUTFITS_PREVIEW_RENDER_SIZE, OUTFITS_PREVIEW_RENDER_SIZE, m_tRect.x1, m_tRect.y1, m_tRect.x2, m_tRect.y2);
+	renderPanel();
 }
 
 GUI_Outfit_Colors::GUI_Outfit_Colors(iRect boxRect, Uint32 internalID)
@@ -982,59 +857,45 @@ GUI_Outfit_Colors::GUI_Outfit_Colors(iRect boxRect, Uint32 internalID)
 
 void GUI_Outfit_Colors::onMouseMove(Sint32 x, Sint32 y, bool)
 {
-	if(!m_Pressed)
-		return;
-
-	iRect rect = iRect(m_tRect.x1 + 4, m_tRect.y1 + 20, 247, 91);
+	iRect rect = iRect(m_tRect.x1 + OUTFITS_COLOR_GRID_X, m_tRect.y1, OUTFITS_COLOR_GRID_W, OUTFITS_COLOR_GRID_H);
 	if(rect.isPointInside(x, y))
 	{
-		Sint32 xFactor = (x - m_tRect.x1 - 4) / 13;
-		Sint32 yFactor = (y - m_tRect.y1 - 20) / 13;
+		Sint32 xFactor = (x - m_tRect.x1 - OUTFITS_COLOR_GRID_X) / OUTFITS_COLOR_GRID_CELL;
+		Sint32 yFactor = (y - m_tRect.y1) / OUTFITS_COLOR_GRID_CELL;
 		Sint32 cFactor = yFactor * 19 + xFactor;
-		if(m_hoverColor[1] == cFactor)
+		if(!m_Pressed || m_hoverColor[1] == cFactor)
 			m_hoverColor[0] = cFactor;
 		else
 			m_hoverColor[0] = -1;
 		return;
 	}
+
+	if(!m_Pressed)
+		m_hoverColor[0] = -1;
 }
 
 void GUI_Outfit_Colors::onLMouseDown(Sint32 x, Sint32 y)
 {
 	m_Pressed = true;
 
-	iRect rect = iRect(m_tRect.x1 + 4, m_tRect.y1 + 20, 247, 91);
+	iRect rect = iRect(m_tRect.x1 + OUTFITS_COLOR_GRID_X, m_tRect.y1, OUTFITS_COLOR_GRID_W, OUTFITS_COLOR_GRID_H);
 	if(rect.isPointInside(x, y))
 	{
-		Sint32 xFactor = (x - m_tRect.x1 - 4) / 13;
-		Sint32 yFactor = (y - m_tRect.y1 - 20) / 13;
+		Sint32 xFactor = (x - m_tRect.x1 - OUTFITS_COLOR_GRID_X) / OUTFITS_COLOR_GRID_CELL;
+		Sint32 yFactor = (y - m_tRect.y1) / OUTFITS_COLOR_GRID_CELL;
 		Sint32 cFactor = yFactor * 19 + xFactor;
 		m_hoverColor[0] = m_hoverColor[1] = cFactor;
 		return;
 	}
-	rect = iRect(m_tRect.x1, m_tRect.y1, 63, 18);
-	if(rect.isPointInside(x, y))
+
+	for(Sint32 i = 0; i < 4; ++i)
 	{
-		m_selected = 0;
-		return;
-	}
-	rect = iRect(m_tRect.x1 + 63, m_tRect.y1, 63, 18);
-	if(rect.isPointInside(x, y))
-	{
-		m_selected = 1;
-		return;
-	}
-	rect = iRect(m_tRect.x1 + 126, m_tRect.y1, 63, 18);
-	if(rect.isPointInside(x, y))
-	{
-		m_selected = 2;
-		return;
-	}
-	rect = iRect(m_tRect.x1 + 189, m_tRect.y1, 64, 18);
-	if(rect.isPointInside(x, y))
-	{
-		m_selected = 3;
-		return;
+		rect = iRect(m_tRect.x1, m_tRect.y1 + (OUTFITS_COLOR_MODE_H + OUTFITS_COLOR_MODE_GAP) * i, OUTFITS_COLOR_MODE_W, OUTFITS_COLOR_MODE_H);
+		if(rect.isPointInside(x, y))
+		{
+			m_selected = i;
+			return;
+		}
 	}
 }
 
@@ -1044,11 +905,11 @@ void GUI_Outfit_Colors::onLMouseUp(Sint32 x, Sint32 y)
 		return;
 	m_Pressed = false;
 
-	iRect rect = iRect(m_tRect.x1 + 4, m_tRect.y1 + 20, 247, 91);
+	iRect rect = iRect(m_tRect.x1 + OUTFITS_COLOR_GRID_X, m_tRect.y1, OUTFITS_COLOR_GRID_W, OUTFITS_COLOR_GRID_H);
 	if(rect.isPointInside(x, y))
 	{
-		Sint32 xFactor = (x - m_tRect.x1 - 4) / 13;
-		Sint32 yFactor = (y - m_tRect.y1 - 20) / 13;
+		Sint32 xFactor = (x - m_tRect.x1 - OUTFITS_COLOR_GRID_X) / OUTFITS_COLOR_GRID_CELL;
+		Sint32 yFactor = (y - m_tRect.y1) / OUTFITS_COLOR_GRID_CELL;
 		Sint32 cFactor = yFactor * 19 + xFactor;
 		if(m_hoverColor[0] == cFactor)
 			g_outfitColors[m_selected] = SDL_static_cast(Uint8, cFactor);
@@ -1059,59 +920,25 @@ void GUI_Outfit_Colors::onLMouseUp(Sint32 x, Sint32 y)
 void GUI_Outfit_Colors::render()
 {
 	auto& renderer = g_engine.getRender();
-	renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_EXTRA_BORDER_X, GUI_UI_ICON_EXTRA_BORDER_Y, m_tRect.x1 + m_tRect.x2 - 2, m_tRect.y1 + 16, GUI_UI_ICON_EXTRA_BORDER_W, GUI_UI_ICON_EXTRA_BORDER_H);
-	renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_EXTRA_BORDER_X, GUI_UI_ICON_EXTRA_BORDER_Y, m_tRect.x1, m_tRect.y1 + m_tRect.y2 - 2, GUI_UI_ICON_EXTRA_BORDER_W, GUI_UI_ICON_EXTRA_BORDER_H);
-	renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_ICON_HORIZONTAL_LINE_BRIGHT_X, GUI_UI_ICON_HORIZONTAL_LINE_BRIGHT_Y, GUI_UI_ICON_HORIZONTAL_LINE_BRIGHT_W, GUI_UI_ICON_HORIZONTAL_LINE_BRIGHT_H, m_tRect.x1, m_tRect.y1 + 16, m_tRect.x2 - 2, 2);
-	renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_ICON_VERTICAL_LINE_BRIGHT_X, GUI_UI_ICON_VERTICAL_LINE_BRIGHT_Y, GUI_UI_ICON_VERTICAL_LINE_BRIGHT_W, GUI_UI_ICON_VERTICAL_LINE_BRIGHT_H, m_tRect.x1, m_tRect.y1 + 18, 2, m_tRect.y2 - 20);
-	renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_ICON_HORIZONTAL_LINE_DARK_X, GUI_UI_ICON_HORIZONTAL_LINE_DARK_Y, GUI_UI_ICON_HORIZONTAL_LINE_DARK_W, GUI_UI_ICON_HORIZONTAL_LINE_DARK_H, m_tRect.x1 + 2, m_tRect.y1 + m_tRect.y2 - 2, m_tRect.x2 - 2, 2);
-	renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_ICON_VERTICAL_LINE_DARK_X, GUI_UI_ICON_VERTICAL_LINE_DARK_Y, GUI_UI_ICON_VERTICAL_LINE_DARK_W, GUI_UI_ICON_VERTICAL_LINE_DARK_H, m_tRect.x1 + m_tRect.x2 - 2, m_tRect.y1 + 18, 2, m_tRect.y2 - 20);
-
-	renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_UNACTIVE_CHANNEL_X, GUI_UI_ICON_UNACTIVE_CHANNEL_Y, m_tRect.x1, m_tRect.y1, 62, GUI_UI_ICON_UNACTIVE_CHANNEL_H);
-	renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_UNACTIVE_CHANNEL_X + GUI_UI_ICON_UNACTIVE_CHANNEL_W - 2, GUI_UI_ICON_UNACTIVE_CHANNEL_Y, m_tRect.x1 + 62, m_tRect.y1, 2, GUI_UI_ICON_UNACTIVE_CHANNEL_H);
-	renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_UNACTIVE_CHANNEL_X + 1, GUI_UI_ICON_UNACTIVE_CHANNEL_Y, m_tRect.x1 + 64, m_tRect.y1, 61, GUI_UI_ICON_UNACTIVE_CHANNEL_H);
-	renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_UNACTIVE_CHANNEL_X + GUI_UI_ICON_UNACTIVE_CHANNEL_W - 2, GUI_UI_ICON_UNACTIVE_CHANNEL_Y, m_tRect.x1 + 125, m_tRect.y1, 2, GUI_UI_ICON_UNACTIVE_CHANNEL_H);
-	renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_UNACTIVE_CHANNEL_X + 1, GUI_UI_ICON_UNACTIVE_CHANNEL_Y, m_tRect.x1 + 127, m_tRect.y1, 61, GUI_UI_ICON_UNACTIVE_CHANNEL_H);
-	renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_UNACTIVE_CHANNEL_X + GUI_UI_ICON_UNACTIVE_CHANNEL_W - 2, GUI_UI_ICON_UNACTIVE_CHANNEL_Y, m_tRect.x1 + 188, m_tRect.y1, 2, GUI_UI_ICON_UNACTIVE_CHANNEL_H);
-	renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_UNACTIVE_CHANNEL_X + 1, GUI_UI_ICON_UNACTIVE_CHANNEL_Y, m_tRect.x1 + 190, m_tRect.y1, 61, GUI_UI_ICON_UNACTIVE_CHANNEL_H);
-	renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_UNACTIVE_CHANNEL_X + GUI_UI_ICON_UNACTIVE_CHANNEL_W - 2, GUI_UI_ICON_UNACTIVE_CHANNEL_Y, m_tRect.x1 + 251, m_tRect.y1, 2, GUI_UI_ICON_UNACTIVE_CHANNEL_H);
-	switch(m_selected)
+	const char* colorModeNames[4] = {"Head", "Primary", "Secondary", "Detail"};
+	for(Sint32 i = 0; i < 4; ++i)
 	{
-		case 1:
-		{
-			renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_ACTIVE_CHANNEL_X, GUI_UI_ICON_ACTIVE_CHANNEL_Y, m_tRect.x1 + 63, m_tRect.y1, 62, GUI_UI_ICON_ACTIVE_CHANNEL_H);
-			renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_ACTIVE_CHANNEL_X + GUI_UI_ICON_ACTIVE_CHANNEL_W - 2, GUI_UI_ICON_ACTIVE_CHANNEL_Y, m_tRect.x1 + 125, m_tRect.y1, 2, GUI_UI_ICON_ACTIVE_CHANNEL_H);
-		}
-		break;
-		case 2:
-		{
-			renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_ACTIVE_CHANNEL_X, GUI_UI_ICON_ACTIVE_CHANNEL_Y, m_tRect.x1 + 126, m_tRect.y1, 62, GUI_UI_ICON_ACTIVE_CHANNEL_H);
-			renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_ACTIVE_CHANNEL_X + GUI_UI_ICON_ACTIVE_CHANNEL_W - 2, GUI_UI_ICON_ACTIVE_CHANNEL_Y, m_tRect.x1 + 188, m_tRect.y1, 2, GUI_UI_ICON_ACTIVE_CHANNEL_H);
-		}
-		break;
-		case 3:
-		{
-			renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_ACTIVE_CHANNEL_X, GUI_UI_ICON_ACTIVE_CHANNEL_Y, m_tRect.x1 + 189, m_tRect.y1, 62, GUI_UI_ICON_ACTIVE_CHANNEL_H);
-			renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_ACTIVE_CHANNEL_X + GUI_UI_ICON_ACTIVE_CHANNEL_W - 2, GUI_UI_ICON_ACTIVE_CHANNEL_Y, m_tRect.x1 + 251, m_tRect.y1, 2, GUI_UI_ICON_ACTIVE_CHANNEL_H);
-		}
-		break;
-		default:
-		{
-			renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_ACTIVE_CHANNEL_X, GUI_UI_ICON_ACTIVE_CHANNEL_Y, m_tRect.x1, m_tRect.y1, 62, GUI_UI_ICON_ACTIVE_CHANNEL_H);
-			renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_ACTIVE_CHANNEL_X + GUI_UI_ICON_ACTIVE_CHANNEL_W - 2, GUI_UI_ICON_ACTIVE_CHANNEL_Y, m_tRect.x1 + 62, m_tRect.y1, 2, GUI_UI_ICON_ACTIVE_CHANNEL_H);
-		}
-		break;
+		const Sint32 posY = m_tRect.y1 + (OUTFITS_COLOR_MODE_H + OUTFITS_COLOR_MODE_GAP) * i;
+		const bool selected = (m_selected == i);
+		renderer->fillRectangle(m_tRect.x1 + 1, posY + 1, OUTFITS_COLOR_MODE_W - 2, OUTFITS_COLOR_MODE_H - 2, (selected ? 86 : 64), (selected ? 86 : 64), (selected ? 86 : 64), 255);
+		renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_ICON_HORIZONTAL_LINE_DARK_X, GUI_UI_ICON_HORIZONTAL_LINE_DARK_Y, GUI_UI_ICON_HORIZONTAL_LINE_DARK_W, GUI_UI_ICON_HORIZONTAL_LINE_DARK_H, m_tRect.x1, posY, OUTFITS_COLOR_MODE_W, 1);
+		renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_ICON_VERTICAL_LINE_DARK_X, GUI_UI_ICON_VERTICAL_LINE_DARK_Y, GUI_UI_ICON_VERTICAL_LINE_DARK_W, GUI_UI_ICON_VERTICAL_LINE_DARK_H, m_tRect.x1, posY + 1, 1, OUTFITS_COLOR_MODE_H - 1);
+		renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_ICON_HORIZONTAL_LINE_BRIGHT_X, GUI_UI_ICON_HORIZONTAL_LINE_BRIGHT_Y, GUI_UI_ICON_HORIZONTAL_LINE_BRIGHT_W, GUI_UI_ICON_HORIZONTAL_LINE_BRIGHT_H, m_tRect.x1 + 1, posY + OUTFITS_COLOR_MODE_H - 1, OUTFITS_COLOR_MODE_W - 1, 1);
+		renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_ICON_VERTICAL_LINE_BRIGHT_X, GUI_UI_ICON_VERTICAL_LINE_BRIGHT_Y, GUI_UI_ICON_VERTICAL_LINE_BRIGHT_W, GUI_UI_ICON_VERTICAL_LINE_BRIGHT_H, m_tRect.x1 + OUTFITS_COLOR_MODE_W - 1, posY + 1, 1, OUTFITS_COLOR_MODE_H - 2);
+		g_engine.drawFont(CLIENT_FONT_SMALL, m_tRect.x1 + (OUTFITS_COLOR_MODE_W / 2), posY + 6, colorModeNames[i], 255, 255, 255, CLIENT_FONT_ALIGN_CENTER);
 	}
-	g_engine.drawFont(CLIENT_FONT_SMALL, m_tRect.x1 + 22, m_tRect.y1 + 5, "Head", 255, 255, 255, CLIENT_FONT_ALIGN_LEFT);
-	g_engine.drawFont(CLIENT_FONT_SMALL, m_tRect.x1 + 78, m_tRect.y1 + 5, "Primary", 255, 255, 255, CLIENT_FONT_ALIGN_LEFT);
-	g_engine.drawFont(CLIENT_FONT_SMALL, m_tRect.x1 + 136, m_tRect.y1 + 5, "Secondary", 255, 255, 255, CLIENT_FONT_ALIGN_LEFT);
-	g_engine.drawFont(CLIENT_FONT_SMALL, m_tRect.x1 + 208, m_tRect.y1 + 5, "Detail", 255, 255, 255, CLIENT_FONT_ALIGN_LEFT);
 
 	Uint8 hoverC = SDL_static_cast(Uint8, m_hoverColor[0]);
 	Uint8 c = 0;
-	Sint32 posY = m_tRect.y1 + 20;
+	Sint32 posY = m_tRect.y1;
 	for(Sint32 i = 0; i < 7; ++i)
 	{
-		Sint32 posX = m_tRect.x1 + 4;
+		Sint32 posX = m_tRect.x1 + OUTFITS_COLOR_GRID_X;
 		for(Sint32 j = 0; j < 19; ++j)
 		{
 			Uint8 red, green, blue;
@@ -1130,4 +957,26 @@ void GUI_Outfit_Colors::render()
 		}
 		posY += 13;
 	}
+}
+
+GUI_Outfit_HelpText::GUI_Outfit_HelpText(iRect boxRect, Uint32 internalID)
+{
+	setRect(boxRect);
+	m_internalID = internalID;
+}
+
+void GUI_Outfit_HelpText::render()
+{
+	static const char* lines[] =
+	{
+		"Select an outfit by clicking on the arrows below the",
+		"character box. Individualise the single parts by using",
+		"the colour palette. If you are premium and have",
+		"earned an outfit addon, you can activate it by",
+		"checking the corresponding box. Mounts earned in",
+		"the game can be selected from the right-hand box."
+	};
+
+	for(size_t i = 0; i < SDL_arraysize(lines); ++i)
+		g_engine.drawFont(CLIENT_FONT_NONOUTLINED, m_tRect.x1, m_tRect.y1 + SDL_static_cast(Sint32, i * 13), lines[i], 210, 210, 210, CLIENT_FONT_ALIGN_LEFT);
 }
