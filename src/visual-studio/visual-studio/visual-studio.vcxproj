@@ -23,6 +23,8 @@
     <ClCompile Include="..\..\animatedText.cpp" />
     <ClCompile Include="..\..\animator.cpp" />
     <ClCompile Include="..\..\automap.cpp" />
+    <ClCompile Include="..\..\bot.cpp" />
+    <ClCompile Include="..\..\cavebot.cpp" />
     <ClCompile Include="..\..\config.cpp" />
     <ClCompile Include="..\..\connection.cpp" />
     <ClCompile Include="..\..\container.cpp" />
@@ -34,6 +36,7 @@
     <ClCompile Include="..\..\game.cpp" />
     <ClCompile Include="..\..\GUI\AdvancedGraphicsOptions.cpp" />
     <ClCompile Include="..\..\GUI\BattleWindow.cpp" />
+    <ClCompile Include="..\..\GUI\BotWindow.cpp" />
     <ClCompile Include="..\..\GUI\Buttons.cpp" />
     <ClCompile Include="..\..\GUI\Channels.cpp" />
     <ClCompile Include="..\..\GUI\CharacterList.cpp" />
@@ -135,6 +138,7 @@
     <ClCompile Include="..\..\thing.cpp" />
     <ClCompile Include="..\..\thingManager.cpp" />
     <ClCompile Include="..\..\tile.cpp" />
+    <ClCompile Include="..\..\targetbot.cpp" />
     <ClCompile Include="..\..\util.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -144,6 +148,8 @@
     <ClInclude Include="..\..\animatedText.h" />
     <ClInclude Include="..\..\animator.h" />
     <ClInclude Include="..\..\automap.h" />
+    <ClInclude Include="..\..\bot.h" />
+    <ClInclude Include="..\..\cavebot.h" />
     <ClInclude Include="..\..\circular_buffer.h" />
     <ClInclude Include="..\..\config.h" />
     <ClInclude Include="..\..\connection.h" />
@@ -245,6 +251,7 @@
     <ClInclude Include="..\..\thing.h" />
     <ClInclude Include="..\..\thingManager.h" />
     <ClInclude Include="..\..\tile.h" />
+    <ClInclude Include="..\..\targetbot.h" />
     <ClInclude Include="..\..\Uint1024.h" />
     <ClInclude Include="..\..\util.h" />
   </ItemGroup>

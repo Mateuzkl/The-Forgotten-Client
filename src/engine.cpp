@@ -40,6 +40,7 @@
 #include "protocolfeatures.h"
 #include "creature.h"
 #include "game.h"
+#include "bot.h"
 #include "config.h"
 #include "elfbot_compat.h"
 
@@ -1526,12 +1527,21 @@ void Engine::onKeyDown(SDL_Event& event)
 
 	if(m_actWindow)
 	{
-		m_actWindow->onKeyDown(event);
-		return;
+		if(UTIL_botWindowCaptureKey(event))
+			return;
+
+		if(!UTIL_botWindowShouldPassKey(event))
+		{
+			m_actWindow->onKeyDown(event);
+			return;
+		}
 	}
 
 	if(m_ingame)
 	{
+		if(g_bot.handleKeyDown(event))
+			return;
+
 		Uint16 modsNoLocks = event.key.keysym.mod & ~(KMOD_NUM | KMOD_CAPS | KMOD_MODE);
 		if(!engineIsNumLockEnabled())
 		{
@@ -1935,8 +1945,11 @@ void Engine::onKeyUp(SDL_Event& event)
 
 	if(m_actWindow)
 	{
-		m_actWindow->onKeyUp(event);
-		return;
+		if(!UTIL_botWindowShouldPassKey(event))
+		{
+			m_actWindow->onKeyUp(event);
+			return;
+		}
 	}
 
 	auto releaseDirection = [&](Direction direction)
@@ -3477,7 +3490,11 @@ void Engine::setConsoleHeight(Sint32 height)
 void Engine::update()
 {
 	if(m_ingame)
+	{
 		g_map.update();
+		g_bot.tick();
+		UTIL_updateBotPanel();
+	}
 }
 
 void Engine::redraw()
@@ -4845,6 +4862,7 @@ void Engine::clearPanels()
 					case GUI_PANEL_WINDOW_ANALYTICS_XP:
 					case GUI_PANEL_WINDOW_ANALYTICS_DROP:
 					case GUI_PANEL_WINDOW_ANALYTICS_QUEST:
+					case GUI_PANEL_WINDOW_BOT:
 					{
 						m_parentWindows[windowId] = (*it)->getInternalID();
 						m_openDialogs.push_back(windowId);
@@ -4922,7 +4940,7 @@ void Engine::processGameStart()
 	g_game.sendPingBack();
 	g_game.sendAttackModes();
 
-	bool haveMinimap = false, haveHealth = false, haveInventory = false, haveButtons = false;
+	bool haveMinimap = false, haveHealth = false, haveInventory = false, haveButtons = false, haveBot = false;
 	m_panels.push_back(new GUI_Panel(iRect(0, 0, GAME_PANEL_FIXED_WIDTH, 1000), GUI_PANEL_MAIN));
 	for(std::vector<Uint32>::iterator it = m_openDialogs.begin(), end = m_openDialogs.end(); it != end; ++it)
 	{
@@ -4952,11 +4970,17 @@ void Engine::processGameStart()
 			UTIL_createButtonsPanel();
 			haveButtons = true;
 		}
+		else if(!haveBot && windowId == GUI_PANEL_WINDOW_BOT)
+		{
+			UTIL_createBotPanel();
+			haveBot = true;
+		}
 	}
 	if(!haveMinimap) UTIL_createMinimapPanel();
 	if(!haveHealth) UTIL_createHealthPanel();
 	if(!haveInventory) UTIL_createInventoryPanel();
 	if(!haveButtons) UTIL_createButtonsPanel();
+	if(!haveBot) UTIL_createBotPanel();
 
 	m_panels.push_back(new GUI_Panel(iRect(0, 0, GAME_PANEL_FIXED_WIDTH, m_windowH - calculateMainHeight()), GUI_PANEL_RIGHT));
 	if(m_rightPanel != GUI_PANEL_MAIN)
@@ -4994,6 +5018,7 @@ void Engine::processGameEnd()
 	g_ping = 0;
 
 	//Reset map and creatures
+	g_bot.reset();
 	g_map.changeMap(DIRECTION_INVALID);
 	g_map.resetCreatures();
 

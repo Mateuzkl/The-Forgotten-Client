@@ -33,6 +33,7 @@
 #include "automap.h"
 #include "game.h"
 #include "protocolfeatures.h"
+#include "bot.h"
 
 #include "GUI_Elements/GUI_Log.h"
 #include "GUI/itemUI.h"
@@ -775,6 +776,9 @@ void ProtocolGame::parseTileAddThing(InputMessage& msg)
 
 	if(!thing->isCreature())
 	{
+		Item* item = thing->getItem();
+		if(item && item->getThingType() && item->getThingType()->hasFlag(ThingAttribute_LyingCorpse))
+			g_bot.registerLootCorpseItem(pos, item->getID());
 		updateMinimapTile(pos, tile);
 		g_map.needUpdateCache();
 	}
@@ -845,6 +849,9 @@ void ProtocolGame::parseTileTransformThing(InputMessage& msg)
 				return;
 			}
 			tile->insertThing(thing, stackPos);
+			Item* item = thing->getItem();
+			if(item && item->getThingType() && item->getThingType()->hasFlag(ThingAttribute_LyingCorpse))
+				g_bot.registerLootCorpseItem(pos, item->getID());
 			updateMinimapTile(pos, tile);
 			g_map.needUpdateCache();
 		}
@@ -966,16 +973,10 @@ void ProtocolGame::parseTileMoveCreature(InputMessage& msg)
 			Thing* thing = oldTile->getThingByStackPos(stackPos);
 			if(!thing || !thing->isCreature())
 			{
-				if(thing)
-				{
-					Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%s(X: %u, Y: %u, Z: %u, Stack: %u).", "[ProtocolGame::parseTileMoveCreature] Thing is not a valid creature", SDL_static_cast(Uint32, fromPos.x), SDL_static_cast(Uint32, fromPos.y), SDL_static_cast(Uint32, fromPos.z), stackPos);
-					g_logger.addLog(LOG_CATEGORY_ERROR, std::string(g_buffer, SDL_static_cast(size_t, len)));
-				}
-				else
-				{
-					Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%s(X: %u, Y: %u, Z: %u, Stack: %u).", "[ProtocolGame::parseTileMoveCreature] Thing not found", SDL_static_cast(Uint32, fromPos.x), SDL_static_cast(Uint32, fromPos.y), SDL_static_cast(Uint32, fromPos.z), stackPos);
-					g_logger.addLog(LOG_CATEGORY_ERROR, std::string(g_buffer, SDL_static_cast(size_t, len)));
-				}
+				// Some 8.6 servers send a stale stack position while creatures are walking quickly.
+				// Treat it as a soft desync and ask for a tile refresh instead of spamming errors.
+				if(g_game.hasGameFeature(GAME_FEATURE_UPDATE_TILE))
+					sendUpdateTile(fromPos);
 			}
 			else
 				creature = thing->getCreature();

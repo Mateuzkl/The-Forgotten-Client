@@ -114,6 +114,14 @@ void UTIL_flashFollowButton();
 //Buttons widget
 void UTIL_createButtonsPanel();
 
+//Native bot widget
+void UTIL_createBotPanel();
+void UTIL_updateBotPanel();
+void UTIL_toggleBotWindow();
+void UTIL_createBotWindow();
+bool UTIL_botWindowShouldPassKey(SDL_Event& event);
+bool UTIL_botWindowCaptureKey(SDL_Event& event);
+
 //Skills widget
 void UTIL_toggleSkillsWindow();
 void UTIL_createSkillsPopupMenu(Sint32 x, Sint32 y);

@@ -29,6 +29,7 @@
 #include "automap.h"
 #include "container.h"
 #include "elfbot_compat.h"
+#include "bot.h"
 
 #include "GUI/itemUI.h"
 #include "GUI/Chat.h"
@@ -387,6 +388,7 @@ void Game::processContainerOpen(Uint8 containerId, ItemUI* item, const std::stri
 	m_containers[containerId] = new Container(containerId, item, name, capacity, hasParent, canUseDepotSearch, isUnlocked, hasPages, containerSize, firstIndex);
 	m_containers[containerId]->setItems(itemVector);
 	UTIL_createContainerWindow(containerId);
+	g_bot.onContainerOpen(m_containers[containerId]);
 }
 
 void Game::processContainerClose(Uint8 containerId)

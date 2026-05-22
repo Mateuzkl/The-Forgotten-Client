@@ -120,6 +120,12 @@
     <ClCompile Include="..\..\automap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\bot.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\cavebot.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\light.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -127,6 +133,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\game.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\targetbot.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\GUI\Options.cpp">
@@ -348,6 +357,9 @@
     <ClCompile Include="..\..\GUI\BattleWindow.cpp">
       <Filter>Source Files\GUI</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\GUI\BotWindow.cpp">
+      <Filter>Source Files\GUI</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\GUI\Minimap.cpp">
       <Filter>Source Files\GUI</Filter>
     </ClCompile>
@@ -476,6 +488,12 @@
     <ClInclude Include="..\..\automap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\bot.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\cavebot.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\light.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -483,6 +501,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\game.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\targetbot.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\GUI_Elements\GUI_Button.h">
