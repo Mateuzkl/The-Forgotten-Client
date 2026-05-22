@@ -185,7 +185,7 @@ namespace
 Engine::Engine()
 {
 	m_engines.emplace_back(CLIENT_ENGINE_SOFTWARE);
-	#if defined(SDL_VIDEO_VULKAN) && !defined(TFC_DISABLE_VULKAN)
+	#if defined(SDL_VIDEO_VULKAN)
 	m_engines.emplace_back(CLIENT_ENGINE_VULKAN);
 	#endif
 	#if defined(SDL_VIDEO_RENDER_D3D11)
@@ -1087,7 +1087,7 @@ bool Engine::init()
 	m_surface.reset();
 	if(m_engine == CLIENT_ENGINE_SOFTWARE)
 		m_surface = std::move(std::make_unique<SurfaceSoftware>());
-	#if defined(SDL_VIDEO_VULKAN) && !defined(TFC_DISABLE_VULKAN)
+	#if defined(SDL_VIDEO_VULKAN)
 	else if(m_engine == CLIENT_ENGINE_VULKAN)
 		m_surface = std::move(std::make_unique<SurfaceVulkan>());
 	#endif

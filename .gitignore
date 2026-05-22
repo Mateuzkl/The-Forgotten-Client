@@ -55,8 +55,6 @@
 *.vspscc
 *.vssscc
 .builds
-build-linux/
-build-linux-asan/
 *.pidb
 *.log
 *.scc

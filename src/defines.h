@@ -24,19 +24,6 @@
 
 #include <SDL2/SDL.h>
 
-#if defined(TFC_DISABLE_VULKAN)
-#undef SDL_VIDEO_VULKAN
-#endif
-
-#if defined(TFC_DISABLE_OPENGL)
-#undef SDL_VIDEO_RENDER_OGL
-#endif
-
-#if defined(TFC_DISABLE_GLES)
-#undef SDL_VIDEO_RENDER_OGL_ES
-#undef SDL_VIDEO_RENDER_OGL_ES2
-#endif
-
 #define FPSinterval 1000
 typedef struct {
 	float rateticks;
@@ -78,10 +65,10 @@ struct KeyRepeat
 #if __has_include(<xmmintrin.h>)
 #define __USE_SSE__ 1
 #endif
-#if __has_include(<immintrin.h>) && !defined(TFC_DISABLE_FMA3)
+#if __has_include(<immintrin.h>)
 #define __USE_FMA3__ 1
 #endif
-#if __has_include(<ammintrin.h>) && !defined(TFC_DISABLE_FMA4)
+#if __has_include(<ammintrin.h>)
 #define __USE_FMA4__ 1
 #endif
 #if __has_include(<emmintrin.h>)
@@ -99,7 +86,7 @@ struct KeyRepeat
 #if __has_include(<nmmintrin.h>)
 #define __USE_SSE4_2__ 1
 #endif
-#if __has_include(<immintrin.h>) && !defined(TFC_DISABLE_AVX)
+#if __has_include(<immintrin.h>)
 #define __USE_AVX__ 1
 #define __USE_AVX2__ 1
 #endif
@@ -107,21 +94,15 @@ struct KeyRepeat
 #else
 
 #define __USE_SSE__ 1
-#if !defined(TFC_DISABLE_FMA3)
 #define __USE_FMA3__ 1
-#endif
-#if !defined(TFC_DISABLE_FMA4)
 #define __USE_FMA4__ 1
-#endif
 #define __USE_SSE2__ 1
 #define __USE_SSE3__ 1
 #define __USE_SSSE3__ 1
 #define __USE_SSE4_1__ 1
 #define __USE_SSE4_2__ 1
-#if !defined(TFC_DISABLE_AVX)
 #define __USE_AVX__ 1
 #define __USE_AVX2__ 1
-#endif
 
 #endif
 

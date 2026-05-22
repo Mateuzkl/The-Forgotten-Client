@@ -25,7 +25,6 @@
 #include "defines.h"
 
 typedef std::vector<std::string> StringVector;
-typedef void (*EventHandlerFunction)(Uint32, Sint32);
 
 const Uint32 xtea_delta = 0x61C88647;
 
@@ -71,7 +70,7 @@ void UTIL_protocolDebugDumpMessage(const char* scope, const char* direction, con
 void UTIL_OpenURL(const char* url);
 void UTIL_TakeScreenshot(const char* filename, Uint32 flags);
 void UTIL_ResizeEvent(Uint32 windowId, Sint32 width, Sint32 height);
-void UTIL_SafeEventHandler(EventHandlerFunction eHandler, Uint32 param, Sint32 status);
+void UTIL_SafeEventHandler(void* eHandler, Uint32 param, Sint32 status);
 void UTIL_UpdatePanels(void* pPanel, Sint32 x, Sint32 y);
 void UTIL_ResizePanel(void* pPanel, Sint32 x, Sint32 y);
 

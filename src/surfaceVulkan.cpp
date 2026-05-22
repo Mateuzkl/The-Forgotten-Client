@@ -21,7 +21,7 @@
 
 #include "surfaceVulkan.h"
 
-#if defined(SDL_VIDEO_VULKAN) && !defined(TFC_DISABLE_VULKAN)
+#if defined(SDL_VIDEO_VULKAN)
 #include <SDL2/SDL_vulkan.h>
 
 const std::vector<const char*> deviceExtensions =

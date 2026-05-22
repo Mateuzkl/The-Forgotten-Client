@@ -55,9 +55,7 @@
 #include <cstdarg>
 #include <string>
 #include <vector>
-#ifdef _WIN32
 #include <share.h>
-#endif
 #include <climits>
 
 #if defined(_MSC_VER)
@@ -93,15 +91,6 @@ namespace ElfbotCompat
 	static char      s_lastMessageText[256] = {0};
 	static char      s_lastMessageAuthor[40] = {0};
 	static char      s_lastLookText[256] = {0};
-
-	static void copyBounded(char* destination, size_t destinationSize, const char* source)
-	{
-		if(!destination || destinationSize == 0)
-			return;
-
-		std::snprintf(destination, destinationSize, "%s", (source ? source : ""));
-		destination[destinationSize - 1] = '\0';
-	}
 
 	// Counters populated by the TLS callback at process startup, then
 	// logged by init() once CRT I/O is safe.
@@ -300,16 +289,23 @@ namespace ElfbotCompat
 		if(!text)
 			return;
 
-		copyBounded(s_lastMessageText, sizeof(s_lastMessageText), text);
+		strncpy_s(s_lastMessageText, sizeof(s_lastMessageText), text, _TRUNCATE);
+		s_lastMessageText[sizeof(s_lastMessageText) - 1] = '\0';
 
 		if(author)
-			copyBounded(s_lastMessageAuthor, sizeof(s_lastMessageAuthor), author);
+		{
+			strncpy_s(s_lastMessageAuthor, sizeof(s_lastMessageAuthor), author, _TRUNCATE);
+			s_lastMessageAuthor[sizeof(s_lastMessageAuthor) - 1] = '\0';
+		}
 		else
+		{
 			s_lastMessageAuthor[0] = '\0';
+		}
 
 		if(isLookMessage)
 		{
-			copyBounded(s_lastLookText, sizeof(s_lastLookText), text);
+			strncpy_s(s_lastLookText, sizeof(s_lastLookText), text, _TRUNCATE);
+			s_lastLookText[sizeof(s_lastLookText) - 1] = '\0';
 			log("look text captured: %s", s_lastLookText);
 		}
 	}

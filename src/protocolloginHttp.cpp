@@ -31,7 +31,7 @@ extern Http g_http;
 
 ProtocolLoginHttp g_protocolLoginHttp;
 
-static void handleRequest(Uint32, Sint32 internalId)
+void handleRequest(Uint32, Sint32 internalId)
 {
 	if(g_protocolLoginHttp.getRequestId() == SDL_static_cast(Uint32, internalId))
 	{

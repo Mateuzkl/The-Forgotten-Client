@@ -24,10 +24,8 @@
 
 #include "defines.h"
 
-#ifndef SDL_isupperhex
+#if !defined(HAVE_VSSCANF) || !defined(HAVE_STRTOL) || !defined(HAVE_STRTOUL)  || !defined(HAVE_STRTOLL) || !defined(HAVE_STRTOULL) || !defined(HAVE_STRTOD)
 #define SDL_isupperhex(X)   (((X) >= 'A') && ((X) <= 'F'))
-#endif
-#ifndef SDL_islowerhex
 #define SDL_islowerhex(X)   (((X) >= 'a') && ((X) <= 'f'))
 #endif
 
