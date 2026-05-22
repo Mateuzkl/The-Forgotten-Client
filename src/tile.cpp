@@ -853,7 +853,10 @@ size_t Tile::getThingCount()
 
 Uint16 Tile::getGroundSpeed()
 {
-	return (m_ground && m_ground->getThingType() ? m_ground->getThingType()->m_groundSpeed : 150);
+	if(m_ground && m_ground->getThingType() && m_ground->getThingType()->m_groundSpeed > 0)
+		return m_ground->getThingType()->m_groundSpeed;
+
+	return 150;
 }
 
 Uint16 Tile::getMinimapSpeed()

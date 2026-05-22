@@ -1231,14 +1231,16 @@ Sint32 Creature::getStepDuration(Sint32 groundSpeed, bool ignoreDiagonal)
 {
 	Sint32 speed = SDL_static_cast(Sint32, m_speed);
 	speed = (speed < 1 ? 1 : speed);//Make sure we don't get div by 0 exception
+	groundSpeed = (groundSpeed < 1 ? 150 : groundSpeed);
 
 	Sint32 interval = 1000 * groundSpeed;
 	if(g_game.hasGameFeature(GAME_FEATURE_NEWSPEED_LAW))
-		interval /= m_cacheFormulatedSpeed;
+		interval /= (m_cacheFormulatedSpeed > 0 ? m_cacheFormulatedSpeed : 1);
 	else
 		interval /= speed;
 
 	Sint32 serverBeat = SDL_static_cast(Sint32, g_game.getServerBeat());
+	serverBeat = (serverBeat < 1 ? 1 : serverBeat);
 	interval = ((interval + serverBeat - 1) / serverBeat) * serverBeat;
 	if(!ignoreDiagonal && (m_walkDirection & DIRECTION_DIAGONAL_MASK) != 0)
 		interval *= 3;
