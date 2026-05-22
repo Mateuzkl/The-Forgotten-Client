@@ -568,8 +568,16 @@ void UTIL_OpenURL(const char* url)
 	#ifdef SDL_VIDEO_DRIVER_WINDOWS
 	ShellExecuteA(GetDesktopWindow(), "open", url, NULL, NULL, SW_SHOWNORMAL);
 	#else
-	SDL_snprintf(g_buffer, sizeof(g_buffer), "xdg-open %s", apps[i], url);
-	system(g_buffer);
+	#if SDL_VERSION_ATLEAST(2, 0, 14)
+	if(url)
+		SDL_OpenURL(url);
+	#else
+	if(url)
+	{
+		SDL_snprintf(g_buffer, sizeof(g_buffer), "xdg-open \"%s\" >/dev/null 2>&1 &", url);
+		(void)system(g_buffer);
+	}
+	#endif
 	/*char* apps[] = {"xdg-open", "x-www-browser", "firefox", "chrome", "opera", "mozilla", "galeon", "konqueror", "safari", "open", NULL};
 	for(int i = 0; apps[i]; ++i)
 	{
@@ -605,13 +613,13 @@ void UTIL_ResizeEvent(Uint32 windowId, Sint32 width, Sint32 height)
 	SDL_PushEvent(&event);
 }
 
-void UTIL_SafeEventHandler(void* eHandler, Uint32 param, Sint32 status)
+void UTIL_SafeEventHandler(EventHandlerFunction eHandler, Uint32 param, Sint32 status)
 {
 	SDL_Event event;
 	event.type = SDL_USEREVENT;
 	event.user.code = CLIENT_EVENT_SAFEEVENTHANDLER;
 	event.user.windowID = SDL_static_cast(Uint32, status);
-	event.user.data1 = eHandler;
+	event.user.data1 = SDL_reinterpret_cast(void*, eHandler);
 	event.user.data2 = SDL_reinterpret_cast(void*, SDL_static_cast(size_t, param));
 	SDL_PushEvent(&event);
 }
@@ -1543,10 +1551,10 @@ void UTIL_FastCopy_SSE41(Uint8* dst, const Uint8* src, size_t size)
 	{
 		for(size_t i = size / 64; i--;)
 		{
-			values[0] = _mm_stream_load_si128(SDL_reinterpret_cast(const __m128i*, src + 0));
-			values[1] = _mm_stream_load_si128(SDL_reinterpret_cast(const __m128i*, src + 16));
-			values[2] = _mm_stream_load_si128(SDL_reinterpret_cast(const __m128i*, src + 32));
-			values[3] = _mm_stream_load_si128(SDL_reinterpret_cast(const __m128i*, src + 48));
+			values[0] = _mm_stream_load_si128(SDL_reinterpret_cast(__m128i*, SDL_const_cast(Uint8*, src + 0)));
+			values[1] = _mm_stream_load_si128(SDL_reinterpret_cast(__m128i*, SDL_const_cast(Uint8*, src + 16)));
+			values[2] = _mm_stream_load_si128(SDL_reinterpret_cast(__m128i*, SDL_const_cast(Uint8*, src + 32)));
+			values[3] = _mm_stream_load_si128(SDL_reinterpret_cast(__m128i*, SDL_const_cast(Uint8*, src + 48)));
 			_mm_stream_si128(SDL_reinterpret_cast(__m128i*, dst + 0),  values[0]);
 			_mm_stream_si128(SDL_reinterpret_cast(__m128i*, dst + 16), values[1]);
 			_mm_stream_si128(SDL_reinterpret_cast(__m128i*, dst + 32), values[2]);

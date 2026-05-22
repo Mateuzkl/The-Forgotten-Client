@@ -216,6 +216,8 @@ void Map::cleanTile(const Position& position, Sint32 offset)
 void Map::update()
 {
 	Effect::update();
+	checkMagicEffects();
+	checkDistanceEffects();
 	if(!m_localCreature) //If somehow we don't have localcreature avoid crashing
 		return;
 
@@ -913,6 +915,9 @@ void Map::checkDistanceEffects()
 
 void Map::addDistanceEffect(DistanceEffect* distanceEffect, Uint8 posZ)
 {
+	if(!distanceEffect)
+		return;
+
 	if(posZ > GAME_MAP_FLOORS)
 	{
 		delete distanceEffect;

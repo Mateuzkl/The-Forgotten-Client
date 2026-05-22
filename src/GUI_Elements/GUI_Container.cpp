@@ -115,7 +115,7 @@ void GUI_Container::removeChild(GUI_Element* pChild, bool resetScrollBar)
 		m_contentSize = 0;
 		for(std::vector<GUI_Element*>::iterator it = m_childs.begin(), end = m_childs.end(); it != end; ++it)
 		{
-			iRect& childRect = pChild->getRect();
+			iRect& childRect = (*it)->getRect();
 			m_contentSize = UTIL_max<Sint32>(m_contentSize, childRect.y1 + childRect.y2);
 		}
 		m_scrollBar.setScrollSize(((m_contentSize + 23) / 4) - m_maxDisplay);

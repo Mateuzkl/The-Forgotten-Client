@@ -346,7 +346,7 @@ unsigned char* SpriteManager::LoadSprite_NEW(Uint32 spriteId, bool bgra)
 	if(it == m_spriteData.end())
 	{
 		if(!LoadSpriteSheet(spriteId, bgra))
-			return false;
+			return NULL;
 
 		it = m_spriteData.find(spriteId);
 	}

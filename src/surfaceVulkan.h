@@ -24,7 +24,7 @@
 
 #include "engine.h"
 
-#if defined(SDL_VIDEO_VULKAN)
+#if defined(SDL_VIDEO_VULKAN) && !defined(TFC_DISABLE_VULKAN)
 #define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.h>
 

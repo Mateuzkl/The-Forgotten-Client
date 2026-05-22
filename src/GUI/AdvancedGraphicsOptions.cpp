@@ -222,7 +222,7 @@ void advanced_graphics_options_Events(Uint32 event, Sint32 status)
 						g_inited = false;
 					}
 					#endif
-					#if defined(SDL_VIDEO_VULKAN)
+					#if defined(SDL_VIDEO_VULKAN) && !defined(TFC_DISABLE_VULKAN)
 					else if(selectedAPI == engineCounter++ && engineId != CLIENT_ENGINE_VULKAN)
 					{
 						g_engine.setEngineId(CLIENT_ENGINE_VULKAN);
@@ -363,7 +363,7 @@ Sint32 getSelectedAPI()
 	else
 		++engineCounter;
 	#endif
-	#if defined(SDL_VIDEO_VULKAN)
+	#if defined(SDL_VIDEO_VULKAN) && !defined(TFC_DISABLE_VULKAN)
 	if(engineId == CLIENT_ENGINE_VULKAN)
 		return engineCounter;
 	else
@@ -413,7 +413,7 @@ void UTIL_advancedGraphicsOptions()
 	#if defined(SDL_VIDEO_RENDER_D3D11)
 	newListBox->add("Direct3D11");
 	#endif
-	#if defined(SDL_VIDEO_VULKAN)
+	#if defined(SDL_VIDEO_VULKAN) && !defined(TFC_DISABLE_VULKAN)
 	newListBox->add("Vulkan");
 	#endif
 	newListBox->setSelect(getSelectedAPI());
