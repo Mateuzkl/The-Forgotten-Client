@@ -155,6 +155,9 @@ class Engine
 		void recalculateGameWindow();
 		Sint32 getConsoleHeight() {return m_consoleHeight;}
 		void setConsoleHeight(Sint32 height);
+		bool isLoggerVisible() const {return m_showLogger;}
+		void showLogger(bool show) {m_showLogger = show;}
+		void toggleLogger() {m_showLogger = !m_showLogger;}
 
 		void update();
 		void redraw();

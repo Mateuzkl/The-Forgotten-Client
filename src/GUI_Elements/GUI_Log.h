@@ -60,7 +60,7 @@ class GUI_Log
 		void render(Sint32 x, Sint32 y, Sint32 w, Sint32 h);
 
 	protected:
-		GUI_Console* m_console;
+		std::unique_ptr<GUI_Console> m_console;
 };
 
 #endif /* __FILE_GUI_LOG_h_ */

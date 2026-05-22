@@ -26,15 +26,11 @@
 GUI_Log g_logger;
 extern Engine g_engine;
 
-GUI_Log::GUI_Log()
+GUI_Log::GUI_Log() : m_console(std::make_unique<GUI_Console>(iRect(0, 0, 0, 0)))
 {
-	m_console = new GUI_Console(iRect(0, 0, 0, 0));
 }
 
-GUI_Log::~GUI_Log()
-{
-	delete m_console;
-}
+GUI_Log::~GUI_Log() = default;
 
 void GUI_Log::addLog(Sint32 category, const std::string& text)
 {
@@ -95,9 +91,11 @@ void GUI_Log::onMouseMove(Sint32 x, Sint32 y, bool isInsideParent)
 void GUI_Log::render(Sint32 x, Sint32 y, Sint32 w, Sint32 h)
 {
 	auto& renderer = g_engine.getRender();
-	renderer->fillRectangle(x, y, w - 12, h, 0, 0, 0, 128);
+	renderer->fillRectangle(x, y, w, h, 0, 0, 0, 178);
+	renderer->fillRectangle(x, y, w, 22, 26, 26, 26, 230);
+	g_engine.drawFont(CLIENT_FONT_NONOUTLINED, x + 6, y + 4, "Terminal - Client diagnostics (Ctrl+T)", 220, 220, 220, CLIENT_FONT_ALIGN_LEFT);
 
-	iRect nRect = iRect(x, y, w, h);
+	iRect nRect = iRect(x + 4, y + 24, w - 8, h - 28);
 	m_console->setRect(nRect);
 	m_console->render();
 }
