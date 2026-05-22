@@ -48,6 +48,7 @@ extern Game g_game;
 extern GUI_Log g_logger;
 extern Connection* g_connection;
 extern Uint32 g_datRevision;
+extern Uint32 g_frameTime;
 extern Uint16 g_ping;
 
 static bool shouldUseOtclientV8Login()
@@ -78,6 +79,41 @@ static bool isOtclientV8LuaServerOpcode(Uint8 opcode)
 		default: break;
 	}
 	return false;
+}
+
+static bool shouldRequestMissingTileRefresh(const Position& pos)
+{
+	if(!g_game.hasGameFeature(GAME_FEATURE_UPDATE_TILE))
+		return false;
+
+	struct MissingTileRefresh
+	{
+		Position position;
+		Uint32 lastRequest = 0;
+		bool used = false;
+	};
+
+	static MissingTileRefresh s_recent[32];
+	static size_t s_next = 0;
+	const Uint32 now = g_frameTime;
+	for(size_t i = 0; i < SDL_arraysize(s_recent); ++i)
+	{
+		MissingTileRefresh& entry = s_recent[i];
+		if(entry.used && entry.position == pos)
+		{
+			if(now - entry.lastRequest < 750)
+				return false;
+
+			entry.lastRequest = now;
+			return true;
+		}
+	}
+
+	MissingTileRefresh& entry = s_recent[s_next++ % SDL_arraysize(s_recent)];
+	entry.position = pos;
+	entry.lastRequest = now;
+	entry.used = true;
+	return true;
 }
 
 static bool requireRecvFeature(GameFeatures feature, const char* featureName, Uint8 opcode, InputMessage& msg)
@@ -749,18 +785,18 @@ void ProtocolGame::parseTileAddThing(InputMessage& msg)
 	
 	Thing* thing = internalGetThing(msg, pos);
 	Tile* tile = g_map.getTile(pos);
-	if(!tile || !thing)
+	if(!tile)
 	{
-		if(!tile)
-		{
-			Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%s(X: %u, Y: %u, Z: %u).", "[ProtocolGame::parseTileAddThing] Tile not found", SDL_static_cast(Uint32, pos.x), SDL_static_cast(Uint32, pos.y), SDL_static_cast(Uint32, pos.z));
-			g_logger.addLog(LOG_CATEGORY_ERROR, std::string(g_buffer, SDL_static_cast(size_t, len)));
-		}
-		else if(!thing)
-		{
-			Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%s(X: %u, Y: %u, Z: %u).", "[ProtocolGame::parseTileAddThing] Invalid thing", SDL_static_cast(Uint32, pos.x), SDL_static_cast(Uint32, pos.y), SDL_static_cast(Uint32, pos.z));
-			g_logger.addLog(LOG_CATEGORY_ERROR, std::string(g_buffer, SDL_static_cast(size_t, len)));
-		}
+		if(thing && thing->isItem())
+			delete thing;
+		if(shouldRequestMissingTileRefresh(pos))
+			sendUpdateTile(pos);
+		return;
+	}
+	if(!thing)
+	{
+		Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%s(X: %u, Y: %u, Z: %u).", "[ProtocolGame::parseTileAddThing] Invalid thing", SDL_static_cast(Uint32, pos.x), SDL_static_cast(Uint32, pos.y), SDL_static_cast(Uint32, pos.z));
+		g_logger.addLog(LOG_CATEGORY_ERROR, std::string(g_buffer, SDL_static_cast(size_t, len)));
 		return;
 	}
 
@@ -818,18 +854,18 @@ void ProtocolGame::parseTileTransformThing(InputMessage& msg)
 		Uint32 stackPos = SDL_static_cast(Uint32, msg.getU8());
 		Thing* thing = internalGetThing(msg, pos);
 		Tile* tile = g_map.getTile(pos);
-		if(!tile || !thing)
+		if(!tile)
 		{
-			if(!tile)
-			{
-				Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%s(X: %u, Y: %u, Z: %u).", "[ProtocolGame::parseTileTransformThing] Tile not found", SDL_static_cast(Uint32, pos.x), SDL_static_cast(Uint32, pos.y), SDL_static_cast(Uint32, pos.z));
-				g_logger.addLog(LOG_CATEGORY_ERROR, std::string(g_buffer, SDL_static_cast(size_t, len)));
-			}
-			else if(!thing)
-			{
-				Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%s(X: %u, Y: %u, Z: %u).", "[ProtocolGame::parseTileTransformThing] Invalid thing", SDL_static_cast(Uint32, pos.x), SDL_static_cast(Uint32, pos.y), SDL_static_cast(Uint32, pos.z));
-				g_logger.addLog(LOG_CATEGORY_ERROR, std::string(g_buffer, SDL_static_cast(size_t, len)));
-			}
+			if(thing && thing->isItem())
+				delete thing;
+			if(shouldRequestMissingTileRefresh(pos))
+				sendUpdateTile(pos);
+			return;
+		}
+		if(!thing)
+		{
+			Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%s(X: %u, Y: %u, Z: %u).", "[ProtocolGame::parseTileTransformThing] Invalid thing", SDL_static_cast(Uint32, pos.x), SDL_static_cast(Uint32, pos.y), SDL_static_cast(Uint32, pos.z));
+			g_logger.addLog(LOG_CATEGORY_ERROR, std::string(g_buffer, SDL_static_cast(size_t, len)));
 			return;
 		}
 
@@ -873,8 +909,10 @@ void ProtocolGame::parseTileRemoveThing(InputMessage& msg)
 			tile = g_map.getTile(pos);
 			if(!tile)
 			{
-				Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%s(X: %u, Y: %u, Z: %u).", "[ProtocolGame::parseTileRemoveThing] Tile not found", SDL_static_cast(Uint32, pos.x), SDL_static_cast(Uint32, pos.y), SDL_static_cast(Uint32, pos.z));
-				g_logger.addLog(LOG_CATEGORY_ERROR, std::string(g_buffer, SDL_static_cast(size_t, len)));
+				if(shouldRequestMissingTileRefresh(pos))
+					sendUpdateTile(pos);
+				if(!creature->isLocalCreature())
+					g_map.removeCreatureById(creatureId);
 				return;
 			}
 			if(!tile->removeThing(creature))
@@ -900,16 +938,16 @@ void ProtocolGame::parseTileRemoveThing(InputMessage& msg)
 		tile = g_map.getTile(pos);
 		if(!tile)
 		{
-			Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%s(X: %u, Y: %u, Z: %u).", "[ProtocolGame::parseTileRemoveThing] Tile not found", SDL_static_cast(Uint32, pos.x), SDL_static_cast(Uint32, pos.y), SDL_static_cast(Uint32, pos.z));
-			g_logger.addLog(LOG_CATEGORY_ERROR, std::string(g_buffer, SDL_static_cast(size_t, len)));
+			if(shouldRequestMissingTileRefresh(pos))
+				sendUpdateTile(pos);
 			return;
 		}
 
 		Thing* excessThing = tile->getThingByStackPos(stackPos);
 		if(!excessThing)
 		{
-			Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%s(X: %u, Y: %u, Z: %u, Stack: %u).", "[ProtocolGame::parseTileRemoveThing] Thing not found", SDL_static_cast(Uint32, pos.x), SDL_static_cast(Uint32, pos.y), SDL_static_cast(Uint32, pos.z), stackPos);
-			g_logger.addLog(LOG_CATEGORY_ERROR, std::string(g_buffer, SDL_static_cast(size_t, len)));
+			if(shouldRequestMissingTileRefresh(pos))
+				sendUpdateTile(pos);
 			return;
 		}
 		bool creature = excessThing->isCreature();
@@ -946,8 +984,8 @@ void ProtocolGame::parseTileMoveCreature(InputMessage& msg)
 			oldTile = g_map.getTile(fromPos);
 			if(!oldTile)
 			{
-				Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%s(X: %u, Y: %u, Z: %u).", "[ProtocolGame::parseTileMoveCreature] Old tile not found", SDL_static_cast(Uint32, fromPos.x), SDL_static_cast(Uint32, fromPos.y), SDL_static_cast(Uint32, fromPos.z));
-				g_logger.addLog(LOG_CATEGORY_ERROR, std::string(g_buffer, SDL_static_cast(size_t, len)));
+				if(shouldRequestMissingTileRefresh(fromPos))
+					sendUpdateTile(fromPos);
 			}
 		}
 		else
@@ -965,8 +1003,8 @@ void ProtocolGame::parseTileMoveCreature(InputMessage& msg)
 		oldTile = g_map.getTile(fromPos);
 		if(!oldTile)
 		{
-			Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%s(X: %u, Y: %u, Z: %u).", "[ProtocolGame::parseTileMoveCreature] Old tile not found", SDL_static_cast(Uint32, fromPos.x), SDL_static_cast(Uint32, fromPos.y), SDL_static_cast(Uint32, fromPos.z));
-			g_logger.addLog(LOG_CATEGORY_ERROR, std::string(g_buffer, SDL_static_cast(size_t, len)));
+			if(shouldRequestMissingTileRefresh(fromPos))
+				sendUpdateTile(fromPos);
 		}
 		else
 		{
@@ -987,11 +1025,22 @@ void ProtocolGame::parseTileMoveCreature(InputMessage& msg)
 	Tile* newTile = g_map.getTile(toPos);
 	if(!newTile)
 	{
-		Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%s(X: %u, Y: %u, Z: %u).", "[ProtocolGame::parseTileMoveCreature] New tile not found", SDL_static_cast(Uint32, toPos.x), SDL_static_cast(Uint32, toPos.y), SDL_static_cast(Uint32, toPos.z));
-		g_logger.addLog(LOG_CATEGORY_ERROR, std::string(g_buffer, SDL_static_cast(size_t, len)));
+		if(shouldRequestMissingTileRefresh(toPos))
+			sendUpdateTile(toPos);
 		return;
 	}
-	else if(!oldTile || !creature)
+	else if(!oldTile)
+	{
+		if(creature)
+		{
+			creature->removeFromDrawnTile();
+			creature->stopMove();
+			newTile->addThing(creature, (g_clientVersion < 853), true);
+			g_map.needUpdateCache();
+		}
+		return;
+	}
+	else if(!creature)
 		return;
 
 	creature->move(fromPos, toPos, oldTile, newTile);
@@ -1669,10 +1718,15 @@ void ProtocolGame::parseCreatureUpdate(InputMessage& msg)
 		break;
 		case 13:
 		{
-			Uint8 vocation = msg.getU8() % 10;
+			Uint8 rawVocation = msg.getU8();
+			Uint8 vocation = rawVocation % 10;
 			Creature* creature = g_map.getCreatureById(creatureId);
 			if(creature)
+			{
 				creature->setVocation(vocation);
+				if(creature->isLocalCreature())
+					g_game.setPlayerVocation(vocation, rawVocation >= 10);
+			}
 			else
 			{
 				Sint32 len = SDL_snprintf(g_buffer, sizeof(g_buffer), "%s(ID: %u).", "[ProtocolGame::parseCreatureUpdate] Creature not found", creatureId);
@@ -2371,6 +2425,7 @@ void ProtocolGame::parsePlayerDataBasic(InputMessage& msg)
 	Uint8 vocation = msg.getU8();
 	bool promoted = (vocation >= 10);
 	vocation %= 10;
+	g_game.setPlayerVocation(vocation, promoted);
 	if(g_game.hasGameFeature(GAME_FEATURE_PREY) && g_clientVersion < 1100)
 		msg.getBool();
 
@@ -2385,8 +2440,6 @@ void ProtocolGame::parsePlayerDataBasic(InputMessage& msg)
 		msg.getU8();//Spellid
 
 	(void)premium;
-	(void)promoted;
-	(void)vocation;
 }
 
 void ProtocolGame::parsePlayerData(InputMessage& msg)
@@ -8975,9 +9028,14 @@ Creature* ProtocolGame::getCreature(InputMessage& msg, Uint16 thingId, const Pos
 		{
 			//We need %10 because cipsoft declare promoted vocation as vocationid + 10
 			//so in case you need to check promotion just check if >= 10
-			Uint8 vocation = msg.getU8() % 10;
+			Uint8 rawVocation = msg.getU8();
+			Uint8 vocation = rawVocation % 10;
 			if(creature)
+			{
 				creature->setVocation(vocation);
+				if(creature->isLocalCreature())
+					g_game.setPlayerVocation(vocation, rawVocation >= 10);
+			}
 		}
 	}
 

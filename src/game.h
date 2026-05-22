@@ -239,6 +239,9 @@ class Game
 		void updatePlayerExperienceTable();
 		SDL_INLINE double getPlayerExperienceSpeed() {return m_playerExpSpeed;}
 		std::string getPlayerName();
+		SDL_INLINE void setPlayerVocation(Uint8 vocation, bool promoted) {m_playerVocation = vocation; m_playerPromoted = promoted;}
+		SDL_INLINE Uint8 getPlayerVocation() {return m_playerVocation;}
+		SDL_INLINE bool isPlayerPromoted() {return m_playerPromoted;}
 
 		void setPlayerExperience(Uint64 experience);
 		SDL_INLINE Uint64 getPlayerExperience() {return m_playerExperience;}
@@ -390,6 +393,7 @@ class Game
 		Uint8 m_playerMagicLevelPercent = 0;
 		Uint8 m_playerSkillsLevelPercent[Skills_LastAdditionalSkill];
 		Uint8 m_playerSoul = 0;
+		Uint8 m_playerVocation = PLAYER_VOCATION_NONE;
 
 		Uint8 m_playerMovement = DIRECTION_INVALID;
 		Uint8 m_playerCurrentDir = DIRECTION_INVALID;
@@ -400,6 +404,7 @@ class Game
 		bool m_canChangePvpFrames = true;
 		bool m_haveExivaRestrictions = false;
 		bool m_tournamentEnabled = false;
+		bool m_playerPromoted = false;
 };
 
 #endif /* __FILE_GAME_h_ */
