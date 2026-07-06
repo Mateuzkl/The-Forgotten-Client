@@ -3545,7 +3545,9 @@ void Engine::redraw()
 	}
 	else
 	{
-		m_surface->drawBackground(GUI_BACKGROUND_IMAGE, GUI_BACKGROUND_X, GUI_BACKGROUND_Y, GUI_BACKGROUND_W, GUI_BACKGROUND_H, 0, 0, m_windowW, m_windowH);
+		Sint32 backgroundWidth = (g_pictureRealWidth[GUI_BACKGROUND_IMAGE] > 0 ? g_pictureRealWidth[GUI_BACKGROUND_IMAGE] : GUI_BACKGROUND_W);
+		Sint32 backgroundHeight = (g_pictureRealHeight[GUI_BACKGROUND_IMAGE] > 0 ? g_pictureRealHeight[GUI_BACKGROUND_IMAGE] : GUI_BACKGROUND_H);
+		m_surface->drawBackground(GUI_BACKGROUND_IMAGE, GUI_BACKGROUND_X, GUI_BACKGROUND_Y, backgroundWidth, backgroundHeight, 0, 0, m_windowW, m_windowH);
 		if(g_mainWindow)
 			g_mainWindow->render();
 	}
@@ -4063,7 +4065,8 @@ unsigned char* Engine::LoadSpriteMask(Uint32 spriteId, Uint32 maskSpriteId, Uint
 
 unsigned char* Engine::LoadPicture(Uint16 pictureId, bool bgra, Sint32& width, Sint32& height)
 {
-	if(pictureId >= g_pictureCounts)
+	Uint16 filePictureId = (pictureId <= GUI_ARCS_IMAGE ? g_pictureMap[pictureId] : pictureId);
+	if(filePictureId >= g_pictureCounts)
 		return NULL;
 
 	SDL_RWops* pictures = SDL_RWFromFile(g_picPath.c_str(), "rb");
@@ -4071,12 +4074,12 @@ unsigned char* Engine::LoadPicture(Uint16 pictureId, bool bgra, Sint32& width, S
 		return NULL;
 
 	SDL_RWseek(pictures, 6, RW_SEEK_SET);
-	for(Uint16 i = 0; i <= pictureId; ++i)
+	for(Uint16 i = 0; i <= filePictureId; ++i)
 	{
 		Uint8 w = SDL_ReadU8(pictures);
 		Uint8 h = SDL_ReadU8(pictures);
 		SDL_RWseek(pictures, 3, RW_SEEK_CUR);//ignore colorkey
-		if(i == pictureId)
+		if(i == filePictureId)
 		{
 			width = SDL_static_cast(Sint32, w * 32);
 			height = SDL_static_cast(Sint32, h * 32);

@@ -203,5 +203,8 @@ extern std::string g_mapPath;
 extern std::string g_datPath;
 extern std::string g_picPath;
 extern std::string g_sprPath;
+extern Uint16 g_pictureMap[GUI_ARCS_IMAGE + 1];
+extern Sint32 g_pictureRealWidth[GUI_ARCS_IMAGE + 1];
+extern Sint32 g_pictureRealHeight[GUI_ARCS_IMAGE + 1];
 
 #endif /* __FILE_DEFINES_h_ */

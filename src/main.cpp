@@ -29,6 +29,7 @@
 #include <cstdarg>
 #include <cstdio>
 #include <ctime>
+#include <vector>
 
 #define SDL_REPEAT 2
 
@@ -59,6 +60,9 @@ Uint16 g_lastFrames = 0;
 Uint32 g_clientVersion = 1220;
 Uint32 g_spriteCounts = 0;
 Uint16 g_pictureCounts = 0;
+Uint16 g_pictureMap[GUI_ARCS_IMAGE + 1] = {};
+Sint32 g_pictureRealWidth[GUI_ARCS_IMAGE + 1] = {};
+Sint32 g_pictureRealHeight[GUI_ARCS_IMAGE + 1] = {};
 
 char g_buffer[4096];
 std::string g_basePath;
@@ -200,7 +204,114 @@ bool checkPicFile()
 
 	g_picRevision = SDL_ReadLE32(picFile);
 	g_pictureCounts = SDL_ReadLE16(picFile);
+
+	struct PicRecord
+	{
+		Sint32 width;
+		Sint32 height;
+	};
+	std::vector<PicRecord> records;
+	records.reserve(g_pictureCounts);
+	for(Uint16 i = 0; i < g_pictureCounts; ++i)
+	{
+		Uint8 width = SDL_ReadU8(picFile);
+		Uint8 height = SDL_ReadU8(picFile);
+		SDL_RWseek(picFile, 3, RW_SEEK_CUR);
+		records.push_back({SDL_static_cast(Sint32, width) * 32, SDL_static_cast(Sint32, height) * 32});
+		SDL_RWseek(picFile, SDL_static_cast(Sint64, width) * SDL_static_cast(Sint64, height) * 4, RW_SEEK_CUR);
+	}
 	SDL_RWclose(picFile);
+
+	for(Uint16 i = 0; i <= GUI_ARCS_IMAGE; ++i)
+	{
+		g_pictureMap[i] = i;
+		if(i < records.size())
+		{
+			g_pictureRealWidth[i] = records[i].width;
+			g_pictureRealHeight[i] = records[i].height;
+		}
+		else
+		{
+			g_pictureRealWidth[i] = 0;
+			g_pictureRealHeight[i] = 0;
+		}
+	}
+
+	auto findExactPicture = [&](Sint32 expectedWidth, Sint32 expectedHeight, Uint16 fallback, Uint16 start) -> Uint16
+	{
+		for(Uint16 i = start; i < records.size(); ++i)
+		{
+			if(records[i].width == expectedWidth && records[i].height == expectedHeight)
+				return i;
+		}
+		return fallback;
+	};
+
+	auto findUiPicture = [&](Uint16 fallback, Uint16 start) -> Uint16
+	{
+		for(Uint16 i = start; i < records.size(); ++i)
+		{
+			if(records[i].width == 352 && records[i].height >= 288)
+				return i;
+		}
+		return fallback;
+	};
+
+	Uint16 nonOutlinedPicture = findExactPicture(256, 128, GUI_FONT_NONOUTLINED_IMAGE, 1);
+	Uint16 uiPicture = findUiPicture(GUI_UI_IMAGE, SDL_static_cast(Uint16, nonOutlinedPicture + 1));
+	Uint16 outlinedPicture = findExactPicture(512, 128, GUI_FONT_OUTLINED_IMAGE, SDL_static_cast(Uint16, uiPicture + 1));
+	Uint16 smallPicture = findExactPicture(256, 64, GUI_FONT_SMALL_IMAGE, SDL_static_cast(Uint16, outlinedPicture + 1));
+	Uint16 arcsPicture = findExactPicture(256, 32, GUI_ARCS_IMAGE, SDL_static_cast(Uint16, smallPicture + 1));
+
+	Uint16 tutorialPicture = GUI_TUTORIAL_IMAGE;
+	Sint32 tutorialArea = 0;
+	for(Uint16 i = 1; i < records.size() && i < nonOutlinedPicture; ++i)
+	{
+		if(records[i].width == 224 && records[i].height == 128)
+			continue;
+		if(records[i].width < 256 || records[i].height < 256)
+			continue;
+
+		Sint32 area = records[i].width * records[i].height;
+		if(area > tutorialArea)
+		{
+			tutorialPicture = i;
+			tutorialArea = area;
+		}
+	}
+
+	g_pictureMap[GUI_TUTORIAL_IMAGE] = tutorialPicture;
+	g_pictureMap[GUI_FONT_NONOUTLINED_IMAGE] = nonOutlinedPicture;
+	g_pictureMap[GUI_UI_IMAGE] = uiPicture;
+	g_pictureMap[GUI_FONT_OUTLINED_IMAGE] = outlinedPicture;
+	g_pictureMap[GUI_FONT_SMALL_IMAGE] = smallPicture;
+	g_pictureMap[GUI_ARCS_IMAGE] = arcsPicture;
+
+	bool remappedPicLayout = false;
+	for(Uint16 i = 0; i <= GUI_ARCS_IMAGE; ++i)
+	{
+		if(g_pictureMap[i] != i)
+		{
+			remappedPicLayout = true;
+			break;
+		}
+	}
+
+	for(Uint16 i = 0; i <= GUI_ARCS_IMAGE; ++i)
+	{
+		Uint16 mappedId = g_pictureMap[i];
+		if(mappedId < records.size())
+		{
+			g_pictureRealWidth[i] = records[mappedId].width;
+			g_pictureRealHeight[i] = records[mappedId].height;
+		}
+	}
+	startupDebugLog("pic: revision=0x%08X count=%u layout=%s map=[%u,%u,%u,%u,%u,%u,%u]",
+		g_picRevision, SDL_static_cast(Uint32, g_pictureCounts), (remappedPicLayout ? "mapped" : "legacy"),
+		SDL_static_cast(Uint32, g_pictureMap[0]), SDL_static_cast(Uint32, g_pictureMap[1]),
+		SDL_static_cast(Uint32, g_pictureMap[2]), SDL_static_cast(Uint32, g_pictureMap[3]),
+		SDL_static_cast(Uint32, g_pictureMap[4]), SDL_static_cast(Uint32, g_pictureMap[5]),
+		SDL_static_cast(Uint32, g_pictureMap[6]));
 	return true;
 }
 
