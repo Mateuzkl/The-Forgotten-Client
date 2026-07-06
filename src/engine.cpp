@@ -1451,6 +1451,24 @@ void Engine::onKeyDown(SDL_Event& event)
 		}
 	};
 
+	auto isWasdMovementKey = [](SDL_Keycode key) -> bool
+	{
+		switch(key)
+		{
+			case SDLK_w:
+			case SDLK_a:
+			case SDLK_s:
+			case SDLK_d:
+			case SDLK_q:
+			case SDLK_e:
+			case SDLK_z:
+			case SDLK_c:
+				return true;
+			default:
+				return false;
+		}
+	};
+
 	auto shouldBlockNumPadMovement = [&](ClientHotkeys hotkeyType) -> bool
 	{
 		return engineIsMovementHotkey(hotkeyType) &&
@@ -1584,7 +1602,7 @@ void Engine::onKeyDown(SDL_Event& event)
 
 		if(hotkey)
 		{
-			if(m_wasdWalking && m_chatInputEnabled && engineIsMovementHotkey(hotkey->hotkey))
+			if(m_wasdWalking && m_chatInputEnabled && engineIsMovementHotkey(hotkey->hotkey) && isWasdMovementKey(event.key.keysym.sym))
 				return;
 
 			switch(hotkey->hotkey)
@@ -1950,6 +1968,24 @@ void Engine::onKeyUp(SDL_Event& event)
 
 	if(m_ingame)
 	{
+		auto isWasdMovementKey = [](SDL_Keycode key) -> bool
+		{
+			switch(key)
+			{
+				case SDLK_w:
+				case SDLK_a:
+				case SDLK_s:
+				case SDLK_d:
+				case SDLK_q:
+				case SDLK_e:
+				case SDLK_z:
+				case SDLK_c:
+					return true;
+				default:
+					return false;
+			}
+		};
+
 		Uint16 modsNoLocks = event.key.keysym.mod & ~(KMOD_NUM | KMOD_CAPS | KMOD_MODE);
 		Direction direction = DIRECTION_NORTH;
 		if(engineGetNumpadMovementDirection(event.key.keysym.scancode, direction))
@@ -1982,7 +2018,7 @@ void Engine::onKeyUp(SDL_Event& event)
 		HotkeyUsage* hotkey = getHotkey(event.key.keysym.sym, event.key.keysym.mod);
 		if(hotkey)
 		{
-			if(m_wasdWalking && m_chatInputEnabled && engineIsMovementHotkey(hotkey->hotkey))
+			if(m_wasdWalking && m_chatInputEnabled && engineIsMovementHotkey(hotkey->hotkey) && isWasdMovementKey(event.key.keysym.sym))
 				return;
 
 			switch(hotkey->hotkey)
@@ -3268,6 +3304,15 @@ void Engine::resetToDefaultHotkeys(bool wasd)
 	unbindHotkey(SDLK_DOWN, KMOD_CTRL);
 	unbindHotkey(SDLK_RIGHT, KMOD_CTRL);
 
+	bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_UP, KMOD_CTRL, CLIENT_HOTKEY_MOVEMENT_TURNNORTH);
+	bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_LEFT, KMOD_CTRL, CLIENT_HOTKEY_MOVEMENT_TURNWEST);
+	bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_DOWN, KMOD_CTRL, CLIENT_HOTKEY_MOVEMENT_TURNSOUTH);
+	bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_RIGHT, KMOD_CTRL, CLIENT_HOTKEY_MOVEMENT_TURNEAST);
+	bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_UP, KMOD_NONE, CLIENT_HOTKEY_MOVEMENT_GONORTH);
+	bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_LEFT, KMOD_NONE, CLIENT_HOTKEY_MOVEMENT_GOWEST);
+	bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_DOWN, KMOD_NONE, CLIENT_HOTKEY_MOVEMENT_GOSOUTH);
+	bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_RIGHT, KMOD_NONE, CLIENT_HOTKEY_MOVEMENT_GOEAST);
+
 	if(wasd)
 	{
 		bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_w, KMOD_CTRL, CLIENT_HOTKEY_MOVEMENT_TURNNORTH);
@@ -3284,17 +3329,6 @@ void Engine::resetToDefaultHotkeys(bool wasd)
 		bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_c, KMOD_NONE, CLIENT_HOTKEY_MOVEMENT_GOSOUTHEAST);
 		bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_RETURN, KMOD_NONE, CLIENT_HOTKEY_CHAT_TOGGLECHAT);
 		bindHotkey(CLIENT_HOTKEY_SECOND_KEY, SDLK_KP_ENTER, KMOD_NONE, CLIENT_HOTKEY_CHAT_TOGGLECHAT);
-	}
-	else
-	{
-		bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_UP, KMOD_CTRL, CLIENT_HOTKEY_MOVEMENT_TURNNORTH);
-		bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_LEFT, KMOD_CTRL, CLIENT_HOTKEY_MOVEMENT_TURNWEST);
-		bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_DOWN, KMOD_CTRL, CLIENT_HOTKEY_MOVEMENT_TURNSOUTH);
-		bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_RIGHT, KMOD_CTRL, CLIENT_HOTKEY_MOVEMENT_TURNEAST);
-		bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_UP, KMOD_NONE, CLIENT_HOTKEY_MOVEMENT_GONORTH);
-		bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_LEFT, KMOD_NONE, CLIENT_HOTKEY_MOVEMENT_GOWEST);
-		bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_DOWN, KMOD_NONE, CLIENT_HOTKEY_MOVEMENT_GOSOUTH);
-		bindHotkey(CLIENT_HOTKEY_FIRST_KEY, SDLK_RIGHT, KMOD_NONE, CLIENT_HOTKEY_MOVEMENT_GOEAST);
 	}
 	bindHotkey(CLIENT_HOTKEY_SECOND_KEY, SDLK_KP_8, KMOD_CTRL, CLIENT_HOTKEY_MOVEMENT_TURNNORTH);
 	bindHotkey(CLIENT_HOTKEY_SECOND_KEY, SDLK_KP_4, KMOD_CTRL, CLIENT_HOTKEY_MOVEMENT_TURNWEST);
@@ -3493,7 +3527,7 @@ void Engine::redraw()
 		{
 			m_leftPanelAddRect = iRect(m_gameBackgroundRect.x1, m_gameBackgroundRect.y1, GUI_UI_SIDEBAR_LEFT_ADD_UP_W, GUI_UI_SIDEBAR_LEFT_ADD_UP_H);
 			if(m_leftPanel != GUI_PANEL_RANDOM)
-				m_leftPanelAddRect.x1 = m_gameBackgroundRect.x1 - 2;
+				m_leftPanelAddRect.x1 = m_gameBackgroundRect.x1 - GUI_UI_SIDEBAR_LEFT_ADD_UP_W + 2;
 
 			if(m_canAddLeftPanel)
 			{
@@ -3517,7 +3551,7 @@ void Engine::redraw()
 				m_surface->drawPicture(GUI_UI_IMAGE, GUI_UI_SIDEBAR_LEFT_REMOVE_DISABLED_X, GUI_UI_SIDEBAR_LEFT_REMOVE_DISABLED_Y, m_leftPanelRemRect.x1, m_leftPanelRemRect.y1, m_leftPanelRemRect.x2, m_leftPanelRemRect.y2);
 		}
 		{
-			m_rightPanelAddRect = iRect(m_gameBackgroundRect.x1 + m_gameBackgroundRect.x2 - 7, m_gameBackgroundRect.y1, GUI_UI_SIDEBAR_RIGHT_ADD_UP_W, GUI_UI_SIDEBAR_RIGHT_ADD_UP_H);
+			m_rightPanelAddRect = iRect(m_gameBackgroundRect.x1 + m_gameBackgroundRect.x2 - GUI_UI_SIDEBAR_RIGHT_ADD_UP_W, m_gameBackgroundRect.y1, GUI_UI_SIDEBAR_RIGHT_ADD_UP_W, GUI_UI_SIDEBAR_RIGHT_ADD_UP_H);
 			if(m_canAddRightPanel)
 			{
 				if(m_rightAddPanel == 1)
