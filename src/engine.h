@@ -295,7 +295,10 @@ class Engine
 
 		SDL_INLINE void setClassicControl(bool classicControl) {m_classicControl = classicControl;}
 		SDL_INLINE void setAutoChaseOff(bool chaseOff) {m_autoChaseOff = chaseOff;}
-		SDL_INLINE void setWasdWalking(bool wasdWalking) {if(m_wasdWalking != wasdWalking) {m_wasdWalking = wasdWalking; m_chatInputEnabled = !m_wasdWalking; resetToDefaultHotkeys(m_wasdWalking);}}
+		SDL_INLINE void setChatInputEnabled(bool enabled, bool temporary = false) {m_chatInputEnabled = enabled; m_chatInputTemporary = (enabled ? temporary : false);}
+		SDL_INLINE void enableTemporaryChatInput() {setChatInputEnabled(true, true);}
+		SDL_INLINE void toggleChatInput() {setChatInputEnabled(!m_chatInputEnabled);}
+		SDL_INLINE void setWasdWalking(bool wasdWalking) {if(m_wasdWalking != wasdWalking) {m_wasdWalking = wasdWalking; setChatInputEnabled(!m_wasdWalking); resetToDefaultHotkeys(m_wasdWalking);}}
 		SDL_INLINE void setSmartWalking(bool smartWalking) {m_smartWalking = smartWalking; if(!m_smartWalking) m_smartWalkDirections = 0;}
 		SDL_INLINE void setShowNames(bool showNames) {m_showNames = showNames;}
 		SDL_INLINE void setShowMarks(bool showMarks) {m_showMarks = showMarks;}
@@ -306,6 +309,8 @@ class Engine
 		SDL_INLINE bool hasClassicControl() {return m_classicControl;}
 		SDL_INLINE bool hasAutoChaseOff() {return m_autoChaseOff;}
 		SDL_INLINE bool hasWasdWalking() {return m_wasdWalking;}
+		SDL_INLINE bool isChatInputEnabled() {return m_chatInputEnabled;}
+		SDL_INLINE bool isChatInputTemporary() {return m_chatInputTemporary;}
 		SDL_INLINE bool hasSmartWalking() {return m_smartWalking;}
 		SDL_INLINE bool hasShowNames() {return m_showNames;}
 		SDL_INLINE bool hasShowMarks() {return m_showMarks;}
@@ -492,6 +497,7 @@ class Engine
 		bool m_wasdWalking = false;
 		bool m_smartWalking = false;
 		bool m_chatInputEnabled = true;
+		bool m_chatInputTemporary = false;
 		bool m_showNames = true;
 		bool m_showMarks = true;
 		bool m_showPvPFrames = true;

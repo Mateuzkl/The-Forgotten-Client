@@ -65,6 +65,14 @@ ConsoleMessage g_lastMessage;
 #define CHAT_CHANNEL_SAVEWINDOW_EVENTID 3004
 #define CHAT_CHANNEL_CLEARWINDOW_EVENTID 3005
 
+#define CHAT_TOGGLE_BUTTON_W GUI_UI_BUTTON_75PX_GRAY_UP_W
+#define CHAT_TOGGLE_BUTTON_H GUI_UI_BUTTON_75PX_GRAY_UP_H
+
+static iRect chatToggleButtonRect(const iRect& rect)
+{
+	return iRect(rect.x1 + rect.x2 - CHAT_TOGGLE_BUTTON_W - 4, rect.y1 + rect.y2 - CHAT_TOGGLE_BUTTON_H - 2, CHAT_TOGGLE_BUTTON_W, CHAT_TOGGLE_BUTTON_H);
+}
+
 #define INVITE_PRIVATECHAT_TITLE "Invite player to private chat channel"
 #define INVITE_PRIVATECHAT_WIDTH 262
 #define INVITE_PRIVATECHAT_HEIGHT 124
@@ -104,8 +112,14 @@ ConsoleMessage g_lastMessage;
 Channel::Channel(std::string channelName, Uint32 channelId, bool closable, bool privateChannel) :
 	channelName(std::move(channelName)), channelId(channelId), channelClosable(closable), privateChannel(privateChannel)
 {
-	channelConsole = new GUI_Console(iRect(0, 0, 0, 0));
+	channelConsole = std::make_unique<GUI_Console>(iRect(0, 0, 0, 0));
 }
+
+Channel::~Channel() = default;
+
+Channel::Channel(Channel&& rhs) noexcept = default;
+
+Channel& Channel::operator=(Channel&& rhs) noexcept = default;
 
 void chat_Events(Uint32 event, Sint32)
 {
@@ -422,9 +436,6 @@ Chat::~Chat()
 
 void Chat::clear()
 {
-	for(std::vector<Channel>::iterator it = m_channels.begin(), end = m_channels.end(); it != end; ++it)
-		delete (*it).channelConsole;
-
 	m_channels.clear();
 }
 
@@ -497,7 +508,6 @@ void Chat::openChannel(Uint32 channelId, const std::string channelName, bool pri
 		Channel& currentChannel = (*it);
 		if(currentChannel.channelId == channelId)
 		{
-			delete currentChannel.channelConsole;
 			m_channels.erase(it);
 			break;
 		}
@@ -563,7 +573,6 @@ void Chat::leaveChannel(Uint32 channelId)
 		if(currentChannel.channelId == channelId)
 		{
 			alreadyClosed = currentChannel.alreadyClosed;
-			delete currentChannel.channelConsole;
 			m_channels.erase(it);
 			break;
 		}
@@ -1063,6 +1072,13 @@ void Chat::onLMouseDown(iRect& rect, Sint32 x, Sint32 y)
 		}
 	}
 
+	irect = chatToggleButtonRect(rect);
+	if(irect.isPointInside(x, y))
+	{
+		m_chatToggleStatus = 1;
+		return;
+	}
+
 	std::pair<size_t, size_t> calculatedPages = calculateChannelPages(rect);
 	if(calculatedPages.first > 0)
 	{
@@ -1109,6 +1125,8 @@ void Chat::onLMouseDown(iRect& rect, Sint32 x, Sint32 y)
 
 	if(m_textbox->getRect().isPointInside(x, y))
 	{
+		if(!g_engine.isChatInputEnabled())
+			g_engine.setChatInputEnabled(true);
 		m_textbox->onLMouseDown(x, y);
 		selectedchannel->channelConsole->clearSelection();
 	}
@@ -1134,6 +1152,7 @@ void Chat::onLMouseUp(iRect&, Sint32 x, Sint32 y)
 		m_volumeStatus = 0;
 		m_buttonNext = 0;
 		m_buttonPrevious = 0;
+		m_chatToggleStatus = 0;
 		return;
 	}
 	
@@ -1178,6 +1197,13 @@ void Chat::onLMouseUp(iRect&, Sint32 x, Sint32 y)
 		}
 
 		m_volumeStatus = 0;
+	}
+	else if(m_chatToggleStatus > 0)
+	{
+		if(m_chatToggleStatus == 1)
+			g_engine.toggleChatInput();
+
+		m_chatToggleStatus = 0;
 	}
 	else if(m_buttonNext > 0)
 	{
@@ -1434,6 +1460,18 @@ void Chat::onMouseMove(iRect& rect, Sint32 x, Sint32 y)
 			g_engine.showDescription(x, y, "Adjust volume");
 	}
 
+	irect = chatToggleButtonRect(rect);
+	inside = irect.isPointInside(x, y);
+	if(m_chatToggleStatus > 0)
+	{
+		if(m_chatToggleStatus == 1 && !inside)
+			m_chatToggleStatus = 2;
+		else if(m_chatToggleStatus == 2 && inside)
+			m_chatToggleStatus = 1;
+	}
+	if(inside)
+		g_engine.showDescription(x, y, "Enable/disable chat input");
+
 	std::pair<size_t, size_t> calculatedPages = calculateChannelPages(rect);
 	if(calculatedPages.first > 0)
 	{
@@ -1643,9 +1681,16 @@ void Chat::render(iRect& rect)
 	if(!m_textbox->isActive())
 		m_textbox->activate();
 
-	iRect tRect = iRect(rect.x1 + 23, rect.y1 + rect.y2 - 20, rect.x2 - 27, 16);
+	iRect chatToggleRect = chatToggleButtonRect(rect);
+	iRect tRect = iRect(rect.x1 + 23, rect.y1 + rect.y2 - 20, UTIL_max<Sint32>(20, chatToggleRect.x1 - rect.x1 - 27), 16);
 	m_textbox->setRect(tRect);
 	m_textbox->render();
+
+	const std::string chatToggleText = (g_engine.isChatInputEnabled() ? (g_engine.isChatInputTemporary() ? "Chat On*" : "Chat On") : "Chat Off");
+	bool chatTogglePressed = (m_chatToggleStatus == 1);
+	renderer->drawPicture(GUI_UI_IMAGE, (chatTogglePressed ? GUI_UI_BUTTON_75PX_GRAY_DOWN_X : GUI_UI_BUTTON_75PX_GRAY_UP_X), (chatTogglePressed ? GUI_UI_BUTTON_75PX_GRAY_DOWN_Y : GUI_UI_BUTTON_75PX_GRAY_UP_Y), chatToggleRect.x1, chatToggleRect.y1, chatToggleRect.x2, chatToggleRect.y2);
+	Uint32 chatToggleTextWidth = g_engine.calculateFontWidth(CLIENT_FONT_SMALL, chatToggleText);
+	g_engine.drawFont(CLIENT_FONT_SMALL, chatToggleRect.x1 + (chatToggleRect.x2 / 2) - SDL_static_cast(Sint32, chatToggleTextWidth / 2) + (chatTogglePressed ? 1 : 0), chatToggleRect.y1 + (chatTogglePressed ? 8 : 7), chatToggleText, 255, 255, 255, CLIENT_FONT_ALIGN_LEFT);
 
 	iRect cRect = iRect(rect.x1 + 6, rect.y1 + 28, rect.x2 - 12, rect.y2 - 52);
 	selectedchannel->channelConsole->setRect(cRect);

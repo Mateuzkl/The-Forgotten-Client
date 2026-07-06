@@ -39,37 +39,18 @@ class GUI_Console;
 struct Channel
 {
 	Channel(std::string channelName, Uint32 channelId, bool closable, bool privateChannel);
+	~Channel();
 
 	// non-copyable
 	Channel(const Channel&) = delete;
 	Channel& operator=(const Channel&) = delete;
 
 	// moveable
-	Channel(Channel&& rhs) noexcept : channelName(std::move(rhs.channelName)), channelConsole(rhs.channelConsole), channelId(rhs.channelId), highlightTime(rhs.highlightTime),
-		workAsServerLog(rhs.workAsServerLog), channelClosable(rhs.channelClosable), privateChannel(rhs.privateChannel), alreadyClosed(rhs.alreadyClosed), unreadMessage(rhs.unreadMessage)
-	{
-		rhs.channelConsole = NULL;
-	}
-	Channel& operator=(Channel&& rhs) noexcept
-	{
-		if(this != &rhs)
-		{
-			channelName = std::move(rhs.channelName);
-			channelConsole = rhs.channelConsole;
-			channelId = rhs.channelId;
-			highlightTime = rhs.highlightTime;
-			workAsServerLog = rhs.workAsServerLog;
-			channelClosable = rhs.channelClosable;
-			privateChannel = rhs.privateChannel;
-			alreadyClosed = rhs.alreadyClosed;
-			unreadMessage = rhs.unreadMessage;
-			rhs.channelConsole = NULL;
-		}
-		return (*this);
-	}
+	Channel(Channel&& rhs) noexcept;
+	Channel& operator=(Channel&& rhs) noexcept;
 
 	std::string channelName;
-	GUI_Console* channelConsole;
+	std::unique_ptr<GUI_Console> channelConsole;
 	Uint32 channelId;
 	Uint32 highlightTime = 0;
 	bool workAsServerLog = false;
@@ -160,6 +141,7 @@ class Chat
 		Uint8 m_volumeAdjustement = VOLUME_SAY;
 		Uint8 m_buttonNext = 0;
 		Uint8 m_buttonPrevious = 0;
+		Uint8 m_chatToggleStatus = 0;
 		bool m_haveRMouse = false;
 		bool m_bMouseResizing = false;
 };

@@ -318,7 +318,7 @@ void Engine::loadCFG()
 		data = cfg.fetchKey("WasdWalking");
 		if(!data.empty())
 			m_wasdWalking = (data == "yes" ? true : false);
-		m_chatInputEnabled = !m_wasdWalking;
+		setChatInputEnabled(!m_wasdWalking);
 		data = cfg.fetchKey("SmartWalking");
 		if(!data.empty())
 			m_smartWalking = (data == "yes" ? true : false);
@@ -1554,23 +1554,20 @@ void Engine::onKeyDown(SDL_Event& event)
 		{
 			if(event.key.keysym.sym == SDLK_RETURN || event.key.keysym.sym == SDLK_KP_ENTER)
 			{
-				if(m_wasdWalking)
+				if(m_chatInputEnabled)
 				{
-					if(m_chatInputEnabled)
-					{
-						g_chat.sendMessage();
-						m_chatInputEnabled = false;
-					}
-					else
-						m_chatInputEnabled = true;
-					return;
+					g_chat.sendMessage();
+					if(m_chatInputTemporary)
+						setChatInputEnabled(false);
 				}
-				g_chat.sendMessage();
+				else
+					enableTemporaryChatInput();
+				return;
 			}
-			else if((!m_wasdWalking || m_chatInputEnabled) && (event.key.keysym.sym == SDLK_BACKSPACE || event.key.keysym.sym == SDLK_DELETE || event.key.keysym.sym == SDLK_HOME || event.key.keysym.sym == SDLK_END))
+			else if(m_chatInputEnabled && (event.key.keysym.sym == SDLK_BACKSPACE || event.key.keysym.sym == SDLK_DELETE || event.key.keysym.sym == SDLK_HOME || event.key.keysym.sym == SDLK_END))
 				g_chat.onKeyDown(event);
 		}
-		else if((!m_wasdWalking || m_chatInputEnabled) && event.key.keysym.mod == KMOD_SHIFT)
+		else if(m_chatInputEnabled && event.key.keysym.mod == KMOD_SHIFT)
 		{
 			if(event.key.keysym.sym == SDLK_UP)
 				g_chat.navigateHistory(-1);
@@ -1579,7 +1576,7 @@ void Engine::onKeyDown(SDL_Event& event)
 			else if(event.key.keysym.sym == SDLK_LEFT || event.key.keysym.sym == SDLK_RIGHT || event.key.keysym.sym == SDLK_HOME || event.key.keysym.sym == SDLK_END)
 				g_chat.onKeyDown(event);
 		}
-		else if((!m_wasdWalking || m_chatInputEnabled) && event.key.keysym.mod == KMOD_CTRL)
+		else if(m_chatInputEnabled && event.key.keysym.mod == KMOD_CTRL)
 		{
 			if(event.key.keysym.sym == SDLK_a || event.key.keysym.sym == SDLK_x || event.key.keysym.sym == SDLK_c || event.key.keysym.sym == SDLK_v)
 				g_chat.onKeyDown(event);
@@ -1700,7 +1697,8 @@ void Engine::onKeyDown(SDL_Event& event)
 				break;
 				case CLIENT_HOTKEY_CHAT_TOGGLECHAT:
 				{
-					//Toggle chat
+					if(event.key.repeat == 0)
+						toggleChatInput();
 				}
 				break;
 				case CLIENT_HOTKEY_MINIMAP_CENTER: g_game.minimapCenter(); break;
@@ -1967,15 +1965,15 @@ void Engine::onKeyUp(SDL_Event& event)
 
 		if(event.key.keysym.mod == KMOD_NONE)
 		{
-			if((!m_wasdWalking || m_chatInputEnabled) && (event.key.keysym.sym == SDLK_BACKSPACE || event.key.keysym.sym == SDLK_DELETE || event.key.keysym.sym == SDLK_HOME || event.key.keysym.sym == SDLK_END))
+			if(m_chatInputEnabled && (event.key.keysym.sym == SDLK_BACKSPACE || event.key.keysym.sym == SDLK_DELETE || event.key.keysym.sym == SDLK_HOME || event.key.keysym.sym == SDLK_END))
 				g_chat.onKeyUp(event);
 		}
-		else if((!m_wasdWalking || m_chatInputEnabled) && event.key.keysym.mod == KMOD_SHIFT)
+		else if(m_chatInputEnabled && event.key.keysym.mod == KMOD_SHIFT)
 		{
 			if(event.key.keysym.sym == SDLK_LEFT || event.key.keysym.sym == SDLK_RIGHT || event.key.keysym.sym == SDLK_HOME || event.key.keysym.sym == SDLK_END)
 				g_chat.onKeyUp(event);
 		}
-		else if((!m_wasdWalking || m_chatInputEnabled) && event.key.keysym.mod == KMOD_CTRL)
+		else if(m_chatInputEnabled && event.key.keysym.mod == KMOD_CTRL)
 		{
 			if(event.key.keysym.sym == SDLK_a || event.key.keysym.sym == SDLK_x || event.key.keysym.sym == SDLK_c || event.key.keysym.sym == SDLK_v)
 				g_chat.onKeyUp(event);
@@ -2986,7 +2984,7 @@ void Engine::onTextInput(const char* textInput)
 
 	if(m_ingame)
 	{
-		if(!m_wasdWalking || m_chatInputEnabled)
+		if(m_chatInputEnabled)
 			g_chat.onTextInput(textInput);
 	}
 	else
