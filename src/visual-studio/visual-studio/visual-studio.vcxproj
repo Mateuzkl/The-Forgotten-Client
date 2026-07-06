@@ -19,7 +19,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\elfbot_shadow.cpp" />
     <ClCompile Include="..\..\animatedText.cpp" />
     <ClCompile Include="..\..\animator.cpp" />
     <ClCompile Include="..\..\automap.cpp" />
@@ -29,7 +28,6 @@
     <ClCompile Include="..\..\creature.cpp" />
     <ClCompile Include="..\..\distanceEffect.cpp" />
     <ClCompile Include="..\..\effect.cpp" />
-    <ClCompile Include="..\..\elfbot_compat.cpp" />
     <ClCompile Include="..\..\engine.cpp" />
     <ClCompile Include="..\..\game.cpp" />
     <ClCompile Include="..\..\GUI\AdvancedGraphicsOptions.cpp" />
@@ -138,9 +136,6 @@
     <ClCompile Include="..\..\util.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\..\elfbot_version.rc" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="..\..\animatedText.h" />
     <ClInclude Include="..\..\animator.h" />
     <ClInclude Include="..\..\automap.h" />
@@ -154,7 +149,6 @@
     <ClInclude Include="..\..\defines.h" />
     <ClInclude Include="..\..\distanceEffect.h" />
     <ClInclude Include="..\..\effect.h" />
-    <ClInclude Include="..\..\elfbot_compat.h" />
     <ClInclude Include="..\..\engine.h" />
     <ClInclude Include="..\..\game.h" />
     <ClInclude Include="..\..\GUI\BattleWindow.h" />
@@ -345,9 +339,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\lib32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>setupapi.lib;winmm.lib;imm32.lib;version.lib;ws2_32.lib;dxguid.lib;SDL2main.lib;SDL2.lib;zlib1.lib;wldap32.lib;crypt32.lib;libcurl.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <BaseAddress>0x00140000</BaseAddress>
-      <RandomizedBaseAddress>false</RandomizedBaseAddress>
-      <FixedBaseAddress>true</FixedBaseAddress>
     </Link>
     <PostBuildEvent>
       <Command>if not exist "$(OutDir)zlib1.dll" if exist "$(ProjectDir)..\lib32\zlib1.dll" copy /Y "$(ProjectDir)..\lib32\zlib1.dll" "$(OutDir)zlib1.dll"</Command>
@@ -399,9 +390,6 @@
       <AdditionalDependencies>setupapi.lib;winmm.lib;imm32.lib;version.lib;ws2_32.lib;dxguid.lib;SDL2main.lib;SDL2.lib;zlib1.lib;wldap32.lib;crypt32.lib;libcurl.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>
       </IgnoreAllDefaultLibraries>
-      <BaseAddress>0x00140000</BaseAddress>
-      <RandomizedBaseAddress>false</RandomizedBaseAddress>
-      <FixedBaseAddress>true</FixedBaseAddress>
     </Link>
     <PostBuildEvent>
       <Command>if not exist "$(OutDir)zlib1.dll" if exist "$(ProjectDir)..\lib32\zlib1.dll" copy /Y "$(ProjectDir)..\lib32\zlib1.dll" "$(OutDir)zlib1.dll"</Command>

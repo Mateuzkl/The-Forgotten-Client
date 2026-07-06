@@ -190,8 +190,6 @@ SOURCES=()
 for source in "${ALL_SOURCES[@]}"; do
 	rel="${source#$ROOT_DIR/}"
 	case "$rel" in
-		src/elfbot_compat.cpp|\
-		src/elfbot_shadow.cpp|\
 		src/lzma/LzFindMt.c|\
 		src/lzma/Threads.c|\
 		src/surfaceDirect3D9.cpp|\
