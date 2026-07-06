@@ -55,14 +55,10 @@ namespace
 
 	bool shouldSendToTerminal(const std::string& title, const std::string& message)
 	{
-		const std::string titleLower = toLowerCopy(title);
+		(void)title;
 		const std::string messageLower = toLowerCopy(message);
 
-		return containsText(titleLower, "error") ||
-			containsText(titleLower, "failed") ||
-			containsText(titleLower, "sorry") ||
-			containsText(titleLower, "two-factor") ||
-			containsText(messageLower, "error:") ||
+		return containsText(messageLower, "error:") ||
 			containsText(messageLower, "failed") ||
 			containsText(messageLower, "cannot connect") ||
 			containsText(messageLower, "cannot open") ||
@@ -142,6 +138,8 @@ void messagebox_Events(Uint32 event, Sint32)
 				{
 					g_engine.releaseConnection();
 					g_protocolLoginHttp.closeConnection();
+					if(!g_engine.getWindow(GUI_WINDOW_CHARACTERLIST) && !g_engine.getWindow(GUI_WINDOW_ENTERGAME))
+						UTIL_createEnterGame();
 				}
 			}
 		}

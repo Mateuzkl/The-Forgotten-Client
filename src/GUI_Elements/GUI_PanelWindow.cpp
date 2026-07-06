@@ -359,6 +359,10 @@ void GUI_PanelWindow::render()
 			renderer->disableClipRect();
 			renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_ICON_LEFT_SLIDER_X, GUI_UI_ICON_LEFT_SLIDER_Y, GUI_UI_ICON_LEFT_SLIDER_W, GUI_UI_ICON_LEFT_SLIDER_H, m_tRect.x1 - 2, m_tRect.y1 + 13, 4, m_tRect.y2 - 19);
 			renderer->drawPictureRepeat(GUI_UI_IMAGE, GUI_UI_ICON_RIGHT_SLIDER_X, GUI_UI_ICON_RIGHT_SLIDER_Y, GUI_UI_ICON_RIGHT_SLIDER_W, GUI_UI_ICON_RIGHT_SLIDER_H, m_tRect.x1 + m_tRect.x2 - 2, m_tRect.y1 + 13, 4, m_tRect.y2 - 19);
+
+			// The original Tibia 8.6 miniborder sprite is packed inside the PWINDOW_RESIZER block.
+			// Use exact sub-coordinates to crop only the ridges, removing garbage pixels from adjacent sprites.
+			renderer->drawPicture(GUI_UI_IMAGE, GUI_UI_ICON_PWINDOW_MINIBORDER_X, GUI_UI_ICON_PWINDOW_MINIBORDER_Y, m_tRect.x1 + 2, m_tRect.y1 + m_tRect.y2 - 17, GUI_UI_ICON_PWINDOW_MINIBORDER_W, GUI_UI_ICON_PWINDOW_MINIBORDER_H);
 		}
 	}
 	else
