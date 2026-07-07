@@ -19,6 +19,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <Manifest Include="app.manifest" />
+  </ItemGroup>
+  <ItemGroup>
     <ClCompile Include="..\..\animatedText.cpp" />
     <ClCompile Include="..\..\animator.cpp" />
     <ClCompile Include="..\..\automap.cpp" />

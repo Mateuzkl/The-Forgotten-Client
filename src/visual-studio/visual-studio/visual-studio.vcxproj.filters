@@ -48,6 +48,11 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <Manifest Include="app.manifest">
+      <Filter>Resource Files</Filter>
+    </Manifest>
+  </ItemGroup>
+  <ItemGroup>
     <ClCompile Include="..\..\connection.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
