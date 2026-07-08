@@ -1,29 +1,22 @@
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(_WIN64)
 
-// EXE image base = 0x00140000. This array is placed in .text$aaa which
-// the linker merges BEFORE the normal .text section, so the shadow
-// starts at RVA 0x1000 = absolute address 0x00141000.
+// Direct TFC ElfBot compatibility needs the real process to own Tibia
+// 8.60's absolute address range before imported DLLs, heaps, NLS maps, or
+// SDL can place anything there. A TLS VirtualAlloc is still too late on
+// some Windows setups because imported DLL process-attach code runs first.
 //
-// We must size the shadow so that its END is past 0x00800000 -- the
-// highest Tibia 8.60 address ElfBot writes to. Otherwise the back half
-// of the Tibia address range (0x005B8980 RSA, 0x0063FE94 Player.Health,
-// 0x0063FEF8 BattleList, 0x0079CF28 Client.Status, etc.) ends up
-// overlapping TFC's REAL .text/.rdata/.data sections that come after
-// the shadow, and our Tibia-style writes silently corrupt TFC's own
-// globals (g_game, g_map, vtables, string literals). Symptom: writes
-// "succeed" (memHealth matches shim->health in the log) but ElfBot's
-// HUD reads back garbage values because TFC's data layout is being
-// scrambled.
+// The Win32 EXE is linked at 0x00140000 and this .text$aaa block is merged
+// before the normal .text section. It starts at RVA 0x1000, so it covers:
 //
-// Required end address >= 0x00800000  ==> end RVA >= 0x006C0000
-//                                      ==> size >= 0x006BF000
-// We round up to 0x006C0000 (7,077,888 bytes = 6.75 MB) for clean
-// page alignment.
+//   0x00141000 .. 0x00801000
 //
-// Because the array is uninitialised volatile memory, the linker
-// records the size in section headers but emits zero raw bytes
-// (it's effectively BSS in .text$aaa), so the file size on disk
-// barely grows.
+// That includes every 8.60 address ElfBot touches:
+//   0x00440000 text/code/RSA
+//   0x00630000 player/battlelist/client globals
+//   0x00799F08 hotkey text
+//
+// The linker records this as virtual image size, not raw file bytes, so the
+// executable does not grow by the full 6.75 MB on disk.
 #pragma section(".text$aaa", read, write, execute)
 __declspec(allocate(".text$aaa")) __declspec(align(4096))
 volatile unsigned char g_tibia860ImageShadow[0x006C0000];

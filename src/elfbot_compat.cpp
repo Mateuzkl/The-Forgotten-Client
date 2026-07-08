@@ -5,11 +5,10 @@
   description of what is / isn't faked.
 
   Architecture:
-    1. init() reserves two large virtual address ranges at fixed
-       locations using VirtualAlloc(MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE).
-       Those ranges cover every data and code address Tibia 8.60 placed
-       in its .data/.text sections, so any read or write ElfBot performs
-       lands on writable memory rather than crashing.
+    1. The Win32 image carries a low-address shadow section that commits
+       Tibia 8.60's absolute memory range before imported DLLs can occupy
+       it. init() verifies that ownership and uses VirtualAlloc only as a
+       fallback when the image shadow is unavailable.
 
     2. registerTibiaWindowClass() pre-registers a Win32 window class
        called "TibiaClient" via SDL_RegisterApp(), so SDL2's subsequent
@@ -60,6 +59,12 @@ extern Game   g_game;
 extern Map    g_map;
 extern Engine g_engine;
 
+#if defined(_WIN32) && !defined(_WIN64)
+// Defined in elfbot_shadow.cpp. Touching it from the TLS callback keeps the
+// low-address image shadow alive even with Release /OPT:REF enabled.
+extern volatile unsigned char g_tibia860ImageShadow[0x006C0000];
+#endif
+
 // Defined in main.cpp -- TFC's own FPS / frame-time globals. We mirror
 // them into the Tibia 8.60 FPS variable so ElfBot's HUD sees the live
 // framerate from TFC. Must be declared at file scope (NOT inside
@@ -67,14 +72,6 @@ extern Engine g_engine;
 // ::g_lastFrames / ::g_frameDiff symbols, not ElfbotCompat::g_*.
 extern Uint16 g_lastFrames;
 extern Uint32 g_frameDiff;
-
-#ifdef _WIN32
-// Size MUST match the definition in elfbot_shadow.cpp. The shadow needs
-// to be large enough that its END is past 0x00800000 (the highest Tibia
-// 8.60 address), otherwise late Tibia writes silently corrupt TFC's
-// real .text/.rdata/.data sections that come after the shadow.
-extern volatile unsigned char g_tibia860ImageShadow[0x006C0000];
-#endif
 
 namespace ElfbotCompat
 {
@@ -88,10 +85,9 @@ namespace ElfbotCompat
 
 	// Counters populated by the TLS callback at process startup, then
 	// logged by init() once CRT I/O is safe.
-	struct TlsResult { Uint32 ok; Uint32 fail; uintptr_t firstFail; };
-	static TlsResult s_tlsText  = {0, 0, 0};
-	static TlsResult s_tlsDlow  = {0, 0, 0};
-	static TlsResult s_tlsDhigh = {0, 0, 0};
+	struct TlsResult { Uint32 ok; Uint32 fail; uintptr_t firstFail; Uint32 lastError; };
+	static TlsResult s_tlsText  = {0, 0, 0, 0};
+	static TlsResult s_tlsData  = {0, 0, 0, 0};
 	static bool s_tlsRan = false;
 #ifdef _WIN32
 	static HWND      s_tibiaHwnd     = NULL;  // hidden helper window
@@ -595,10 +591,8 @@ namespace ElfbotCompat
 	{
 		struct Range { uintptr_t base; SIZE_T size; const char* name; };
 		static const Range ranges[] = {
-			{ 0x00440000, 0x00190000, "text/code hooks" },
-			{ 0x005B0000, 0x00090000, "rdata/RSA/DAT" },
-			{ 0x00630000, 0x00040000, "player/battlelist/map" },
-			{ 0x00790000, 0x00070000, "client globals/messages" },
+			{ Addr::REGION_TEXT_BASE, Addr::REGION_TEXT_SIZE, "text/code/RSA/DAT" },
+			{ Addr::REGION_DATA_BASE, Addr::REGION_DATA_SIZE, "player/battlelist/client globals" },
 		};
 
 		for(size_t i = 0; i < sizeof(ranges) / sizeof(ranges[0]); ++i)
@@ -629,6 +623,146 @@ namespace ElfbotCompat
 			addr = reinterpret_cast<uintptr_t>(mbi.BaseAddress) + mbi.RegionSize;
 		}
 		return true;
+	}
+
+	static bool isWritableProtect(DWORD protect)
+	{
+		if(protect & PAGE_GUARD)
+			return false;
+
+		protect &= 0xFF;
+		return protect == PAGE_READWRITE ||
+		       protect == PAGE_WRITECOPY ||
+		       protect == PAGE_EXECUTE_READWRITE ||
+		       protect == PAGE_EXECUTE_WRITECOPY;
+	}
+
+	static const char* memStateName(DWORD state)
+	{
+		switch(state)
+		{
+			case MEM_COMMIT: return "COMMIT";
+			case MEM_RESERVE: return "RESERVE";
+			case MEM_FREE: return "FREE";
+			default: return "UNKNOWN";
+		}
+	}
+
+	static const char* memTypeName(DWORD type)
+	{
+		switch(type)
+		{
+			case MEM_IMAGE: return "IMAGE";
+			case MEM_MAPPED: return "MAPPED";
+			case MEM_PRIVATE: return "PRIVATE";
+			default: return "NONE";
+		}
+	}
+
+	static void dumpDirectTibiaRangeMap(const char* reason)
+	{
+		log("[ElfBotDirect] VirtualQuery range dump begin reason=%s", reason ? reason : "");
+		uintptr_t cursor = 0x00400000;
+		const uintptr_t end = 0x00800000;
+		while(cursor < end)
+		{
+			MEMORY_BASIC_INFORMATION mbi;
+			std::memset(&mbi, 0, sizeof(mbi));
+			if(VirtualQuery(reinterpret_cast<LPCVOID>(cursor), &mbi, sizeof(mbi)) == 0)
+			{
+				log("[ElfBotDirect] range 0x%08IX VirtualQuery failed gle=%lu", cursor, GetLastError());
+				cursor += 0x10000;
+				continue;
+			}
+
+			uintptr_t base = reinterpret_cast<uintptr_t>(mbi.BaseAddress);
+			uintptr_t regionEnd = base + mbi.RegionSize;
+			char mapped[MAX_PATH] = {0};
+			if(mbi.State != MEM_FREE)
+			{
+				if(!GetModuleFileNameExA(GetCurrentProcess(), reinterpret_cast<HMODULE>(mbi.AllocationBase), mapped, MAX_PATH))
+					GetMappedFileNameA(GetCurrentProcess(), mbi.AllocationBase, mapped, MAX_PATH);
+			}
+
+			log("[ElfBotDirect] range 0x%08IX..0x%08IX state=%s protect=0x%08lX type=%s alloc=0x%08IX %s",
+				base,
+				regionEnd,
+				memStateName(mbi.State),
+				mbi.Protect,
+				memTypeName(mbi.Type),
+				reinterpret_cast<uintptr_t>(mbi.AllocationBase),
+				mapped[0] ? mapped : "");
+
+			if(regionEnd <= cursor)
+				cursor += 0x10000;
+			else
+				cursor = regionEnd;
+		}
+		log("[ElfBotDirect] VirtualQuery range dump end");
+	}
+
+	static bool ensureDirectRegion(uintptr_t base, SIZE_T size, DWORD protect, const char* name, const TlsResult& tls)
+	{
+		if(isCommittedRange(base, size))
+		{
+			DWORD oldProtect = 0;
+			if(!VirtualProtect(reinterpret_cast<LPVOID>(base), size, protect, &oldProtect))
+			{
+				log("[ElfBotDirect] VirtualProtect failed region %s base=0x%08IX size=0x%IX GetLastError=%lu",
+					name, base, size, GetLastError());
+				dumpDirectTibiaRangeMap(name);
+				return false;
+			}
+			log("[ElfBotDirect] region %s already committed base=0x%08IX size=0x%IX tlsOk=%u tlsFail=%u tlsGLE=%u",
+				name, base, size, tls.ok, tls.fail, tls.lastError);
+			return true;
+		}
+
+		LPVOID p = VirtualAlloc(reinterpret_cast<LPVOID>(base), size, MEM_RESERVE | MEM_COMMIT, protect);
+		if(!p || reinterpret_cast<uintptr_t>(p) != base)
+		{
+			DWORD gle = GetLastError();
+			log("[ElfBotDirect] VirtualAlloc failed region %s base=0x%08IX size=0x%IX GetLastError=%lu",
+				name, base, size, gle);
+			dumpDirectTibiaRangeMap(name);
+			if(p)
+				VirtualFree(p, 0, MEM_RELEASE);
+			return false;
+		}
+
+		log("[ElfBotDirect] VirtualAlloc ok region %s base=0x%08IX size=0x%IX",
+			name, base, size);
+		return true;
+	}
+
+	static bool logDirectAddressProbe(Uint32 address)
+	{
+		MEMORY_BASIC_INFORMATION mbi;
+		std::memset(&mbi, 0, sizeof(mbi));
+		bool committed = false;
+		bool writable = false;
+		if(VirtualQuery(reinterpret_cast<LPCVOID>(static_cast<uintptr_t>(address)), &mbi, sizeof(mbi)) != 0)
+		{
+			committed = (mbi.State == MEM_COMMIT);
+			writable = committed && isWritableProtect(mbi.Protect);
+		}
+
+		log("[ElfBotDirect] 0x%08X committed writable %s", address, (committed && writable) ? "yes" : "no");
+		return committed && writable;
+	}
+
+	static bool ensureDirectTibiaMemory()
+	{
+		bool ok = true;
+		ok = ensureDirectRegion(Addr::REGION_TEXT_BASE, Addr::REGION_TEXT_SIZE, PAGE_EXECUTE_READWRITE, "text", s_tlsText) && ok;
+		ok = ensureDirectRegion(Addr::REGION_DATA_BASE, Addr::REGION_DATA_SIZE, PAGE_READWRITE, "data", s_tlsData) && ok;
+		if(!ok)
+			return false;
+
+		ok = logDirectAddressProbe(Addr::PLAYER_HEALTH) && ok;
+		ok = logDirectAddressProbe(Addr::BATTLELIST_START) && ok;
+		ok = logDirectAddressProbe(Addr::HOTKEY_TEXT_START) && ok;
+		return ok;
 	}
 
 	static bool findTibiaImagePath(wchar_t* out, DWORD outCount)
@@ -992,7 +1126,7 @@ namespace ElfbotCompat
 		poke<Uint32>(Addr::PLAYER_GOTO_Y, y);
 		poke<Uint32>(Addr::PLAYER_GOTO_Z, z);
 		InterlockedExchange(&s_pendingOldWalk, 1);
-		log("old-tibia hook: autowalk x=%u y=%u z=%u mode=%u flags=%u",
+		log("[ElfBotDirect] autowalk hook x=%u y=%u z=%u mode=%u flags=%u",
 			x, y, z, mode, flags);
 
 		// Returning 0 prevents ElfBot from continuing into old Tibia's
@@ -1006,7 +1140,7 @@ namespace ElfbotCompat
 		poke<Uint32>(Addr::PLAYER_GREEN_SQUARE, 0);
 		s_pendingOldAttackId = creatureId;
 		InterlockedExchange(&s_pendingOldAttack, 1);
-		log("old-tibia hook: attack id=%u", creatureId);
+		log("[ElfBotDirect] old attack hook id=%u", creatureId);
 	}
 
 	static void __cdecl oldTibiaSetFollowHook(Uint32 creatureId)
@@ -1015,13 +1149,13 @@ namespace ElfbotCompat
 		poke<Uint32>(Addr::PLAYER_RED_SQUARE, 0);
 		s_pendingOldFollowId = creatureId;
 		InterlockedExchange(&s_pendingOldFollow, 1);
-		log("old-tibia hook: follow id=%u", creatureId);
+		log("[ElfBotDirect] old follow hook id=%u", creatureId);
 	}
 
 	static void __cdecl oldTibiaSetTargetHook(Uint32 creatureId)
 	{
 		poke<Uint32>(Addr::PLAYER_TARGET_BATTLELIST_ID, creatureId);
-		log("old-tibia hook: target-battlelist id=%u", creatureId);
+		log("[ElfBotDirect] old target hook id=%u", creatureId);
 	}
 
 	static bool patchOldTibiaFunction(Uint32 address, void* hook, const char* name)
@@ -2472,9 +2606,10 @@ namespace ElfbotCompat
 
 			s_lastCommandRaw = raw;
 			s_lastCommandTick = now;
-			log("writeback: say from %s 0x%08X raw='%s' message='%s'",
+			log("[ElfBotDirect] hotkey say from %s 0x%08X raw='%s' message='%s'",
 				slots[i].name, slots[i].addr, raw.c_str(), message.c_str());
 			g_game.sendSay(MessageSay, 0, std::string(), message);
+			log("[ElfBotDirect] hotkey say sent=1 message='%s'", message.c_str());
 
 			// Clear the old-client compose buffer after consuming it. If
 			// ElfBot's auto loop really fires every N ms, it will write the
@@ -2637,9 +2772,10 @@ namespace ElfbotCompat
 				continue;
 
 			s_scripts[i].lastRun = now;
-			log("writeback: elfbot auto script raw='%s' message='%s'",
+			log("[ElfBotDirect] hotkey auto raw='%s' message='%s'",
 				s_scripts[i].raw.c_str(), message.c_str());
 			g_game.sendSay(MessageSay, 0, std::string(), message);
+			log("[ElfBotDirect] hotkey say sent=1 message='%s'", message.c_str());
 		}
 #endif
 	}
@@ -2691,12 +2827,11 @@ namespace ElfbotCompat
 			Creature* c = g_map.getCreatureById(id);
 			if(c)
 			{
-				log("writeback: old encrypted packet attack id=%u name=%s",
-					id, c->getName().c_str());
 				g_game.sendAttack(c);
+				log("[ElfBotDirect] bridged attack id=%u found=1 sent=1", id);
 			}
 			else
-				log("writeback: old encrypted packet attack id=%u not in TFC creature map", id);
+				log("[ElfBotDirect] bridged attack id=%u found=0 sent=0", id);
 		}
 
 		if(InterlockedExchange(&s_pendingPacketFollow, 0) != 0)
@@ -2737,20 +2872,22 @@ namespace ElfbotCompat
 					{
 						s_lastHookWalk = target;
 						s_lastHookWalkTick = now;
-						log("writeback: old-tibia autowalk target=%u,%u,%u current=%u,%u,%u",
+						log("[ElfBotDirect] goto changed x=%u y=%u z=%u current=%u,%u,%u",
 							target.x, target.y, target.z, current.x, current.y, current.z);
 						g_game.startAutoWalk(target);
+						log("[ElfBotDirect] TFC startAutoWalk ok=1 x=%u y=%u z=%u",
+							target.x, target.y, target.z);
 					}
 				}
 				else
 				{
-					log("writeback: ignored old-tibia autowalk target=%u,%u,%u current=%u,%u,%u",
+					log("[ElfBotDirect] TFC startAutoWalk ok=0 x=%u y=%u z=%u current=%u,%u,%u",
 						gx, gy, gz, current.x, current.y, current.z);
 				}
 			}
 			else
 			{
-				log("writeback: ignored invalid old-tibia autowalk target=%u,%u,%u", gx, gy, gz);
+				log("[ElfBotDirect] TFC startAutoWalk ok=0 x=%u y=%u z=%u", gx, gy, gz);
 			}
 
 			poke<Uint32>(Addr::PLAYER_GOTO_X, 0);
@@ -2771,12 +2908,12 @@ namespace ElfbotCompat
 				Creature* c = g_map.getCreatureById(id);
 				if(c)
 				{
-					log("writeback: old-tibia attack id=%u name=%s", id, c->getName().c_str());
 					g_game.sendAttack(c);
+					log("[ElfBotDirect] bridged attack id=%u found=1 sent=1", id);
 				}
 				else
 				{
-					log("writeback: old-tibia attack id=%u not in TFC creature map", id);
+					log("[ElfBotDirect] bridged attack id=%u found=0 sent=0", id);
 				}
 			}
 		}
@@ -2849,7 +2986,7 @@ namespace ElfbotCompat
 		// player running across the map or flipping floors.
 		if(target.z != current.z || deltaAbs(target.x, current.x) > 50 || deltaAbs(target.y, current.y) > 50)
 		{
-			log("writeback: ignored autowalk target=%u,%u,%u current=%u,%u,%u",
+			log("[ElfBotDirect] TFC startAutoWalk ok=0 x=%u y=%u z=%u current=%u,%u,%u",
 				target.x, target.y, target.z, current.x, current.y, current.z);
 			poke<Uint32>(Addr::PLAYER_GOTO_X, 0);
 			poke<Uint32>(Addr::PLAYER_GOTO_Y, 0);
@@ -2864,9 +3001,11 @@ namespace ElfbotCompat
 		{
 			s_lastGotoRequest = target;
 			s_lastGotoTick = now;
-			log("writeback: autowalk target=%u,%u,%u current=%u,%u,%u",
+			log("[ElfBotDirect] goto changed x=%u y=%u z=%u current=%u,%u,%u",
 				target.x, target.y, target.z, current.x, current.y, current.z);
 			g_game.startAutoWalk(target);
+			log("[ElfBotDirect] TFC startAutoWalk ok=1 x=%u y=%u z=%u",
+				target.x, target.y, target.z);
 		}
 
 		poke<Uint32>(Addr::PLAYER_GOTO_X, 0);
@@ -2941,6 +3080,8 @@ namespace ElfbotCompat
 		if(attackWritten && memAttack != g_game.getAttackID() && memAttack != s_lastAttackRequest)
 		{
 			s_lastAttackRequest = memAttack;
+			log("[ElfBotDirect] target write detected red=%u battle=%u alt=%u current=%u",
+				memAttackPrimary, memAttackBattle, memAttackAlt, g_game.getAttackID());
 			if(memAttack == 0)
 			{
 				log("writeback: cancel attack/follow");
@@ -2951,12 +3092,12 @@ namespace ElfbotCompat
 				Creature* c = g_map.getCreatureById(memAttack);
 				if(c)
 				{
-					log("writeback: attack id=%u name=%s", memAttack, c->getName().c_str());
 					g_game.sendAttack(c);
+					log("[ElfBotDirect] bridged attack id=%u found=1 sent=1", memAttack);
 				}
 				else
 				{
-					log("writeback: attack id=%u not in TFC creature map", memAttack);
+					log("[ElfBotDirect] bridged attack id=%u found=0 sent=0", memAttack);
 				}
 			}
 		}
@@ -3109,12 +3250,24 @@ namespace ElfbotCompat
 		log("TFC PID = %lu", GetCurrentProcessId());
 		log("ElfBot mode = direct TFC process");
 		log("Compatibility path = direct in-process memory mirror");
+		log("[ElfBotCompat] mode=direct-tfc");
+		log("[ElfBotCompat] stub=disabled");
 		installCrashHandler();
 		dumpElfbotRelatedModules("init begin");
 		dumpLoadedModules("init() start");
 
-		log("TLS low Tibia range: ok=%u fail=%u firstFail=0x%IX",
-			s_tlsText.ok, s_tlsText.fail, s_tlsText.firstFail);
+		log("TLS direct text range: ok=%u fail=%u firstFail=0x%IX gle=%u",
+			s_tlsText.ok, s_tlsText.fail, s_tlsText.firstFail, s_tlsText.lastError);
+		log("TLS direct data range: ok=%u fail=%u firstFail=0x%IX gle=%u",
+			s_tlsData.ok, s_tlsData.fail, s_tlsData.firstFail, s_tlsData.lastError);
+
+		if(!ensureDirectTibiaMemory())
+		{
+			log("FATAL: direct Tibia 8.60 memory reservation failed.");
+			log("ElfbotCompat::init fail");
+			s_active = false;
+			return false;
+		}
 
 		if(!isLowTibiaRangeReady())
 		{
@@ -3715,10 +3868,10 @@ namespace ElfbotCompat
 			poke<Uint32>(Addr::PLAYER_GOTO_X, 0);
 			poke<Uint32>(Addr::PLAYER_GOTO_Y, 0);
 			poke<Uint32>(Addr::PLAYER_GOTO_Z, 0);
-			// Don't touch g_tibia860ImageShadow directly here -- the
-			// next applyShim()/shimWriteBattleList() pass will overwrite
-			// the slots it owns. Anything we don't own (Tibia's static
-			// resource tables, RSA bytes etc.) must remain intact.
+			// Do not clear the whole 8.60 region here. The next
+			// applyShim()/shimWriteBattleList() pass will overwrite the
+			// slots it owns; static resource tables and RSA bytes must
+			// remain intact.
 			s_prevIngame = ingame;
 			log("session reset: ingame=%d", ingame ? 1 : 0);
 		}
@@ -3818,33 +3971,70 @@ namespace ElfbotCompat
 // pointer below resolves.
 //
 // ntdll's loader invokes it during LdrpInitializeProcess, after the
-// EXE's static-import DLLs have run their DllMain(DLL_PROCESS_ATTACH)
-// but BEFORE the EXE entry point (mainCRTStartup -> CRT init ->
-// global C++ constructors -> main()). This is our one shot at
-// claiming the Tibia 8.60 DATA address ranges before global ctors
-// (g_game, g_map, etc.) or auxiliary thread stacks land on them.
+// EXE image has already been mapped. The elfbot_shadow.cpp image section
+// should therefore have claimed the Tibia 8.60 address range before this
+// callback runs. If it did not, this callback attempts a last early
+// VirtualAlloc fallback before CRT constructors, SDL, or the main loop.
 //
 // Constraints inside a TLS callback:
 //   - The C/C++ runtime is NOT yet initialized -> no CRT calls.
 //   - We must not throw C++ exceptions.
 //   - VirtualAlloc / GetLastError / kernel32 functions ARE safe.
 //
-// Per-cluster ok/fail counts are recorded into ElfbotCompat::s_tlsX so
+// Per-region ok/fail counts are recorded into ElfbotCompat::s_tlsX so
 // init() can log them once CRT I/O is safe.
 // ----------------------------------------------------------------------
+static void tlsReserveDirectRegion(uintptr_t base, SIZE_T size, DWORD protect, ElfbotCompat::TlsResult& result)
+{
+	const SIZE_T GRAN = 0x10000;
+	if(ElfbotCompat::isCommittedRange(base, size))
+	{
+		result.ok = static_cast<Uint32>(size / GRAN);
+		result.fail = 0;
+		result.firstFail = 0;
+		result.lastError = 0;
+		return;
+	}
+
+	LPVOID p = VirtualAlloc(reinterpret_cast<LPVOID>(base), size, MEM_RESERVE | MEM_COMMIT, protect);
+	if(p && reinterpret_cast<uintptr_t>(p) == base)
+	{
+		result.ok = static_cast<Uint32>(size / GRAN);
+		result.fail = 0;
+		result.firstFail = 0;
+		result.lastError = 0;
+		return;
+	}
+
+	result.ok = 0;
+	result.fail = static_cast<Uint32>(size / GRAN);
+	result.firstFail = base;
+	result.lastError = GetLastError();
+	if(p)
+		VirtualFree(p, 0, MEM_RELEASE);
+}
+
 static void NTAPI elfbotTlsCallback(PVOID /*hModule*/, DWORD reason, PVOID /*reserved*/)
 {
 	if(reason != DLL_PROCESS_ATTACH) return;
 	if(ElfbotCompat::s_tlsRan) return;
 	ElfbotCompat::s_tlsRan = true;
 
-	const SIZE_T GRAN = 0x10000;
-	// MUST match the array declaration in elfbot_shadow.cpp.
-	const SIZE_T size = 0x006C0000;
-
+#if defined(_WIN32) && !defined(_WIN64)
 	g_tibia860ImageShadow[0] = 0;
-	g_tibia860ImageShadow[size - 1] = 0;
-	ElfbotCompat::s_tlsText.ok = static_cast<Uint32>(size / GRAN);
+	g_tibia860ImageShadow[0x006C0000 - 1] = 0;
+#endif
+
+	tlsReserveDirectRegion(
+		ElfbotCompat::Addr::REGION_TEXT_BASE,
+		ElfbotCompat::Addr::REGION_TEXT_SIZE,
+		PAGE_EXECUTE_READWRITE,
+		ElfbotCompat::s_tlsText);
+	tlsReserveDirectRegion(
+		ElfbotCompat::Addr::REGION_DATA_BASE,
+		ElfbotCompat::Addr::REGION_DATA_SIZE,
+		PAGE_READWRITE,
+		ElfbotCompat::s_tlsData);
 }
 
 // Register the TLS callback.

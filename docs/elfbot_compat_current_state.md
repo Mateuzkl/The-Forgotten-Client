@@ -8,7 +8,7 @@ Integrated in the main The-Forgotten-Client tree. The original compatibility bas
 - `ElfbotCompat::registerTibiaWindowClass()` registers the Win32 class name `TibiaClient` before SDL creates the real window.
 - `ElfbotCompat::init()` runs very early from `main.cpp`, before the SDL window is created.
 - `ElfbotCompat::sync()` runs once per frame from the main loop after engine update.
-- The fixed Tibia 8.60 address range is reserved through the TLS startup path and then populated by `ElfbotCompat`.
+- The fixed Tibia 8.60 address range is reserved by the Win32 image shadow before imported DLL initialization, then verified by the TLS/init path and populated by `ElfbotCompat`.
 - ElfBot can find the process/window and can read the primary Tibia 8.60 memory layout when injected into the real client.
 
 ## Window and process discovery
@@ -20,6 +20,8 @@ ElfBot looks for a Tibia-style client window. TFC preserves that path by:
 - updating the title to `Tibia - <player name>` after login.
 
 This implementation targets direct TFC mode only: ElfBot attaches to the real TFC/Tibia process and reads the mirrored Tibia 8.60 memory from that process.
+
+The Win32 executable is linked at `0x00140000` with ASLR disabled. `elfbot_shadow.cpp` maps a writable image section through `0x00801000`, so the real TFC process owns the Tibia 8.60 absolute addresses before Windows/runtime low-memory allocations can collide with them. `VirtualAlloc` remains only as an early fallback.
 
 ## Legacy stub path
 

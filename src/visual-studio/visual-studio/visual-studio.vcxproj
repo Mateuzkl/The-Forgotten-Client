@@ -334,7 +334,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>__WIN32__;WIN32;_DEBUG;_WINDOWS;CURL_STATICLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__WIN32__;WIN32;_DEBUG;_WINDOWS;CURL_STATICLIB;ELFBOT_COMPAT_DIRECT_TFC=1;ELFBOT_COMPAT_USE_STUB=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <EnableEnhancedInstructionSet>NoExtensions</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -350,6 +350,7 @@
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <FixedBaseAddress>true</FixedBaseAddress>
       <AdditionalOptions>/SECTION:.text,ERW %(AdditionalOptions)</AdditionalOptions>
+      <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <PostBuildEvent>
       <Command>if not exist "$(OutDir)zlib1.dll" if exist "$(ProjectDir)..\lib32\zlib1.dll" copy /Y "$(ProjectDir)..\lib32\zlib1.dll" "$(OutDir)zlib1.dll"</Command>
@@ -383,7 +384,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>__WIN32__;WIN32;NDEBUG;_WINDOWS;CURL_STATICLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__WIN32__;WIN32;NDEBUG;_WINDOWS;CURL_STATICLIB;ELFBOT_COMPAT_DIRECT_TFC=1;ELFBOT_COMPAT_USE_STUB=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
@@ -405,6 +406,7 @@
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <FixedBaseAddress>true</FixedBaseAddress>
       <AdditionalOptions>/SECTION:.text,ERW %(AdditionalOptions)</AdditionalOptions>
+      <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <PostBuildEvent>
       <Command>if not exist "$(OutDir)zlib1.dll" if exist "$(ProjectDir)..\lib32\zlib1.dll" copy /Y "$(ProjectDir)..\lib32\zlib1.dll" "$(OutDir)zlib1.dll"</Command>

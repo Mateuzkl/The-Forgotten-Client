@@ -21,17 +21,29 @@
       there are writable, but the calls go nowhere.
 
   IMPORTANT BUILD REQUIREMENT (Win32 only):
-    The PE image base must be moved OUT of the Tibia 8.60 data range
-    (0x400000 - 0x800000). The visual-studio.vcxproj sets
-    <BaseAddress>0x10000000</BaseAddress> for Win32 builds so our own
-    .text/.data sections don't collide with the regions we reserve here.
-    ASLR (RandomizedBaseAddress) must also be disabled.
+    The PE image base is 0x00140000 and elfbot_shadow.cpp maps a writable
+    image shadow through 0x00801000 before normal .text/.data sections.
+    This makes the process own Tibia 8.60's absolute range before imported
+    DLLs can allocate low memory. ASLR (RandomizedBaseAddress) must also
+    be disabled.
 */
 
 #ifndef __FILE_ELFBOT_COMPAT_h_
 #define __FILE_ELFBOT_COMPAT_h_
 
 #include "defines.h"
+
+#ifndef ELFBOT_COMPAT_DIRECT_TFC
+#define ELFBOT_COMPAT_DIRECT_TFC 1
+#endif
+
+#ifndef ELFBOT_COMPAT_USE_STUB
+#define ELFBOT_COMPAT_USE_STUB 0
+#endif
+
+#if ELFBOT_COMPAT_DIRECT_TFC && ELFBOT_COMPAT_USE_STUB
+#error "ElfBot compatibility cannot use Direct TFC and Stub modes at the same time."
+#endif
 
 namespace ElfbotCompat
 {
