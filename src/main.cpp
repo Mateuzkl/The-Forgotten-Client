@@ -24,6 +24,7 @@
 #include "cursors.h"
 #include "connection.h"
 #include "http.h"
+#include "elfbot_compat.h"
 
 #include <curl/curl.h>
 #include <cstdarg>
@@ -393,6 +394,8 @@ int main(int argc, char* argv[])
 	startupDebugLog("main: start argc=%d", argc);
 	SDL_initFramerate(&g_fpsmanager);
 	startupDebugLog("main: framerate initialized");
+	ElfbotCompat::init();
+	ElfbotCompat::registerTibiaWindowClass();
 
 	if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER) < 0)
 	{
@@ -750,6 +753,8 @@ int main(int argc, char* argv[])
 			if(g_connection)
 				g_connection->updateConnection();
 
+			ElfbotCompat::sync();
+
 			if(!g_active)
 			{
 				//Let's maintain a little CPU usage to check for events(maybe we will be restored?)
@@ -767,6 +772,7 @@ int main(int argc, char* argv[])
 		delete g_connection;
 
 	g_engine.terminate();
+	ElfbotCompat::shutdown();
 	curl_global_cleanup();
 	SDL_Quit();
 	return 0;

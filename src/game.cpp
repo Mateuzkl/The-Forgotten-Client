@@ -28,6 +28,7 @@
 #include "protocolfeatures.h"
 #include "automap.h"
 #include "container.h"
+#include "elfbot_compat.h"
 
 #include "GUI/itemUI.h"
 #include "GUI/Chat.h"
@@ -471,6 +472,8 @@ void Game::processEditHouseWindow(Uint8 doorId, Uint32 windowId, const std::stri
 
 void Game::processTextMessage(MessageMode mode, const std::string& text, Uint32 channelId)
 {
+	ElfbotCompat::recordTextMessage(text.c_str(), "", mode == MessageLook);
+
 	switch(mode)
 	{
 		case MessageChannelManagement:

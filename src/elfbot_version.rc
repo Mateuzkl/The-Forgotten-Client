@@ -1,0 +1,43 @@
+// Win32 VS_VERSION_INFO matching Tibia 8.60 exactly.
+//
+// ElfFixer.exe reads the PE's VS_VERSION_INFO resource and rejects
+// any binary whose FileVersion / ProductName / CompanyName / etc.
+// doesn't match the Tibia 8.60 fingerprint it expects. This resource
+// block makes The Forgotten Client present the same version metadata
+// as the real cipsoft Tibia.exe so ElfFixer's pre-flight check
+// passes.
+//
+// Every string is copied verbatim from D:\...\8.60\Tibia.exe's
+// VS_VERSION_INFO. Language/codepage key 000004B0 = LANG_NEUTRAL +
+// Unicode (1200). The Translation entry is { 0x0000, 0x04B0 }.
+
+#include <winver.h>
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION    8,60,0,0
+ PRODUCTVERSION 8,60,0,0
+ FILEFLAGSMASK  VS_FFI_FILEFLAGSMASK
+ FILEFLAGS      0x0L
+ FILEOS         VOS_NT_WINDOWS32
+ FILETYPE       VFT_APP
+ FILESUBTYPE    VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "000004B0"
+        BEGIN
+            VALUE "CompanyName",      "CipSoft GmbH"
+            VALUE "FileDescription",  "Tibia Player"
+            VALUE "FileVersion",      "8.60"
+            VALUE "InternalName",     "Player"
+            VALUE "LegalCopyright",   "Copyright (C) CipSoft GmbH 2002-2010"
+            VALUE "OriginalFilename", "Tibia.exe"
+            VALUE "ProductName",      "Tibia Player"
+            VALUE "ProductVersion",   "8.60"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0000, 0x04B0
+    END
+END
