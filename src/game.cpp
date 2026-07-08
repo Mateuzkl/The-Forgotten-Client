@@ -593,6 +593,20 @@ void Game::processWalkCancel(Direction direction)
 	Creature* player = g_map.getLocalCreature();
 	if(player)
 	{
+		if(direction != DIRECTION_INVALID && player->getWalkDirection() == direction)
+		{
+			if(player->isPreWalking())
+			{
+				// Server aborted the walk, but we are visually moving; retry without breaking the animation.
+				sendWalk(direction);
+				return;
+			}
+			else if(player->isWalking())
+			{
+				return;
+			}
+		}
+
 		player->stopMove();
 		player->turnDirection(direction);
 	}
