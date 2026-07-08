@@ -1095,10 +1095,7 @@ namespace ElfbotCompat
 
 		if(!tibiaLoaded)
 		{
-			Uint32* low = reinterpret_cast<Uint32*>(0x00400000);
-			for(SIZE_T i = 0; i < 0x00400000 / sizeof(Uint32); ++i)
-				low[i] = selfAddr;
-			log("initTibiaPointerSlots: low memory prefilled with safe pointer");
+			log("initTibiaPointerSlots: Tibia860.exe not loaded; skipping bulk low-memory prefill");
 		}
 
 		// Original Tibia wrappers call these WS2_32 IAT slots:
