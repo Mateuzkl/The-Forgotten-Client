@@ -71,7 +71,7 @@
 
 - [ ] Relog does not crash.
 - [ ] Closing ElfBot does not crash TFC.
-- [ ] Closing TFC exits or detaches the stub path cleanly if the stub path is active.
+- [ ] Closing TFC exits cleanly with ElfBot attached.
 - [ ] Logs do not spam every frame.
 - [ ] Win32 Release build succeeds.
 - [ ] Win32 Debug build succeeds if available.

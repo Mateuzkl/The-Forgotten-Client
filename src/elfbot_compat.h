@@ -75,6 +75,10 @@ namespace ElfbotCompat
 	// dropped. Includes a millisecond timestamp.
 	void log(const char* fmt, ...);
 
+	// Write a bounded snapshot of the current mirrored state. This is
+	// intentionally explicit and does not run every frame.
+	void dumpState();
+
 	// Install SetUnhandledExceptionFilter so any AV/illegal-instruction
 	// originating from elfbot.dll (or anywhere else) writes a crash
 	// dump line to elfbot_compat.log before the process dies. Called

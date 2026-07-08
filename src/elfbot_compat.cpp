@@ -45,16 +45,14 @@
 #include "protocolgame.h"
 #include "GUI/itemUI.h"
 
-// Shared-memory IPC contract with TibiaStub.exe. The stub is a separate
-// process whose PE image covers the Tibia 8.60 address range, since
-// Win10's process layout makes that range unreachable from inside TFC.
-#include "../tibiastub/tibia_shim_ipc.h"
+#include "tibia860_compat_layout.h"
 
 #include <cstring>
 #include <cstdio>
 #include <cstdarg>
 #include <string>
 #include <vector>
+#include <algorithm>
 #include <share.h>
 #include <climits>
 
@@ -139,11 +137,6 @@ namespace ElfbotCompat
 	};
 	static std::vector<WatchRange> s_watchRanges;
 
-	// Stub IPC state.
-	static HANDLE              s_shimMapping    = NULL;   // file mapping
-	static TibiaShimBlock*     s_shim           = NULL;   // mapped view, writable
-	static PROCESS_INFORMATION s_stubProcInfo   = {0};    // spawned stub
-	static bool                s_stubLaunched   = false;
 	static Uint32              s_frameCounter   = 0;
 
 	static void dumpElfbotRelatedModules(const char* tag);
@@ -886,7 +879,7 @@ namespace ElfbotCompat
 			return;
 
 		Uint16 plainLen = readLe16(&plain[0]);
-		if(plainLen == 0 || plainLen + 2 > plain.size())
+		if(plainLen == 0 || static_cast<size_t>(plainLen) + 2u > plain.size())
 			return;
 
 		const unsigned char* payload = &plain[2];
@@ -2252,7 +2245,13 @@ namespace ElfbotCompat
 			poke<Uint32>(base + Addr::C_OFF_IS_WALKING, c.isWalking);
 			poke<Uint32>(base + Addr::C_OFF_DIRECTION, c.direction);
 			poke<Uint32>(base + Addr::C_OFF_OUTFIT, c.outfit);
+			poke<Uint32>(base + Addr::C_OFF_COLOR_HEAD, c.colorHead);
+			poke<Uint32>(base + Addr::C_OFF_COLOR_BODY, c.colorBody);
+			poke<Uint32>(base + Addr::C_OFF_COLOR_LEGS, c.colorLegs);
+			poke<Uint32>(base + Addr::C_OFF_COLOR_FEET, c.colorFeet);
+			poke<Uint32>(base + Addr::C_OFF_ADDON, c.addon);
 			poke<Uint32>(base + Addr::C_OFF_LIGHT, c.light);
+			poke<Uint32>(base + Addr::C_OFF_LIGHT_COLOR, c.lightColor);
 			poke<Uint32>(base + Addr::C_OFF_BLACK_SQUARE, c.blackSquare);
 			poke<Uint8 >(base + Addr::C_OFF_HP_BAR, c.hpBar);
 			poke<Uint32>(base + Addr::C_OFF_WALK_SPEED, c.walkSpeed);
@@ -3101,125 +3100,6 @@ namespace ElfbotCompat
 			peek<Uint32>(Addr::PLAYER_Z));
 	}
 
-	// ---- helper: spawn TibiaStub.exe ----------------------------------
-	// Looks for TibiaStub.exe next to TFC.exe. Launches it as a child.
-	// The stub will OpenFileMapping our shim section, then sit forever
-	// copying shim -> Tibia 8.60 absolute addresses inside ITS process.
-	static void terminateExistingStubs(const char* stubPath)
-	{
-		DWORD pids[1024];
-		DWORD needed = 0;
-		if(!EnumProcesses(pids, sizeof(pids), &needed))
-			return;
-
-		DWORD count = needed / sizeof(DWORD);
-		for(DWORD i = 0; i < count; ++i)
-		{
-			DWORD pid = pids[i];
-			if(pid == 0 || pid == GetCurrentProcessId())
-				continue;
-
-			HANDLE h = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ | PROCESS_TERMINATE, FALSE, pid);
-			if(!h)
-				continue;
-
-			char path[MAX_PATH] = {0};
-			if(GetModuleFileNameExA(h, NULL, path, MAX_PATH) && _stricmp(path, stubPath) == 0)
-			{
-				log("spawnStub: terminating stale stub PID=%lu", pid);
-				TerminateProcess(h, 0);
-				WaitForSingleObject(h, 1000);
-			}
-			CloseHandle(h);
-		}
-	}
-
-	static bool spawnStub()
-	{
-		char tfcPath[MAX_PATH] = {0};
-		if(!GetModuleFileNameA(NULL, tfcPath, MAX_PATH))
-		{
-			log("spawnStub: GetModuleFileNameA failed (GLE=%lu)", GetLastError());
-			return false;
-		}
-		char* slash = std::strrchr(tfcPath, '\\');
-		if(!slash) slash = std::strrchr(tfcPath, '/');
-		if(slash) *(slash + 1) = '\0';
-		else      tfcPath[0]   = '\0';
-
-		char stubPath[MAX_PATH] = {0};
-		_snprintf_s(stubPath, sizeof(stubPath), _TRUNCATE,
-			"%sTibiaStub.exe", tfcPath);
-
-		log("spawnStub: launching %s", stubPath);
-		terminateExistingStubs(stubPath);
-
-		STARTUPINFOA si;
-		std::memset(&si, 0, sizeof(si));
-		si.cb = sizeof(si);
-		std::memset(&s_stubProcInfo, 0, sizeof(s_stubProcInfo));
-
-		BOOL ok = CreateProcessA(
-			stubPath,    // lpApplicationName
-			NULL,        // lpCommandLine
-			NULL, NULL,
-			FALSE,       // bInheritHandles
-			0,           // dwCreationFlags
-			NULL,        // lpEnvironment
-			tfcPath,     // lpCurrentDirectory
-			&si,
-			&s_stubProcInfo);
-		if(!ok)
-		{
-			log("spawnStub: CreateProcess failed (GLE=%lu) -- ElfBot will "
-			    "have to be pointed at this TFC process directly, but it "
-			    "will then crash for the usual Win10 layout reasons.",
-			    GetLastError());
-			return false;
-		}
-		log("spawnStub: stub PID=%lu", s_stubProcInfo.dwProcessId);
-		return true;
-	}
-
-	// ---- helper: create the shared-memory shim section ----------------
-	static bool createShim()
-	{
-		s_shimMapping = CreateFileMappingA(
-			INVALID_HANDLE_VALUE,    // page-file backed (no real file)
-			NULL,
-			PAGE_READWRITE,
-			0, sizeof(TibiaShimBlock),
-			TIBIA_SHIM_NAME);
-		if(!s_shimMapping)
-		{
-			log("createShim: CreateFileMapping failed (GLE=%lu)", GetLastError());
-			return false;
-		}
-		bool created = (GetLastError() != ERROR_ALREADY_EXISTS);
-
-		s_shim = static_cast<TibiaShimBlock*>(MapViewOfFile(
-			s_shimMapping, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(TibiaShimBlock)));
-		if(!s_shim)
-		{
-			log("createShim: MapViewOfFile failed (GLE=%lu)", GetLastError());
-			CloseHandle(s_shimMapping); s_shimMapping = NULL;
-			return false;
-		}
-
-		if(created)
-			std::memset(s_shim, 0, sizeof(TibiaShimBlock));
-
-		s_shim->magic   = 0x48535442u;  // 'TBSH' little-endian
-		s_shim->version = TIBIA_SHIM_VERSION;
-		s_shim->tfcPid  = GetCurrentProcessId();
-		s_shim->frame   = 0;
-		s_shim->status  = 0;
-
-		log("createShim: section=%p view=%p size=0x%X", s_shimMapping, s_shim,
-			static_cast<unsigned>(sizeof(TibiaShimBlock)));
-		return true;
-	}
-
 	// ---- init --------------------------------------------------------
 	bool init()
 	{
@@ -3227,7 +3107,13 @@ namespace ElfbotCompat
 		// Open the log file and install the crash filter FIRST so any
 		// fault during the rest of init() is captured.
 		openLogFile();
+		log("TFC started");
+		log("ElfbotCompat::init begin");
+		log("TFC PID = %lu", GetCurrentProcessId());
+		log("ElfBot mode = direct TFC process");
+		log("Compatibility path = direct in-process memory mirror");
 		installCrashHandler();
+		dumpElfbotRelatedModules("init begin");
 		dumpLoadedModules("init() start");
 
 		log("TLS low Tibia range: ok=%u fail=%u firstFail=0x%IX",
@@ -3236,6 +3122,7 @@ namespace ElfbotCompat
 		if(!isLowTibiaRangeReady())
 		{
 			log("FATAL: 0x00400000..0x00800000 was not reserved inside Tibia.exe.");
+			log("ElfbotCompat::init fail");
 			s_active = false;
 			return false;
 		}
@@ -3245,11 +3132,14 @@ namespace ElfbotCompat
 		if(!initTibiaPointerSlots(tibiaLoaded))
 		{
 			log("FATAL: Tibia pointer slots could not be initialised.");
+			log("ElfbotCompat::init fail");
 			s_active = false;
 			return false;
 		}
 
 		s_active = true;
+		log("ElfbotCompat::init success");
+		log("sync active = true");
 		log("init() OK -- in-process ElfBot mode; s_active=true");
 		return true;
 #else
@@ -3261,9 +3151,7 @@ namespace ElfbotCompat
 
 	void shutdown()
 	{
-#ifdef _WIN32
-		if(s_shim)        { UnmapViewOfFile(s_shim); s_shim = NULL; }
-		if(s_shimMapping) { CloseHandle(s_shimMapping); s_shimMapping = NULL; }
+	#ifdef _WIN32
 		if(s_tibiaHwnd && !s_tibiaHwndIsRealWindow)
 			DestroyWindow(s_tibiaHwnd);
 		s_tibiaHwnd = NULL;
@@ -3286,6 +3174,7 @@ namespace ElfbotCompat
 	void registerTibiaWindowClass()
 	{
 #ifdef _WIN32
+		log("registerTibiaWindowClass begin");
 		HINSTANCE hInst = GetModuleHandleW(NULL);
 		static bool s_attemptedRegister = false;
 		if(!s_attemptedRegister)
@@ -3302,7 +3191,10 @@ namespace ElfbotCompat
 		std::memset(&wc, 0, sizeof(wc));
 		wc.cbSize = sizeof(wc);
 		if(GetClassInfoExW(hInst, L"TibiaClient", &wc))
+		{
+			log("Window class TibiaClient registered");
 			log("registerTibiaWindowClass: class TibiaClient is registered");
+		}
 		else
 			log("registerTibiaWindowClass: class TibiaClient missing GLE=%lu", GetLastError());
 
@@ -3314,11 +3206,10 @@ namespace ElfbotCompat
 #endif
 	}
 
-	// ---- per-frame sync into the shared-memory shim ------------------
+	// ---- per-frame sync into the Tibia 8.60 mirror --------------------
 	// Each frame we serialize g_game's player state, the known creature
-	// list, containers, etc. into the TibiaShimBlock the stub maps. The
-	// stub copies it from there to the Tibia 8.60 absolute addresses
-	// inside its own process.
+	// list, containers, etc. into a snapshot, then write it to the fixed
+	// Tibia 8.60 addresses inside the real TFC process.
 
 	static void writeFixedStr(char* dst, const std::string& s, size_t maxLen)
 	{
@@ -3520,17 +3411,43 @@ namespace ElfbotCompat
 			slot = 1;
 		}
 
+		Position selfPos = self ? self->getCurrentPosition() : g_map.getCentralPosition();
+		std::vector<Creature*> orderedCreatures;
+		orderedCreatures.reserve(249);
 		knownCreatures& kc = g_map.getKnownCreatures();
 		for(knownCreatures::iterator it = kc.begin(); it != kc.end(); ++it)
 		{
-			if(slot >= 250) break;
 			Creature* c = it->second;
-			if(!c || c == self) continue;
-			shimWriteCreature(shim->creatures[slot], c);
+			if(!c || c == self)
+				continue;
+			orderedCreatures.push_back(c);
+		}
+
+		std::sort(orderedCreatures.begin(), orderedCreatures.end(),
+			[&selfPos](Creature* a, Creature* b)
+			{
+				Position& ap = a->getCurrentPosition();
+				Position& bp = b->getCurrentPosition();
+				Uint32 floorA = (ap.z == selfPos.z) ? 0u : 1u;
+				Uint32 floorB = (bp.z == selfPos.z) ? 0u : 1u;
+				if(floorA != floorB)
+					return floorA < floorB;
+
+				Uint32 distA = deltaAbs(ap.x, selfPos.x) + deltaAbs(ap.y, selfPos.y) + deltaAbs(ap.z, selfPos.z) * 1000u;
+				Uint32 distB = deltaAbs(bp.x, selfPos.x) + deltaAbs(bp.y, selfPos.y) + deltaAbs(bp.z, selfPos.z) * 1000u;
+				if(distA != distB)
+					return distA < distB;
+
+				return a->getId() < b->getId();
+			});
+
+		for(std::vector<Creature*>::iterator it = orderedCreatures.begin(); it != orderedCreatures.end() && slot < 250; ++it)
+		{
+			shimWriteCreature(shim->creatures[slot], *it);
 			++slot;
 		}
 
-		// Zero remaining slots so the stub can copy a known-clean block.
+		// Zero remaining slots so direct memory reads see a known-clean block.
 		for(uint32_t i = slot; i < 250; ++i)
 			std::memset(&shim->creatures[i], 0, sizeof(TibiaShimCreature));
 
@@ -3566,6 +3483,193 @@ namespace ElfbotCompat
 				d.firstItemCount = 0;
 			}
 		}
+	}
+
+	static Uint32 shimContainerCount(const TibiaShimBlock* shim)
+	{
+		Uint32 count = 0;
+		for(int i = 0; i < 16; ++i)
+		{
+			if(shim->containers[i].isOpen != 0)
+				++count;
+		}
+		return count;
+	}
+
+	static void logStateChanges(const TibiaShimBlock* shim)
+	{
+		static bool s_haveState = false;
+		static Uint32 s_status = 0xFFFFFFFFu;
+		static Uint32 s_playerId = 0xFFFFFFFFu;
+		static Uint32 s_health = 0xFFFFFFFFu;
+		static Uint32 s_healthMax = 0xFFFFFFFFu;
+		static Uint32 s_mana = 0xFFFFFFFFu;
+		static Uint32 s_manaMax = 0xFFFFFFFFu;
+		static Uint16 s_level = 0xFFFFu;
+		static Uint32 s_posX = 0xFFFFFFFFu;
+		static Uint32 s_posY = 0xFFFFFFFFu;
+		static Uint32 s_posZ = 0xFFFFFFFFu;
+		static Uint32 s_attackId = 0xFFFFFFFFu;
+		static Uint32 s_followId = 0xFFFFFFFFu;
+		static Uint32 s_creatureCount = 0xFFFFFFFFu;
+		static Uint32 s_containerCount = 0xFFFFFFFFu;
+		static char s_name[32] = {0};
+
+		const TibiaShimCreature& self = shim->creatures[0];
+		Uint32 containerCount = shimContainerCount(shim);
+		const char* name = self.name[0] ? self.name : "";
+
+		if(!s_haveState)
+		{
+			s_haveState = true;
+			log("[ElfBotCompat] sync active = true");
+			log("[ElfBotCompat] initial state status=%u playerId=%u name=%s hp=%u/%u mana=%u/%u level=%u pos=%u,%u,%u creatures=%u containers=%u",
+				shim->status,
+				shim->player.id,
+				name[0] ? name : "<empty>",
+				shim->player.health,
+				shim->player.healthMax,
+				shim->player.mana,
+				shim->player.manaMax,
+				static_cast<unsigned>(shim->player.level),
+				self.x,
+				self.y,
+				self.z,
+				shim->creatureCount,
+				containerCount);
+		}
+
+		if(shim->status != s_status)
+		{
+			log("[ElfBotCompat] status changed %u -> %u", s_status, shim->status);
+			if(shim->status == 8)
+				log("[ElfBotCompat] Player login detected");
+			else if(s_status == 8)
+				log("[ElfBotCompat] Player logout detected");
+			s_status = shim->status;
+		}
+
+		if(shim->player.id != s_playerId)
+		{
+			log("[ElfBotCompat] Player id changed %u -> %u", s_playerId, shim->player.id);
+			s_playerId = shim->player.id;
+		}
+
+		if(std::strncmp(s_name, name, sizeof(s_name) - 1) != 0)
+		{
+			log("[ElfBotCompat] Player name changed '%s' -> '%s'", s_name[0] ? s_name : "<empty>", name[0] ? name : "<empty>");
+			strncpy_s(s_name, sizeof(s_name), name, _TRUNCATE);
+			s_name[sizeof(s_name) - 1] = '\0';
+		}
+
+		if(shim->player.health != s_health || shim->player.healthMax != s_healthMax)
+		{
+			log("[ElfBotCompat] HP changed %u/%u -> %u/%u", s_health, s_healthMax, shim->player.health, shim->player.healthMax);
+			s_health = shim->player.health;
+			s_healthMax = shim->player.healthMax;
+		}
+
+		if(shim->player.mana != s_mana || shim->player.manaMax != s_manaMax)
+		{
+			log("[ElfBotCompat] Mana changed %u/%u -> %u/%u", s_mana, s_manaMax, shim->player.mana, shim->player.manaMax);
+			s_mana = shim->player.mana;
+			s_manaMax = shim->player.manaMax;
+		}
+
+		if(shim->player.level != s_level)
+		{
+			log("[ElfBotCompat] Level changed %u -> %u", static_cast<unsigned>(s_level), static_cast<unsigned>(shim->player.level));
+			s_level = shim->player.level;
+		}
+
+		if(self.x != s_posX || self.y != s_posY || self.z != s_posZ)
+		{
+			log("[ElfBotCompat] Position changed %u,%u,%u -> %u,%u,%u", s_posX, s_posY, s_posZ, self.x, self.y, self.z);
+			s_posX = self.x;
+			s_posY = self.y;
+			s_posZ = self.z;
+		}
+
+		if(shim->player.targetId != s_attackId)
+		{
+			log("[ElfBotCompat] Attack id changed %u -> %u", s_attackId, shim->player.targetId);
+			s_attackId = shim->player.targetId;
+		}
+
+		if(shim->player.followId != s_followId)
+		{
+			log("[ElfBotCompat] Follow id changed %u -> %u", s_followId, shim->player.followId);
+			s_followId = shim->player.followId;
+		}
+
+		if(shim->creatureCount != s_creatureCount)
+		{
+			log("[ElfBotCompat] Creature count changed %u -> %u", s_creatureCount, shim->creatureCount);
+			s_creatureCount = shim->creatureCount;
+		}
+
+		if(containerCount != s_containerCount)
+		{
+			log("[ElfBotCompat] Container count changed %u -> %u", s_containerCount, containerCount);
+			s_containerCount = containerCount;
+		}
+	}
+
+	void dumpState()
+	{
+#ifdef _WIN32
+		TibiaShimBlock shim;
+		std::memset(&shim, 0, sizeof(shim));
+		shim.magic = 0x48535442u;
+		shim.version = TIBIA_SHIM_VERSION;
+		shim.tfcPid = GetCurrentProcessId();
+		shim.status = (g_engine.isIngame() && g_game.getPlayerID() != 0) ? 8u : 0u;
+		shimWriteClientWindow(&shim);
+		if(shim.status == 8)
+		{
+			shimWritePlayer(&shim);
+			shimWriteBattleList(&shim);
+			shimWriteContainers(&shim);
+		}
+
+		Uint32 containerCount = shimContainerCount(&shim);
+		const TibiaShimCreature& self = shim.creatures[0];
+		log("[ElfBotCompat] dumpState active=%d mode=direct-tfc status=%u playerId=%u name=%s hp=%u/%u mana=%u/%u level=%u pos=%u,%u,%u attack=%u follow=%u creatures=%u containers=%u",
+			s_active ? 1 : 0,
+			shim.status,
+			shim.player.id,
+			self.name[0] ? self.name : "<empty>",
+			shim.player.health,
+			shim.player.healthMax,
+			shim.player.mana,
+			shim.player.manaMax,
+			static_cast<unsigned>(shim.player.level),
+			self.x,
+			self.y,
+			self.z,
+			shim.player.targetId,
+			shim.player.followId,
+			shim.creatureCount,
+			containerCount);
+
+		Uint32 creatureLimit = shim.creatureCount < 10 ? shim.creatureCount : 10;
+		for(Uint32 i = 0; i < creatureLimit; ++i)
+		{
+			const TibiaShimCreature& c = shim.creatures[i];
+			log("[ElfBotCompat] dump creature[%u] id=%u name=%s pos=%u,%u,%u hp=%u visible=%u",
+				i, c.id, c.name[0] ? c.name : "<empty>", c.x, c.y, c.z, c.hpBar, c.isVisible);
+		}
+
+		for(int i = 0, printed = 0; i < 16 && printed < 5; ++i)
+		{
+			const TibiaShimContainer& c = shim.containers[i];
+			if(c.isOpen == 0)
+				continue;
+			log("[ElfBotCompat] dump container[%d] id=%u name=%s volume=%u amount=%u first=%u/%u",
+				i, c.id, c.name[0] ? c.name : "<empty>", c.volume, c.amount, c.firstItemId, c.firstItemCount);
+			++printed;
+		}
+#endif
 	}
 
 	void sync()
@@ -3628,6 +3732,8 @@ namespace ElfbotCompat
 		// session.
 		if(!ingame)
 		{
+			localShim.status = 0;
+			logStateChanges(&localShim);
 			hasPublishedFrame = false;
 			return;
 		}
@@ -3692,6 +3798,7 @@ namespace ElfbotCompat
 		writeFixedStr(localShim.lastMessageAuthor, s_lastMessageAuthor, sizeof(localShim.lastMessageAuthor));
 
 		localShim.status = (g_game.getPlayerID() != 0) ? 8u : 0u;
+		logStateChanges(&localShim);
 		updateNativeClientTitle(&localShim);
 
 		MemoryBarrier();

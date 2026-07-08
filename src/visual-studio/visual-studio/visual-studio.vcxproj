@@ -154,6 +154,7 @@
     <ClInclude Include="..\..\distanceEffect.h" />
     <ClInclude Include="..\..\effect.h" />
     <ClInclude Include="..\..\elfbot_compat.h" />
+    <ClInclude Include="..\..\tibia860_compat_layout.h" />
     <ClInclude Include="..\..\engine.h" />
     <ClInclude Include="..\..\game.h" />
     <ClInclude Include="..\..\GUI\BattleWindow.h" />
@@ -257,7 +258,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -272,7 +273,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
@@ -349,7 +350,7 @@
       <AdditionalOptions>/SECTION:.text,ERW %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PostBuildEvent>
-      <Command>copy /Y "$(ProjectDir)..\lib32\zlib1.dll" "$(OutDir)zlib1.dll"</Command>
+      <Command>if exist "$(ProjectDir)..\lib32\zlib1.dll" (copy /Y "$(ProjectDir)..\lib32\zlib1.dll" "$(OutDir)zlib1.dll") else (echo zlib1.dll not found; skipping copy)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -404,7 +405,7 @@
       <AdditionalOptions>/SECTION:.text,ERW %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PostBuildEvent>
-      <Command>copy /Y "$(ProjectDir)..\lib32\zlib1.dll" "$(OutDir)zlib1.dll"</Command>
+      <Command>if exist "$(ProjectDir)..\lib32\zlib1.dll" (copy /Y "$(ProjectDir)..\lib32\zlib1.dll" "$(OutDir)zlib1.dll") else (echo zlib1.dll not found; skipping copy)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

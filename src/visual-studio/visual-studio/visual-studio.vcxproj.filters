@@ -392,6 +392,9 @@
     <ClInclude Include="..\..\elfbot_compat.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\tibia860_compat_layout.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\connection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
